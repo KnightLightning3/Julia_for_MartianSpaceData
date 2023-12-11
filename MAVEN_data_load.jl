@@ -1,5 +1,5 @@
 # 读取和计算MAVEN数据
-
+# 使用data_get_from_date函数做全局读取
 module MAVEN_data_load
 using PyCall
 cdflib = pyimport("cdflib")
@@ -73,7 +73,9 @@ function load_swea_spec(file; No_NaN=false);
     energy_arr = convert(Array{Float64,1}, (get(data,"energy")))
     flux_arr  = convert(Array{Float64,2},(get(data,"diff_en_fluxes")))
     if No_NaN
+        if No_NaN
         flux_arr[flux_arr .<= 1e-10] .= 1e-10
+    end
     end
     return [times_num, energy_arr, flux_arr]
 end
@@ -82,8 +84,9 @@ function load_WaveSpactra(file;No_NaN=false);
     epoch     =  unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     freq      =  convert(Array{Float64,2}, (get(data,"freq")))
     wave_data =  convert(Array{Float64,2},(get(data,"data")))
-    if No_NaN
-        wave_data[wave_data .<= 1e-20] .= 1e-20
+    if No_NaN    if No_NaN
+            wave_data[wave_data .<= 1e-20] .= 1e-20
+    end
     end
     
     return [epoch, freq, wave_data]
@@ -122,7 +125,7 @@ function load_mag(file);
     alt=convert(Array{Float64,1}, alt)
     return [times_num, B_total,B_mso,local_time,latitude, alt,position_mso ]
 end
-function load_static(file; No_NaN=false)
+function load_static(file; No_NaN=false; No_NaN=false)
     data   = cdflib.cdfread.CDF(file)
     epoch  = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     energy = convert(Array{Float64,3}, (get(data,"energy")))     # Nmass,Nenergy,Nswp
@@ -132,6 +135,9 @@ function load_static(file; No_NaN=false)
     eflux  = convert(Array{Float64,3}, (get(data,"eflux")))      # N_DISTS,Nmass,Nenergy
     nswp   = convert(Array{Int32,1},   (get(data,"swp_ind")))    # Nswp_ind
     
+    if No_NaN
+        eflux[eflux .<= 1e-10] .= 1e-10
+    end
     if No_NaN
         eflux[eflux .<= 1e-10] .= 1e-10
     end
@@ -202,8 +208,31 @@ function load_lpw_wn(file)
     datas       = convert(Array{Float64,1}, (get(data,"data")))
     return times_num,datas
 end
+function load_sc_potential(file)
+    data        = cdflib.cdfread.CDF(file)
+    times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
+    potential  = convert(Array{Float64,1}, (get(data,"data")))
+    return [times_num,potential]
+end
+function load_swea_pad(file;  No_NaN = false)
+    data        = cdflib.cdfread.CDF(file)
+    times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
+    energy_arr  = convert(Array{Float64,1}, (get(data,"energy")))
+    g_engy      = convert(Array{Float64,1}, (get(data,"g_engy")))
+    flux        = convert(Array{Float64,3}, (get(data,"diff_en_fluxes")))
+    pitch_angle = convert(Array{Float64,3}, (get(data,"pa")))
+    g_pa        = convert(Array{Float64,3}, (get(data,"g_pa")))
+    # pitch_angle = (pitch_angle[:, 1:8, :] .+ pitch_angle[:, 16:-1:9, :]) ./ 2
+    
+    # g_pa = (g_pa[:, 1:8, :] .+ g_pa[:, 16:-1:9, :]) ./ 2
+    # flux        = (flux[:, 1:8, :] .+ flux[:, 16:-1:9, :]) ./ 2
+    if No_NaN
+        flux[flux .<= 1e-10] .= 1e-10
+    end
+    return [times_num, pitch_angle,energy_arr, flux, g_pa, g_engy]
+end
 
-
+## 数据处理
 function caculate_static(data;model="total",mass_range=[0,0])
     epoch,energy,eflux,swp_arr,AMU_arr,denergy = data;
 
@@ -242,29 +271,6 @@ function caculate_static(data;model="total",mass_range=[0,0])
     eflux_mass = sum(eflux_mass,dims=2); eflux_mass=eflux_mass[:,1,:]
     
     return [energy_mass,eflux_mass]
-end
-function load_sc_potential(file)
-    data        = cdflib.cdfread.CDF(file)
-    times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
-    potential  = convert(Array{Float64,1}, (get(data,"data")))
-    return [times_num,potential]
-end
-function load_swea_pad(file;  No_NaN = false)
-    data        = cdflib.cdfread.CDF(file)
-    times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
-    energy_arr  = convert(Array{Float64,1}, (get(data,"energy")))
-    g_engy      = convert(Array{Float64,1}, (get(data,"g_engy")))
-    flux        = convert(Array{Float64,3}, (get(data,"diff_en_fluxes")))
-    pitch_angle = convert(Array{Float64,3}, (get(data,"pa")))
-    g_pa        = convert(Array{Float64,3}, (get(data,"g_pa")))
-    # pitch_angle = (pitch_angle[:, 1:8, :] .+ pitch_angle[:, 16:-1:9, :]) ./ 2
-    
-    # g_pa = (g_pa[:, 1:8, :] .+ g_pa[:, 16:-1:9, :]) ./ 2
-    # flux        = (flux[:, 1:8, :] .+ flux[:, 16:-1:9, :]) ./ 2
-    if No_NaN
-        flux[flux .<= 1e-10] .= 1e-10
-    end
-    return [times_num, pitch_angle,energy_arr, flux, g_pa, g_engy]
 end
 function carclu_SWEA_pad(data; energy_range=[])
     times_num, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data
