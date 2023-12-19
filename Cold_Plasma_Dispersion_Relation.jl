@@ -9,7 +9,7 @@ global Nparticles
 global Ω_n
 global Π_2
 
-function set_particles(ion_rate=[],ion_mass=[])
+function set_particles(;ion_rate=[],ion_mass=[])
   ion_rate = ion_rate
   ion_mass = ion_mass
   particles= 1.0 ./ [1.0,ion_mass...]

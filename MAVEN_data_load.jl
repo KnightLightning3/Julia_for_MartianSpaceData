@@ -6,66 +6,47 @@ cdflib = pyimport("cdflib")
 using TimesDates, Dates
 using DataFrames
 using DelimitedFiles
-root_path="E:/MAVEN/" #所有文件的根目录
-read_models = Dict(
-    "MAG_pc1s"     => load_mag,
-    "MAG_ss"       => load_mag,
-    "MAG_ss1s"     => load_mag,
-    "MAG_pc"       => load_mag,
-    "LPW_wave"     => load_WaveSpactra,
-    "KP"           => read_kp,
-    "SWEA_pad_svy" => load_swea_pad,
-    "SWEA_spec"    => load_swea_spec,
-    "LPW_lpnt"     => load_lpw_lpnt,
-    "LPW_wn"       => load_lpw_wn,
-)
-file_path_dict = Dict(
-    "SWEA_spec"    => "SWEA/svyspec/",
-    "SWEA_pad_svy" => "SWEA/svypad/",
-    "LPW_wave"     => "LPW/wspecpas/",
-    "LPW_mrgscpot" => "LPW/mrgscpot/",
-    "LPW_lpnt"     => "LPW/lpnt/",
-    "LPW_wn"       => "LPW/wn/",
-    "MAG_ss1s"     => "MAG/ss_1s/",
-    "MAG_ss"       => "MAG/ss/",
-    "MAG_pc1s"     => "MAG/pc_1s/",
-    "MAG_pc"       => "MAG/pc/",
-    "STATIC"       => "STATIC/c6-32e64m/",
-    "KP"           => "KP/",
-)
-#read parts
-function file_list(model)
-    path = file_path_dict[model]
-    file_path=root_path .* path
-    list_path=root_path*"lists/"*model*"_list.txt"
+using JSON
+# using NaNMath; nm=NaNMath
 
-    data = readdlm(list_path,header=false)
-    data = file_path.*data
-    return data
-end
-function find_file_of_data(file_names, element)
-    for file_name in file_names
-        if occursin(element, file_name)
-            return file_name
+# read filelist parts
+    function show_load_models()  # 打印所有可支持的数据的读取.
+        for key in keys(read_models)
+            println(key)
         end
     end
-    return false
-end
-function data_get_from_date(date; model_index = []) #读取函数
-    File_dict = Dict()
-    for model in model_index
-        FileList         = file_list(model)
-        File_dict[model] = find_file_of_data(FileList, date)
-    end 
-    datas_dict = Dict()
-    for model in model_index
-        filename      = File_dict[model]
-        function_name = read_models[model]
-        println(model,",",filename)
-        datas_dict[model] = function_name(filename)
+    function file_list(model)
+        path = read_models[model][1]
+        file_path=root_path .* path
+        list_path=root_path*"lists/"*model*"_list.txt"
+
+        data = readdlm(list_path,header=false)
+        data = file_path.*data
+        return data
     end
-    return datas_dict
-end
+    function find_file_of_data(file_names, element)
+        for file_name in file_names
+            if occursin(element, file_name)
+                return file_name
+            end
+        end
+        return false
+    end
+    function data_get_from_date(date; model_index = []) #读取函数
+        File_dict = Dict()
+        for model in model_index
+            FileList         = file_list(model)
+            File_dict[model] = find_file_of_data(FileList, date)
+        end 
+        datas_dict = Dict()
+        for model in model_index
+            filename      = File_dict[model]
+            function_name = read_models[model][2]
+            println(model,",",filename)
+            datas_dict[model] = function_name(filename)
+        end
+        return datas_dict
+    end
 ##load parts
 function load_swea_spec(file; No_NaN=false);
     data = cdflib.cdfread.CDF(file)
@@ -77,22 +58,32 @@ function load_swea_spec(file; No_NaN=false);
         flux_arr[flux_arr .<= 1e-10] .= 1e-10
     end
     end
-    return [times_num, energy_arr, flux_arr]
+    data=Dict(
+        "Var name"=> "time[Ntime],energy[Nenergy],eflux[Ntime,Nenergy] ",
+        "time"    => times_num,
+        "energy"  => energy_arr,
+        "eflux"   => flux_arr
+    )
+    return data
 end
 function load_WaveSpactra(file;No_NaN=false);
     data      =  cdflib.cdfread.CDF(file)
     epoch     =  unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     freq      =  convert(Array{Float64,2}, (get(data,"freq")))
     wave_data =  convert(Array{Float64,2},(get(data,"data")))
-    if No_NaN    if No_NaN
+    if No_NaN
             wave_data[wave_data .<= 1e-20] .= 1e-20
     end
-    end
-    
-    return [epoch, freq, wave_data]
+    data=Dict(
+        "Var name"=> "time[Ntime], freq[Ntime,Nfreq] Hz, wave[Ntime,Nfreq] P_E",
+        "time" => epoch,
+        "freq" => freq,
+        "wave" => wave_data,
+    )
+    return data
 end
 function load_mag(file);
-    colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
+    # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
     skiprows = 155
     data = readdlm(file, skipstart=skiprows, header=false)#
 
@@ -102,30 +93,36 @@ function load_mag(file);
     minutes = data[:, 4]
     seconds = data[:, 5]
     milliseconds = data[:, 6]
-    println(year[1], doy[1], hours[1], minutes[1], seconds[1], milliseconds[1])
     epoch = DateTime.(year, 1, 1) .+ Dates.Millisecond.((doy .- 1)*24*3600*1000 + hours*3600*1000 + minutes*60*1000 + seconds*1000 + milliseconds)
     
     # time_i = findall(t -> time_range[1] <= t <= time_range[2], epoch)
     times_num=epoch[:]
     B= data[:, 8:10]
-    position_mso = data[:, 12:14]
-    x_mso = position_mso[:, 1]
-    y_mso = position_mso[:, 2]
-    z_mso = position_mso[:, 3]
-    alt = sqrt.(sum(position_mso.^2, dims=2)) .- 3393.5
+    position = data[:, 12:14]
+    alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
     
-    local_time = atan.(position_mso[:, 2], position_mso[:, 1]) ./ π .* 12.0 .+ 12.0
-    latitude   = atan.(position_mso[:, 3], sqrt.(sum(position_mso[:,1:2].^2, dims=2)) ) ./ π .* 180.0
+    local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
+    latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
     
     B_total = sqrt.(sum(B.^2, dims=2))
     alt = alt[:,1] ; B_total = B_total[:,1]
     B_total = convert(Array{Float64,1}, B_total)
-    B_mso = convert(Array{Float64,2}, B)
-    position_mso = convert(Array{Float64,2}, position_mso)
+    B_out = convert(Array{Float64,2}, B)
+    position = convert(Array{Float64,2}, position)
     alt=convert(Array{Float64,1}, alt)
-    return [times_num, B_total,B_mso,local_time,latitude, alt,position_mso ]
+    data=Dict(
+        "Var name"=> "time[Ntime], B_total[Ntime],B[Ntime,3],local_time[Ntime],latitude[Ntime], alt[Ntime],position[Ntime,3]",
+        "time"=>times_num,
+        "B" => B_out,
+        "B Stength"  => B_total,
+        "Local time" => local_time,
+        "latitude" => latitude,
+        "altitude" => alt,
+        "position" => position,
+    )
+    return data
 end
-function load_static(file; No_NaN=false; No_NaN=false)
+function load_static(file; No_NaN=false)
     data   = cdflib.cdfread.CDF(file)
     epoch  = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     energy = convert(Array{Float64,3}, (get(data,"energy")))     # Nmass,Nenergy,Nswp
@@ -138,11 +135,16 @@ function load_static(file; No_NaN=false; No_NaN=false)
     if No_NaN
         eflux[eflux .<= 1e-10] .= 1e-10
     end
-    if No_NaN
-        eflux[eflux .<= 1e-10] .= 1e-10
-    end
-    
-    return [epoch,energy,eflux,nswp,AMU_arr,denergy]
+    data=Dict(
+        "Var name"=> "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]",
+        "time"=>epoch,
+        "energy" => energy,
+        "denergy" => denergy,
+        "eflux" => eflux,
+        "nswp" => nswp,
+        "AMU"  => AMU_arr,
+    )
+    return data #[epoch,energy,eflux,nswp,AMU_arr,denergy]
 end
 function read_kp(filename)
     #skiprow. keyparamater ion density ion temperature
@@ -161,6 +163,7 @@ function read_kp(filename)
         "Ne quality min" => 3,
         "Ne quality max" => 4,
         "temperature" => 5,
+        "H+ flow v" => 43,
         "local hour" => 196,
         "32+ ion" => 163,
         "16+ ion" => 172,
@@ -193,28 +196,41 @@ function read_kp(filename)
         pc2ss_Matrix[:,i,j] = var
     end
     result_dict["pc2ss_Matrix"] = pc2ss_Matrix
-    
-    return time_dt,result_dict
+    result_dict["time"] = time_dt
+    return result_dict
 end
 function load_lpw_lpnt(file)
     data        = cdflib.cdfread.CDF(file)
     times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     datas       = convert(Array{Float64,2}, (get(data,"data")))
-    return times_num,datas
+    data = Dict(
+        "time" => times_num,
+        "Ne"   => datas,
+    )
+    return data
 end
 function load_lpw_wn(file)
     data        = cdflib.cdfread.CDF(file)
     times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     datas       = convert(Array{Float64,1}, (get(data,"data")))
+    data = Dict(
+        "time" => times_num,
+        "Ne"   => datas,
+    )
     return times_num,datas
 end
 function load_sc_potential(file)
     data        = cdflib.cdfread.CDF(file)
     times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     potential  = convert(Array{Float64,1}, (get(data,"data")))
-    return [times_num,potential]
+    data = Dict(
+        "Var names"   => "time, potential",
+        "time"        => times_num,
+        "potential"   => potential,
+    )
+    return data
 end
-function load_swea_pad(file;  No_NaN = false)
+function load_swea_pad(file;  No_NaN = false , mean_PA=true)
     data        = cdflib.cdfread.CDF(file)
     times_num   = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
     energy_arr  = convert(Array{Float64,1}, (get(data,"energy")))
@@ -226,17 +242,47 @@ function load_swea_pad(file;  No_NaN = false)
     
     # g_pa = (g_pa[:, 1:8, :] .+ g_pa[:, 16:-1:9, :]) ./ 2
     # flux        = (flux[:, 1:8, :] .+ flux[:, 16:-1:9, :]) ./ 2
+    if mean_PA
+        pitch_angle,flux,g_pa = mean_SWEA_pad_pa(pitch_angle,flux,g_pa)
+    end
     if No_NaN
         flux[flux .<= 1e-10] .= 1e-10
     end
-    return [times_num, pitch_angle,energy_arr, flux, g_pa, g_engy]
+    data = Dict(
+        "Var names"   => "time, pitch_angle, energy, flux, g_pa, g_engy",
+        "time"        => times_num,
+        "pitch_angle" => pitch_angle,  
+        "energy"      => energy_arr,
+        "flux"        => flux,
+        "g_pa"        => g_pa,
+        "g_engy"      => g_engy,
+    )
+    return data #[times_num, pitch_angle,energy_arr, flux, g_pa, g_engy]
 end
+function mean_SWEA_pad_pa(pitch_angle,flux,g_pa)
+    pitch_angle = (pitch_angle[:, 1:8, :] .+ pitch_angle[:, 16:-1:9, :]) ./ 2
+    g_pa = (g_pa[:, 1:8, :] .+ g_pa[:, 16:-1:9, :]) ./ 2
 
+    flux1=flux[:, 1:8,     :]
+    flux2=flux[:, 16:-1:9, :]
+    nan_indices_flux1 = findall(isnan.(flux1))
+    nan_indices_flux2 = findall(isnan.(flux2))
+    flux1[nan_indices_flux1] = flux2[nan_indices_flux1]
+    flux2[nan_indices_flux2] = flux1[nan_indices_flux2]
+
+    flux = (flux1 + flux2) ./ 2
+    
+    return pitch_angle,flux,g_pa
+end
 ## 数据处理
 function caculate_static(data;model="total",mass_range=[0,0])
-    epoch,energy,eflux,swp_arr,AMU_arr,denergy = data;
-
-    if model == "total"   
+    epoch   = data["time"]
+    energy  = data["energy"]
+    denergy = data["denergy"]
+    eflux   = data["eflux"]
+    swp_arr = data["nswp"]
+    AMU_arr = data["AMU"]
+    if model == "total"
         energy_all_mass = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1); energy_all_mass = energy_all_mass[1,:,:]  
         eflux_all_mass  = sum(eflux[:,:,:], dims=2) ; eflux_all_mass = eflux_all_mass[:,1,:]
         
@@ -245,8 +291,13 @@ function caculate_static(data;model="total",mass_range=[0,0])
         #     eflux_t=eflux_arr[i,:,:]
         #     eflux_all_mass[i,:]=sum(eflux_t.* denergy_t, dims=1) ./ sum(denergy_t, dims=1)
         # end
-        
-        return [epoch,energy_all_mass,eflux_all_mass,swp_arr]
+        return_data = Dict(
+            "time"  => epoch,
+            "energy"=> energy_all_mass,
+            "eflux" => eflux_all_mass,
+            "swp"   => swp_arr,
+        )
+        return return_data
     end
     n = size(eflux)
     ntime   = n[1]
@@ -269,12 +320,22 @@ function caculate_static(data;model="total",mass_range=[0,0])
         eflux_mass[i,ind_mass_t]=eflux_t[ind_mass_t]
     end
     eflux_mass = sum(eflux_mass,dims=2); eflux_mass=eflux_mass[:,1,:]
-    
-    return [energy_mass,eflux_mass]
+    return_data = Dict(
+        "time"  => epoch,
+        "energy"=> energy_mass,
+        "eflux" => eflux_mass,
+        "swp"   => swp_arr,
+    )
+    return return_data #[energy_mass,eflux_mass]
 end
+
 function carclu_SWEA_pad(data; energy_range=[])
-    times_num, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data
-    
+    times_num    = data["time"]
+    pitch_angle  = data["pitch_angle"] 
+    energy_arr   = data["energy"]
+    flux_arr     = data["flux"]
+    g_pa         = data["g_pa"]
+    g_engy       = data["g_engy"]
     if size(energy_range)[1] == 1
         _, index = findmin(abs.(energy_arr .- energy_range))
         index = index[1]
@@ -282,7 +343,13 @@ function carclu_SWEA_pad(data; energy_range=[])
         pitch_angle_PAD = pitch_angle[:, :, index]
         flux_PAD        = flux_arr[:, :, index]
         flux_PAD = [isnan(t) ? 1e-10 : t for t in flux_PAD]
-        return [times_num,pitch_angle_PAD,flux_PAD,energy_single]
+        return_data = Dict(
+            "time"        => times_num,
+            "Pitch Angle" => pitch_angle_PAD,
+            "eflux"       => flux_PAD,
+            "energy"      => energy_single,
+        )
+        return return_data #[times_num,pitch_angle_PAD,flux_PAD,energy_single]
     else
         energy_i = findall(e -> energy_range[1] <= e <= energy_range[2], energy_arr)
         energy_double = [energy_arr[energy_i[1]],energy_arr[energy_i[end]] ]
@@ -295,7 +362,67 @@ function carclu_SWEA_pad(data; energy_range=[])
         flux_PADt = sum(flux_arr[:, :, energy_i] .* g_engy_t[:,:,energy_i], dims=3) / sum(g_engy_t[:,:,energy_i])
         flux_PAD=flux_PADt[:,:,1]
         flux_PAD = [isnan(t) ? 1e-10 : t for t in flux_PAD]
-        return [times_num,pitch_angle_PAD,flux_PAD,energy_double]
+        return_data = Dict(
+            "time"        => times_num,
+            "Pitch Angle" => pitch_angle_PAD,
+            "eflux"       => flux_PAD,
+            "energy"      => energy_double,
+        )
+        return return_data #[times_num,pitch_angle_PAD,flux_PAD,energy_double]
     end
 end
+function eflux2F(energy,eflux)   #tranfer energy diff_en_fluxes to Phase density
+    M = Me
+    E0=M*C^2/EV   #静止能量 eV
+    #energy 与 eflux 一一对应
+    E0=M*C^2/EV
+    γ=(energy ./E0 .+ 1.)
+    β=sqrt.(1.0 .- 1.0 ./ γ.^2)
+    P=γ .* β .*(C*M)        # kg m/s
+    # V=β .* C
+    F = (γ.*M).^3 .* eflux .*10*1000. ./EV ./ P.^2
+    return F
+end
+const EV=1.602176487e-19
+const C=3.0e8
+const Me=9.109e-31
+# 我在julia中使用file = open("data_format.json", "r")读取文件,此代码写在模块中,此文件和模块在同一个文件夹.但当我在其他地址的程序中导入包时,显示找不到此文件
+dir = dirname(@__FILE__) 
+file = open(dir*"/"*"data_format.json", "r")
+data = JSON.parse(read(file, String))
+close(file)
+root_path = data["save_path"] #所有文件的根目录
+data_model = data["data_model"]
+read_models = Dict{String, Tuple{String, Function}}()
+for (key, value) in data_model
+    func=eval(Meta.parse(value[4]))
+    read_models[key] = (value[3],func)
+end
+
+# read_models = Dict(
+#     "MAG_pc1s"     => load_mag,
+#     "MAG_ss"       => load_mag,
+#     "MAG_ss1s"     => load_mag,
+#     "MAG_pc"       => load_mag,
+#     "LPW_wave"     => load_WaveSpactra,
+#     "KP"           => read_kp,
+#     "SWEA_pad_svy" => load_swea_pad,
+#     "SWEA_spec"    => load_swea_spec,
+#     "LPW_lpnt"     => load_lpw_lpnt,
+#     "LPW_wn"       => load_lpw_wn,
+# )
+# file_path_dict = Dict(
+#     "SWEA_spec"    => "SWEA/svyspec/",
+#     "SWEA_pad_svy" => "SWEA/svypad/",
+#     "LPW_wave"     => "LPW/wspecpas/",
+#     "LPW_mrgscpot" => "LPW/mrgscpot/",
+#     "LPW_lpnt"     => "LPW/lpnt/",
+#     "LPW_wn"       => "LPW/wn/",
+#     "MAG_ss1s"     => "MAG/ss_1s/",
+#     "MAG_ss"       => "MAG/ss/",
+#     "MAG_pc1s"     => "MAG/pc_1s/",
+#     "MAG_pc"       => "MAG/pc/",
+#     "STATIC"       => "STATIC/c6-32e64m/",
+#     "KP"           => "KP/",
+# )
 end
