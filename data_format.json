@@ -1,4 +1,5 @@
-{
+{   
+    "description":"data_model: data_type:[path, file_name_pattern, save_path, load_function]",
     "save_path": "E:/MAVEN/",
     "data_model": {
         "KP":[
@@ -79,5 +80,18 @@
             "LPW/wn/",
             "load_lpw_wn"
         ]
+    },
+    "kp_dict": {
+        "electorn density": 2,
+        "Ne quality min"  : 3,
+        "Ne quality max"  : 4,
+        "temperature"     : 5,
+        "H+ flow v"       : 43,
+        "local hour"      : 196,
+        "32+ ion"         : 163,
+        "16+ ion"         : 172,
+        "H+ T"            :  60,
+        "O+ T"            :  62,
+        "O2+ T"           :  64
     }
 }

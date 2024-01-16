@@ -1,0 +1,15 @@
+*.pdf
+*.log
+*.bbl
+*.gz
+*.blg
+*.cls
+*.aux
+*.txt
+*.dvi
+*.docx
+*.zip
+*.png
+*.ipynb
+text.md
+backup/
