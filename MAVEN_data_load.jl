@@ -50,6 +50,17 @@ using JSON
         return datas_dict
     end
 ##load parts
+    function load_burst(file);
+        data = cdflib.cdfread.CDF(file)
+        time  = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
+        data  = convert(Array{Float64,1}, (get(data,"data")))
+        data_dic=Dict(
+            "Var name"=> "time[Ntime],data[Ntime]",
+            "Vars"    => [time,data]
+        )
+    return data_dic
+    end
+
     function load_swea_spec(file; No_NaN=false);
         data = cdflib.cdfread.CDF(file)
         times_num  = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))

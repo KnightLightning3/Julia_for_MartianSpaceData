@@ -79,6 +79,24 @@
             "mvn_lpw_l2_wn_.+\\.cdf",
             "LPW/wn/",
             "load_lpw_wn"
+        ],
+        "LPW_bursthf":[
+            "lpw/l2/",
+            "mvn_lpw_l2_we12bursthf_.+\\.cdf",
+            "LPW/we12bursthf/",
+            "load_burst"
+        ],
+        "LPW_burstmf":[
+            "lpw/l2/",
+            "mvn_lpw_l2_we12burstmf_.+\\.cdf",
+            "LPW/we12burstmf/",
+            "load_burst"
+        ],
+        "LPW_burstlf":[
+            "lpw/l2/",
+            "mvn_lpw_l2_we12burstlf_.+\\.cdf",
+            "LPW/we12burstlf/",
+            "load_burst"
         ]
     },
     "kp_dict": {
@@ -92,6 +110,18 @@
         "16+ ion"         : 172,
         "H+ T"            :  60,
         "O+ T"            :  62,
-        "O2+ T"           :  64
+        "O2+ T"           :  64,
+        "H+_density_SWIA" :41,
+        "H+_density"      : 54,
+        "O+_density"      : 56,
+        "O2+_density"     : 58,
+        "32+_density"  : 163,
+        "44+_density"  : 166,
+        "30+_density"  : 169,
+        "16+_density"  : 172,
+        "28+_density"  : 175,
+        "12+_density"  : 178,
+        "17+_density"  : 181,
+        "14+_density"  : 184
     }
 }

@@ -11,5 +11,6 @@
 *.zip
 *.png
 *.ipynb
+*.vscode
 text.md
 backup/

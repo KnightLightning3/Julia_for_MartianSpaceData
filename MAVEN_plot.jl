@@ -107,7 +107,55 @@ function PAD_slice(ax,pa,energy,eflux;potential=0.0,xlimit=(0,180),ylimit=(1e-17
         lines!(ax, xfit, fitted_y, color=color)
     end
 end
-function PAD_slice_velocity(ax,pa,energy,eflux;potential=0.0,xlimit=nothing,ylimit=nothing,xlabel="v_para [m/s]",ylabel="v_prep [m/s]", c_range = (1e-17,1e-11))
+function PAD_slice_polar(ax,pa,energy,eflux;potential=0.0,ylimit=(0,200),xlimit=(-200,200),xlabel="Ek_para [eV]",ylabel="Ek_prep [eV]", c_range = (1e-17,1e-11))
+    colormap = :jet  # 可以选择任何Makie支持的颜色图
+    n_colors = 256
+    colors = resample_cmap(colormap, n_colors)
+
+    ax.limits=(xlimit, ylimit)
+    ax.ylabel=ylabel
+    ax.xlabel=xlabel
+    ax.ytickformat = "{:.1f}"
+    ax.xtickformat = "{:.1f}"
+    energy_t = energy .- potential
+    PSD = zeros(length(pa[:,1]),length(energy))
+    Ek_perp = zeros(length(pa[:,1]),length(energy))
+    Ek_par  = zeros(length(pa[:,1]),length(energy))
+    Ek0 = energy_t .* 1.0
+    for i = 1:length(pa[:,1])
+        PSD[i,:] =  eflux2F.(energy_t[:], eflux[i,:])
+        Ek_perp[i,:] = Ek0 .* sind.(pa[i,:])
+        Ek_par[i,:]  = Ek0 .* cosd.(pa[i,:])
+    end
+
+    LPSD_range = log10.(c_range)
+    LPSD = log10.(PSD)
+    println(minimum(LPSD))
+    levels = (1:256) ./ 256 .* (maximum(LPSD_range) - minimum(LPSD_range))  .+ minimum(LPSD_range)
+    rr = Ek0[:]
+    for j = 1:length(rr)-1
+        psi = pa[:,j]
+        
+        local_color_index = []
+        for value in LPSD[:,j]
+            index = findmin(abs.(levels .- value))[2]
+            push!(local_color_index, index)
+        end
+        
+        nan_index = findall(x -> x == -Inf, LPSD[:,j])
+        local_colors = colors[local_color_index]
+        local_colors[nan_index] .= RGBA{Float32}(1,1,1,1)
+
+        extended_psi = [0; psi; 180]
+        part_sizes = [(extended_psi[i+1]-extended_psi[i-1])/2 for i = 2:length(extended_psi)-1]
+        part_sizes[1] = part_sizes[1] + psi[1]/2
+        part_sizes[end] = part_sizes[end] + (180 - psi[end])/2
+
+        pie!(ax, part_sizes.* RAD, inner_radius = rr[j] , radius = rr[j+1], strokewidth = 0 ,color =local_colors, overdraw=true,normalize=false)
+    end
+    return ax
+end
+function PAD_slice_velocity(ax,pa,energy,eflux;potential=0.0,xlimit=(-1.5e7,1.5e7),ylimit=(0,1.5e7),xlabel="v_para [m/s]",ylabel="v_prep [m/s]", c_range = (1e-17,1e-11))
     colormap = :jet  # 可以选择任何Makie支持的颜色图
     n_colors = 256
     colors = resample_cmap(colormap, n_colors)
@@ -187,6 +235,10 @@ function PAD_slice_velocity(ax,pa,energy,eflux;potential=0.0,xlimit=nothing,ylim
     # end
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:jet, colorrange=c_range , colorscale=log10)
     return ax
+end
+function time_frequncy(ax)
+    
+    heatmap!(ax,)
 end
 function time2julian(x_range)
     x_range_julian = Dates.datetime2julian.(x_range)
