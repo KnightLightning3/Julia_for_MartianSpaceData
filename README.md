@@ -39,13 +39,13 @@ IGRF_carculate.jl
 模型来源: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combining Data Sets of MAVEN and MGS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021EA001860)  
 
 
-# 未完成
-working on 云MAVEN数据  
-个别仪器读取  
-简易Julia绘图包  
-外接读取文件树  
-更多磁场模型  
-天问数据  
-磁力线追踪  
+# ToDo list
+- [ ]  working on 云MAVEN数据  
+- [ ]  全仪器读取  
+- [X] 简易Julia绘图包  
+- [X] 外接读取文件树  
+- [ ] 更多磁场模型  
+- [ ] 天问数据  
+- [ ] 磁力线追踪  
 
 随缘更新
