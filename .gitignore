@@ -1,0 +1,5 @@
+*.ipynb
+*.jld2
+.vscode
+*.EPS
+.ipynb_checkpoints
