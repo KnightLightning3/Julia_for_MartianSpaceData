@@ -1,4 +1,4 @@
-module MAVEN_data_plot
+module MAVEN_plot
 using ColorTypes, CairoMakie
 using LaTeXStrings
 using TimesDates, Dates
@@ -11,8 +11,7 @@ const me=9.109e-31
 const Rm = 3393.5  #km
 const E0 = 511.0
 const RAD = π / 180
-function sta_heatmap(ax,x,y,c,nswp;c_range=(1e4,1e10),ylabel="energy",xlimit=nothing,ylimit=nothing)    
-    ax.limits = (xlimit,ylimit)
+function sta_heatmap(ax,x,y,c,nswp;c_range=(1e4,1e10),ylabel="energy")    #默认叠加绘图
     ax.ylabel = ylabel
     ax.yscale = log10
     unique_elements = unique(nswp)
@@ -22,8 +21,7 @@ function sta_heatmap(ax,x,y,c,nswp;c_range=(1e4,1e10),ylabel="energy",xlimit=not
     end
     return ax
 end
-function SWEA_PAD_heatmap(ax,time,pa,eflux;xlimit=nothing,ylimit=(0,180), c_range=(1e4,1e10),ylabel="Pitch Angle [deg]")
-    ax.limits = (xlimit, ylimit)
+function SWEA_PAD_heatmap(ax,time,pa,eflux;c_range=(1e4,1e10),ylabel="Pitch Angle [deg]")
     ax.ylabel = ylabel
     ntime=length(time)
     for i=1:3:ntime-3
@@ -31,10 +29,9 @@ function SWEA_PAD_heatmap(ax,time,pa,eflux;xlimit=nothing,ylimit=(0,180), c_rang
     end
     return ax
 end
-function WaveSpactra_heatmap(ax,time,freq,data;xlimit=nothing, ylimit=(1e0,1e4), c_range=(1e-14,1e-9),ylabel = "freq")
-    ax.limits = (xlimit, ylimit)
+function WaveSpactra_heatmap(ax,time,freq,data; c_range=(1e-14,1e-9),ylabel = "freq")
     ax.ylabel=ylabel
-    ax.yscale=log10
+    # ax.yscale=log10
     x,y,c = time,freq,data
     nc=size(c) ; nx=nc[1]; ny=nc[2]
     x = repeat(x,ny) ; x = reshape(x,nx,ny)
@@ -43,19 +40,23 @@ function WaveSpactra_heatmap(ax,time,freq,data;xlimit=nothing, ylimit=(1e0,1e4),
     df = DataFrame(X=x, Y=y, C=c)
     df_unique = unique(df, [:X, :Y])
     x = df_unique.X ; y = df_unique.Y ; c = df_unique.C
-    heatmap!(ax,x,y,c,colormap=:jet,colorscale=log10,colorrange=c_range)
+    heatmap!(ax,x,y,c,colormap=:jet,colorscale=log10,colorrange=c_range,overdraw=true)
     return ax
 end
-function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3), xlabel="X_mso",ylabel=" ",obs_position = [-0.5,0,0])
+function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,0,0])
     ax.limits = (xlimit, ylimit)
-    ax.ylabel=ylabel # L"\sqrt{Y_{mso}^{2} + X_{mso}^{2}}"
-    ax.xlabel=xlabel
     ax.xreversed=true
 
     p_mso = position_ss./Rm
     x=p_mso[:,1]
     y= sqrt.(p_mso[:,2].^2 .+ p_mso[:,3].^2)
-    lines!(ax,x,y,label="Orbit")
+    lines!(ax,x,y,label="Orbit",overdraw=true)
+
+    # index = argmin(abs.(y - maximum(y)))
+    # y0,y1 = y[index,index+1]
+    # x0,x1 = x[index,index+1]
+    # direction = [x1-x0,y1-y0] / sqrt((x1-x0)^2+(y1-y0)^2)
+    # arrows(x0,y0, direction .* 0.1)
 
     p_obs  = obs_position./Rm
     x=p_obs[1]
@@ -236,10 +237,10 @@ function PAD_slice_velocity(ax,pa,energy,eflux;potential=0.0,xlimit=(-1.5e7,1.5e
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:jet, colorrange=c_range , colorscale=log10)
     return ax
 end
-function time_frequncy(ax)
+# function time_frequncy(ax)
     
-    heatmap!(ax,)
-end
+#     heatmap!(ax,)
+# end
 function time2julian(x_range)
     x_range_julian = Dates.datetime2julian.(x_range)
     time_julian0   = x_range_julian[1]

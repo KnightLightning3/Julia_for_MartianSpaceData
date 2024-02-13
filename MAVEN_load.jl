@@ -1,4 +1,4 @@
-module MAVEN_data_load
+module MAVEN_load
 # 读取和计算MAVEN数据
 # 使用data_get_from_date函数做全局读取
 using PyCall
@@ -8,7 +8,6 @@ using DataFrames
 using DelimitedFiles
 using JSON
 # using NaNMath; nm=NaNMath
-
 # read filelist parts
     function show_load_models()  # 打印所有可支持的数据的读取.
         keys_arr = keys(read_models)
@@ -22,7 +21,7 @@ using JSON
         file_path=root_path .* path
         list_path=root_path*"lists/"*model*"_list.txt"
 
-        data = readdlm(list_path,header=false)
+        data = readlines(list_path)
         data = file_path.*data
         return data
     end
@@ -34,7 +33,7 @@ using JSON
         end
         return false
     end
-    function data_get_from_date(date; model_index = []) #读取函数
+    function data_get_from_date(date; model_index = [],show_filename=true) #读取函数
         File_dict = Dict()
         for model in model_index
             FileList         = file_list(model)
@@ -44,8 +43,14 @@ using JSON
         for model in model_index
             filename      = File_dict[model]
             function_name = read_models[model][2]
-            println(model,",",filename)
-            datas_dict[model] = function_name(filename)
+            if show_filename 
+                println(model,",",filename)
+            end
+            if File_dict[model] == false
+                datas_dict[model] = false
+            else
+                datas_dict[model] = function_name(filename)
+            end
         end
         return datas_dict
     end
@@ -58,9 +63,8 @@ using JSON
             "Var name"=> "time[Ntime],data[Ntime]",
             "Vars"    => [time,data]
         )
-    return data_dic
+        return data_dic
     end
-
     function load_swea_spec(file; No_NaN=false);
         data = cdflib.cdfread.CDF(file)
         times_num  = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
@@ -92,36 +96,45 @@ using JSON
         return data
     end
     function load_mag(file);
-        # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
-        skiprows = 155
-        data = readdlm(file, skipstart=skiprows, header=false)#
+        lines=readlines(file)
+        line_i = maximum(findall(line -> startswith(line, "END"), lines[1:600]))
+        lines = lines[line_i+1:end]
+    
+        nums = length(lines)
+        times = Vector{DateTime}(undef,nums)
+        B = Matrix{Float32}(undef,nums,3)
+        position = Matrix{Float32}(undef,nums,3)
+    
+        function get_data_from_line(line::String)
+            # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
+            year = parse(Int32,line[1:6])
+            doy = parse(Int32,line[8:10])
+            hour = parse(Int32,line[12:13])
+            min = parse(Int32,line[15:16])
+            sec = parse(Int32,line[18:19])
+            msec = parse(Int32,line[21:23])
+    
+            epoch = DateTime(year, 1, 1,hour,min,sec,msec) + Dates.Day(doy-1)
+            
+            bx = parse(Float32,line[39:48])
+            by = parse(Float32,line[50:58])
+            bz = parse(Float32,line[60:68])
+            x = parse(Float32,line[74:88])
+            y = parse(Float32,line[90:103])
+            z = parse(Float32,line[105:118])
+    
+            return epoch,[bx,by,bz],[x,y,z]
+        end
+        
+        for (i,line) in enumerate(lines)
+            times[i],B[i,:],position[i,:] = get_data_from_line(line)
+        end
+    
+        B_total = sqrt.(sum(B.^2, dims=2)); B_total = B_total[:,1]
 
-        year = data[:, 1]
-        doy = data[:, 2]
-        hours = data[:, 3]
-        minutes = data[:, 4]
-        seconds = data[:, 5]
-        milliseconds = data[:, 6]
-        epoch = DateTime.(year, 1, 1) .+ Dates.Millisecond.((doy .- 1)*24*3600*1000 + hours*3600*1000 + minutes*60*1000 + seconds*1000 + milliseconds)
-        
-        # time_i = findall(t -> time_range[1] <= t <= time_range[2], epoch)
-        times_num=epoch[:]
-        B= data[:, 8:10]
-        position = data[:, 12:14]
-        alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
-        
-        local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
-        latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
-        
-        B_total = sqrt.(sum(B.^2, dims=2))
-        alt = alt[:,1] ; B_total = B_total[:,1]
-        B_total = convert(Array{Float64,1}, B_total)
-        B_out = convert(Array{Float64,2}, B)
-        position = convert(Array{Float64,2}, position)
-        alt=convert(Array{Float64,1}, alt)
         data=Dict(
             "Var name"=> "time[Ntime], B_total[Ntime],B[Ntime,3],local_time[Ntime],latitude[Ntime], alt[Ntime],position[Ntime,3]",
-            "Vars"     => [times_num,B_total,B_out,local_time,latitude,alt,position]
+            "Vars"     => [times,B_total,B,position]
         )
         return data
     end
@@ -143,6 +156,9 @@ using JSON
             "Vars" => [epoch,energy,denergy,eflux,nswp,AMU_arr]
         )
         return data
+    end
+    function change_kp_read_data(kp_dict_in)
+        global kp_dict = kp_dict_in
     end
     function read_kp(filename)
         #kp i, 32+ 163, 16+ 172,H+ 60,O+ 62,O2+ 64   mvn_kp_insitu_20200608_v17_r02.tab
@@ -238,6 +254,29 @@ using JSON
         return data
     end
 ## 数据处理
+function caculate_mag(position;models=["alt"])
+    function c_alt(position) 
+        alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
+        alt = alt[:,1]
+        return alt
+    end
+    function c_local_time(position) 
+        local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
+        return local_time
+    end
+    function c_latitude(position) 
+        latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
+        return latitude
+    end
+    funcs = Dict(
+        "alt" => c_alt,
+        "local_time" => c_local_time,
+        "latitude" => c_latitude,
+    )
+    for model in models
+        data[model] = funcs[model](position)
+    end
+end
 function mean_SWEA_pad_pa(pitch_angle,flux,g_pa)
     pitch_angle = (pitch_angle[:, 1:8, :] .+ pitch_angle[:, 16:-1:9, :]) ./ 2
     g_pa = (g_pa[:, 1:8, :] .+ g_pa[:, 16:-1:9, :]) ./ 2
