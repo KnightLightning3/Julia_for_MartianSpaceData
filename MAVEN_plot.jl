@@ -43,7 +43,7 @@ function WaveSpactra_heatmap(ax,time,freq,data; c_range=(1e-14,1e-9),ylabel = "f
     heatmap!(ax,x,y,c,colormap=:jet,colorscale=log10,colorrange=c_range,overdraw=true)
     return ax
 end
-function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,0,0])
+function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,0,0],times = ([],[]))
     ax.limits = (xlimit, ylimit)
     ax.xreversed=true
 
@@ -52,16 +52,22 @@ function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,
     y= sqrt.(p_mso[:,2].^2 .+ p_mso[:,3].^2)
     lines!(ax,x,y,label="Orbit",overdraw=true)
 
-    # index = argmin(abs.(y - maximum(y)))
-    # y0,y1 = y[index,index+1]
-    # x0,x1 = x[index,index+1]
-    # direction = [x1-x0,y1-y0] / sqrt((x1-x0)^2+(y1-y0)^2)
-    # arrows(x0,y0, direction .* 0.1)
-
+    if times != ([],[])
+        times_t = times[2]
+        time_index = times[1]
+        colormap = :tab10
+        n_colors = length(time_index)
+        colors = resample_cmap(colormap, n_colors)
+        for (it,i) in enumerate(time_index)
+            poly!(ax,Circle(Point2f(x[i], y[i]), 0.1),color=colors[it],label = times_t[it])
+            # text!(ax, 0.98, 0.95-it*0.95/(n_colors+1), text = times_t[it], font = :bold, align = (:center, :center), space = :relative, fontsize = 15, color=colors[it])
+        end
+    end
     p_obs  = obs_position./Rm
     x=p_obs[1]
     y= sqrt.(p_obs[2].^2 .+ p_obs[3].^2)
     poly!(ax,Circle(Point2f(x, y), 0.1),color=:red)
+
     theta = LinRange(pi, 2pi, 100)
     x = sin.(theta)
     y = cos.(theta)
@@ -70,12 +76,10 @@ function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,
     poly!(ax, half_circle, color=:black)
 
     # bowshock
-    x = -10:0.1:10
-    y = bowshock.(x)
-    lines!(ax,x,y;label="bowshock", linestyle=:dash)
+    x = -10:0.01:2
+    lines!(ax,x,bowshock.(x);linestyle=:dash)#label="bowshock"
     # magnetopause
-    y = magnetopause.(x)
-    lines!(ax,x,y;label="magnetopause", linestyle=:dash)
+    lines!(ax,x,magnetopause.(x); linestyle=:dash)#label="magnetopause",
     return ax
 end
 function PAD_slice(ax,pa,energy,eflux;potential=0.0,xlimit=(0,180),ylimit=(1e-17,1e-11),xlabel="pitch angle",ylabel="PSD",n=4)

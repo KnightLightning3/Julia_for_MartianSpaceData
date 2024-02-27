@@ -162,61 +162,64 @@ if __name__ == '__main__':
     nums_downloaded = 0
     nums_failed = 0
     download_log = open("download.log","a")
-# single model
-    model= "KP"#"SWEA_pad_svy"#"LPW_bursthf"
-    url_path,save_path,filestyle = downlaod_model(model)
-    file_names = os.listdir(save_path)
-    # counter = file_check(file_names,save_path,'kp')
-    with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
-        for item in file_names:
-            file.write(str(item) + '\n') 
     
-    #get all url:
-    logic = test_proxies()
-    if(logic == False):
-        print('代理服务器连接失败')
-        exit(0)
-    while current_date <= end_date:
-        date=str(current_date.strftime("%Y%m%d"))
-
-        if find_downloaded_file(file_names, date):
-            print(date,model,'文件已存在')
-            current_date+=datetime.timedelta(days=1)
-            continue
-        year    = current_date.year
-        month   = current_date.month
-        yyyymm  = str(current_date.strftime("%Y/%m/"))
-        urls    = search_url(url_path+yyyymm,filestyle)
-        print(len(urls),'files in ', yyyymm)
-        for url in urls:
-            filename = str(url)
-            date=re.findall(r"\d{8}", filename)
-            if find_downloaded_file(file_names, filename):
-                print(date,model,'文件已下载')
+    downloadmodel = "muti"
+    if downloadmodel == "single":
+        # single model
+        model= "KP"#"SWEA_pad_svy"#"LPW_bursthf"
+        url_path,save_path,filestyle = downlaod_model(model)
+        file_names = os.listdir(save_path)
+        # counter = file_check(file_names,save_path,'kp')
+        with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+            for item in file_names:
+                file.write(str(item) + '\n') 
+        
+        #get all url:
+        logic = test_proxies()
+        if(logic == False):
+            print('代理服务器连接失败')
+            exit(0)
+        while current_date <= end_date:
+            date=str(current_date.strftime("%Y%m%d"))
+    
+            if find_downloaded_file(file_names, date):
+                print(date,model,'文件已存在')
                 current_date+=datetime.timedelta(days=1)
                 continue
-            logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
-            print('\n',date,model,"下载状态:",logic,end='\n')
-        month+=1
-        if month == 13:
-            month=1
-            year+=1
-        current_date = datetime.date(year, month, 1)
-    file_names = os.listdir(save_path)
-    with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
-        for item in file_names:
-            file.write(str(item) + '\n')
-    exit(0)
+            year    = current_date.year
+            month   = current_date.month
+            yyyymm  = str(current_date.strftime("%Y/%m/"))
+            urls    = search_url(url_path+yyyymm,filestyle)
+            print(len(urls),'files in ', yyyymm)
+            for url in urls:
+                filename = str(url)
+                date=re.findall(r"\d{8}", filename)
+                if find_downloaded_file(file_names, filename):
+                    print(date,model,'文件已下载')
+                    current_date+=datetime.timedelta(days=1)
+                    continue
+                logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
+                print('\n',date,model,"下载状态:",logic,end='\n')
+            month+=1
+            if month == 13:
+                month=1
+                year+=1
+            current_date = datetime.date(year, month, 1)
+        file_names = os.listdir(save_path)
+        with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+            for item in file_names:
+                file.write(str(item) + '\n')
+        exit(0)
 ## muti model
     logic = test_proxies()
     if(logic == False):
         print('代理服务器连接失败')
         exit(0)
-    
+    models = ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc"]
     for model in models:
         try:
-            if model in ['KP',"LPW_burstmf","SWEA_spec","MAG_ss1s","MAG_pc1s","LPW_mrgscpot","SWEA_pad_svy"]:
-                continue
+            # if model in ['KP',"LPW_burstmf","SWEA_spec","MAG_ss1s","MAG_pc1s","LPW_mrgscpot","SWEA_pad_svy"]:
+            #     continue
             url_path,save_path,filestyle = downlaod_model(model)
             file_names = os.listdir(save_path)
             with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:

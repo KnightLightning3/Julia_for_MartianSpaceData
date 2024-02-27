@@ -11,41 +11,42 @@ using Dates
 #     B::Matrix{Float32} 
 #     position::Matrix{Float32} 
 # end
+function get_data_from_line_for_mag_read(line::String)
+    year, doy, hour, min, sec, msec = parse.(Int32, [
+        line[1:6], line[8:10], line[12:13], line[15:16], line[18:19], line[21:23]
+    ])
+    epoch = DateTime(year, 1, 1,hour,min,sec,msec) + Dates.Day(doy-1)
+    bx,by,bz,x,y,z = parse.(Float32,[
+            line[39:48],line[50:58],line[60:68],line[75:86],line[87:98],line[99:110]
+        ])
+    return epoch,[bx,by,bz],[x,y,z]
+end
 function load_mag(file::String);
 
     lines=readlines(file)
-    line_i = maximum(findall(line -> startswith(line, "END"), lines[1:600]))
+    line_i = findlast(line -> startswith(line, "END"), lines[1:600])
     lines = lines[line_i+1:end]
 
     nums = length(lines)
     times = Vector{DateTime}(undef,nums)
     B = Matrix{Float32}(undef,nums,3)
     position = Matrix{Float32}(undef,nums,3)
-
-    function get_data_from_line(line::String)
-        year = parse(Int32,line[1:6])
-        doy = parse(Int32,line[8:10])
-        hour = parse(Int32,line[12:13])
-        min = parse(Int32,line[15:16])
-        sec = parse(Int32,line[18:19])
-        msec = parse(Int32,line[21:23])
-
-        epoch = DateTime(year, 1, 1,hour,min,sec,msec) + Dates.Day(doy-1)
-        
-        bx = parse(Float32,line[39:48])
-        by = parse(Float32,line[50:58])
-        bz = parse(Float32,line[60:68])
-        x = parse(Float32,line[75:86])
-        y = parse(Float32,line[87:98])
-        z = parse(Float32,line[99:110])
-
-        return epoch,[bx,by,bz],[x,y,z]
+    flag = Vector{Bool}(undef,nums)
+    @inbounds for (i,line) in enumerate(lines)
+        try
+            times[i],B[i,:],position[i,:] = get_data_from_line_for_mag_read(line)
+        catch e
+            # println(file," : ",i,e)
+            flag[i] = false
+            continue
+        end
+        flag[i] = true
     end
-    
-    for (i,line) in enumerate(lines)
-        times[i],B[i,:],position[i,:] = get_data_from_line(line)
-    end
-
+    # index = findall( x -> x , flag)
+    # println(file," : ",length(index))
+    times = times[flag]
+    B = B[flag,:]
+    position =position[flag,:]
     B_total = sqrt.(sum(B.^2, dims=2)); B_total = B_total[:,1]
 
     data=Dict(

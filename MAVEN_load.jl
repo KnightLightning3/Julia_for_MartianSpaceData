@@ -7,7 +7,6 @@ using TimesDates, Dates
 using DataFrames
 using DelimitedFiles
 using JSON
-# using NaNMath; nm=NaNMath
 # read filelist parts
     function show_load_models()  # 打印所有可支持的数据的读取.
         keys_arr = keys(read_models)
@@ -104,30 +103,9 @@ using JSON
         times = Vector{DateTime}(undef,nums)
         B = Matrix{Float32}(undef,nums,3)
         position = Matrix{Float32}(undef,nums,3)
-    
-        function get_data_from_line(line::String)
-            # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
-            year = parse(Int32,line[1:6])
-            doy = parse(Int32,line[8:10])
-            hour = parse(Int32,line[12:13])
-            min = parse(Int32,line[15:16])
-            sec = parse(Int32,line[18:19])
-            msec = parse(Int32,line[21:23])
-    
-            epoch = DateTime(year, 1, 1,hour,min,sec,msec) + Dates.Day(doy-1)
-            
-            bx = parse(Float32,line[39:48])
-            by = parse(Float32,line[50:58])
-            bz = parse(Float32,line[60:68])
-            x = parse(Float32,line[74:88])
-            y = parse(Float32,line[90:103])
-            z = parse(Float32,line[105:118])
-    
-            return epoch,[bx,by,bz],[x,y,z]
-        end
         
-        for (i,line) in enumerate(lines)
-            times[i],B[i,:],position[i,:] = get_data_from_line(line)
+        @inbounds for (i,line) in enumerate(lines)
+            times[i],B[i,:],position[i,:] = get_data_from_line_for_mag_read(line)
         end
     
         B_total = sqrt.(sum(B.^2, dims=2)); B_total = B_total[:,1]
@@ -138,6 +116,18 @@ using JSON
         )
         return data
     end
+        function get_data_from_line_for_mag_read(line::String)
+            # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
+            year, doy, hour, min, sec, msec = parse.(Int32, [
+                line[1:6], line[8:10], line[12:13], line[15:16], line[18:19], line[21:23]
+            ])
+            epoch = DateTime(year, 1, 1,hour,min,sec,msec) + Dates.Day(doy-1)
+            bx,by,bz,x,y,z = parse.(Float32,[
+                line[39:48],line[50:58],line[60:68],line[74:88],line[90:103],line[105:118]
+            ])
+            return epoch,[bx,by,bz],[x,y,z]
+        end
+
     function load_static(file; No_NaN=false)
         data   = cdflib.cdfread.CDF(file)
         epoch  = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
