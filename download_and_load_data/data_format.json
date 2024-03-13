@@ -80,6 +80,12 @@
             "LPW/wn/",
             "load_lpw_wn"
         ],
+        "LPW_we12":[
+            "lpw/l2/",
+            "mvn_lpw_l2_we12_.+\\.cdf",
+            "LPW/we12/",
+            "load_lpw_we12"
+        ],
         "LPW_bursthf":[
             "lpw/l2/",
             "mvn_lpw_l2_we12bursthf_.+\\.cdf",

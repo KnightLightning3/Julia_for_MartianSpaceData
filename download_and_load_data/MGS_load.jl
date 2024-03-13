@@ -24,7 +24,8 @@ end
 function load_mag(file::String);
 
     lines=readlines(file)
-    line_i = findlast(line -> startswith(line, "END"), lines[1:600])
+    nums = length(lines)
+    line_i = findlast(line -> startswith(line, "END"), lines[1:min(600,nums)])
     lines = lines[line_i+1:end]
 
     nums = length(lines)

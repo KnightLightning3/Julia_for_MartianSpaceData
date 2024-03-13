@@ -163,10 +163,15 @@ if __name__ == '__main__':
     nums_failed = 0
     download_log = open("download.log","a")
     
-    downloadmodel = "muti"
+    logic = test_proxies()
+    if(logic == False):
+        print('代理服务器连接失败')
+        exit(0)
+
+    downloadmodel = "single"
     if downloadmodel == "single":
         # single model
-        model= "KP"#"SWEA_pad_svy"#"LPW_bursthf"
+        model= "LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf"
         url_path,save_path,filestyle = downlaod_model(model)
         file_names = os.listdir(save_path)
         # counter = file_check(file_names,save_path,'kp')
@@ -175,10 +180,6 @@ if __name__ == '__main__':
                 file.write(str(item) + '\n') 
         
         #get all url:
-        logic = test_proxies()
-        if(logic == False):
-            print('代理服务器连接失败')
-            exit(0)
         while current_date <= end_date:
             date=str(current_date.strftime("%Y%m%d"))
     
@@ -211,10 +212,6 @@ if __name__ == '__main__':
                 file.write(str(item) + '\n')
         exit(0)
 ## muti model
-    logic = test_proxies()
-    if(logic == False):
-        print('代理服务器连接失败')
-        exit(0)
     models = ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc"]
     for model in models:
         try:

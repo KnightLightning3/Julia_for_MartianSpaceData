@@ -321,7 +321,7 @@ function bowshock(xshock)
 end
 #magnetopause model
 function magnetopause(xmp)
-    rSD = 1.25
+    # rSD = 1.25
     if xmp>0  
         xF = 0.64
         ϵ = 0.77
