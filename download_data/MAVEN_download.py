@@ -15,6 +15,12 @@ porxies = {
 }
 timeout = None
 sleep_time = 60
+step_time= 5 #每个请求之间间隔的时间，以防被ban
+data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(f"{data_format_path}\load_data\MAVEN_data_format.json", "r") as file:
+    json_data = json.load(file)
+data_model = json_data["data_model"]
+
 def test_proxies():
     global porxies
     global timeout
@@ -31,8 +37,13 @@ def test_proxies():
 def search_url(url,filename):
     global porxies
     global timeout
+    sleep(step_time)
     try:
         response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
+        while(response.status_code == 429):
+            print(f"超出网站请求上限,休眠{sleep_time}秒")
+            sleep(sleep_time)
+            response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
 
@@ -46,16 +57,24 @@ def search_url(url,filename):
                 file_urls.append(file_url)
             urls=[string for string in file_urls if re.match(filename, string)]
             response.close()
-            return urls
+            if urls == None:
+                return response.status_code,False,0
+            return response.status_code,True,urls
     except requests.exceptions.RequestException as e:
-        print(" url error: "+str(e)+',sleep 60s')
-        sleep(60)
-        return False
+        print(f"url error: {e},sleep {sleep_time}s")
+        sleep(sleep_time)
+        return response.status_code,False,0
+    return response.status_code,False,0
 def requests_downlaod(url,save_path):
     global porxies
     global timeout
+    sleep(step_time)
     try:
         response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
+        while(response.status_code == 429):
+            print(f"超出网站请求上限,休眠{sleep_time}秒")
+            sleep(sleep_time)
+            response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
@@ -69,18 +88,17 @@ def requests_downlaod(url,save_path):
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
                 file.write(buffer)
-            return True
+            return response.status_code,True
         response.close()
     except requests.exceptions.RequestException as e:
-        print(" url error: "+str(e)+',sleep 60s')
-        sleep(60)
-        return False
+        print(f"url error: {e},sleep {sleep_time}s")
+        sleep(sleep_time)
+        return response.status_code,False
+    return response.status_code,False
 def downlaod_model(model):
     url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
-    with open("data_format.json", "r") as file:
-        data = json.load(file)
-    save_dir = data["save_path"]
-    data_model = data["data_model"]
+    save_dir = json_data["save_path"]
+    data_model = json_data["data_model"]
     model_key = {}
     for key, value in data_model.items():
         model_key[key] = value[:3]
@@ -150,12 +168,8 @@ def file_check(file_names,save_path,model):
 if __name__ == '__main__':
     start_date   = datetime.date(2014, 10, 1)
     end_date     = datetime.date(2020, 6, 1)
-    # months = get_months_between(start_date, end_date)
     
     current_date = start_date
-    with open("data_format.json", "r") as file:
-        data = json.load(file)
-    data_model = data["data_model"]
 
     models=data_model.keys()
 
@@ -169,16 +183,16 @@ if __name__ == '__main__':
         exit(0)
 
     downloadmodel = "single"
-    if downloadmodel == "single":
-        # single model
-        model= "LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf"
+    if downloadmodel == "single": # single model
+        model= "STATIC_d1"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf"
         url_path,save_path,filestyle = downlaod_model(model)
+        folder = os.path.exists(save_path)
+        if not folder:                   #判断是否存在文件夹如果不存在则创建为文件夹
+            os.makedirs(save_path) 
         file_names = os.listdir(save_path)
-        # counter = file_check(file_names,save_path,'kp')
         with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n') 
-        
         #get all url:
         while current_date <= end_date:
             date=str(current_date.strftime("%Y%m%d"))
@@ -187,20 +201,22 @@ if __name__ == '__main__':
                 print(date,model,'文件已存在')
                 current_date+=datetime.timedelta(days=1)
                 continue
-            year    = current_date.year
-            month   = current_date.month
-            yyyymm  = str(current_date.strftime("%Y/%m/"))
-            urls    = search_url(url_path+yyyymm,filestyle)
-            print(len(urls),'files in ', yyyymm)
-            for url in urls:
-                filename = str(url)
-                date=re.findall(r"\d{8}", filename)
-                if find_downloaded_file(file_names, filename):
-                    print(date,model,'文件已下载')
-                    current_date+=datetime.timedelta(days=1)
-                    continue
-                logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
-                print('\n',date,model,"下载状态:",logic,end='\n')
+            year      = current_date.year
+            month     = current_date.month
+            yyyymm    = str(current_date.strftime("%Y/%m/"))
+            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
+            if bool_urls:
+                print(f'{len(urls)} {model} files in '+yyyymm)
+                for url in urls:
+                    filename = str(url)
+                    date=re.findall(r"\d{8}", filename)
+                    if find_downloaded_file(file_names, filename):
+                        print(date,model,'文件已下载')
+                        current_date+=datetime.timedelta(days=1)
+                        continue
+                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
+                    time_now = datetime.datetime.now()
+                    print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
             month+=1
             if month == 13:
                 month=1
@@ -212,31 +228,27 @@ if __name__ == '__main__':
                 file.write(str(item) + '\n')
         exit(0)
 ## muti model
-    models = ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc"]
+    models = ["STATIC_c8","STATIC_ca","LPW_we12"]
     for model in models:
         try:
-            # if model in ['KP',"LPW_burstmf","SWEA_spec","MAG_ss1s","MAG_pc1s","LPW_mrgscpot","SWEA_pad_svy"]:
-            #     continue
             url_path,save_path,filestyle = downlaod_model(model)
             file_names = os.listdir(save_path)
             with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
-            #get all url:
             current_date =  start_date
             while current_date <= end_date:
                 date=str(current_date.strftime("%Y%m%d"))
 
                 if find_downloaded_file(file_names, date):
                     print(date,model,'文件已存在')
-                    # start_date=current_date
                     current_date+=datetime.timedelta(days=1)
                     continue
                 year    = current_date.year
                 month   = current_date.month
                 yyyymm  = str(current_date.strftime("%Y/%m/"))
-                urls    = search_url(url_path+yyyymm,filestyle)
-                print(len(urls),'files in ', yyyymm)
+                urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
+                print(f'{len(urls)} {model} files in '+yyyymm)
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)
@@ -244,8 +256,9 @@ if __name__ == '__main__':
                         print(date,model,'文件已下载')
                         current_date+=datetime.timedelta(days=1)
                         continue
-                    logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
-                    print('\n',date,model,"下载状态:",logic,end='\n')
+                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
+                    time_now = datetime.datetime.now()
+                    print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
                     if logic:
                         nums_downloaded+=1
                     else:

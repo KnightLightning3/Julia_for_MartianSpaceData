@@ -9,7 +9,7 @@ const EV=1.602176487e-19
 const C=3.0e8
 const me=9.109e-31
 const Rm = 3393.5  #km
-const E0 = 511.0
+const E0 = 511.0 # 电子静止能量KeV
 const RAD = π / 180
 function sta_heatmap(ax,x,y,c,nswp;c_range=(1e4,1e10),ylabel="energy")    #默认叠加绘图
     ax.ylabel = ylabel

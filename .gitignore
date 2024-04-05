@@ -3,3 +3,12 @@
 .vscode
 *.EPS
 .ipynb_checkpoints
+package.jl
+test.jl
+test.py
+test.txt
+download_data\build_kp_format.py
+download_data\修改文件树.py
+download_data\download.log
+Bspline.dll
+linear_growth_rate.dll
