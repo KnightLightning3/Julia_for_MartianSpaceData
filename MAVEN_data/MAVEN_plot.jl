@@ -451,7 +451,7 @@ function WaveSpectra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range
     heatmap!(ax, x[bools], y[bools], c[bools], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
-function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_mag=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_sc =Dict(:linestyle=>:dash,:linewidth=>3))
+function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_mag=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_sc =Dict(:linestyle=>:solid,:linewidth=>3,:color=>:green))
     #绘制半球
     if shadowed
         theta = LinRange(pi, 2pi, 100)

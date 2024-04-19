@@ -18,23 +18,32 @@ for i=0,nday-1 do begin
 endfor
 close,lun1
 free_lun,lun1
-t_range = [t_day_range[0,0],t_day_range[600,1]]
-mvn_spice_load,trange=t_range,/quaternion
-for i =30,nday-1 do begin
+t_range = [t_day_range[0,0],t_day_range[3000,1]]
+mvn_spice_load,trange=t_range,/quaternion,/no_download,/load
+t_bool = 0
+for i =102,nday-1 do begin
+  print,"Doing",t_day[i]
+  if t_day[i] ne '2015-01-01' and t_bool eq 0 then begin
+    continue
+  endif else begin
+    t_bool = 1
+  endelse
+  if t_day[i] eq '2015-10-01' then begin
+     t_bool = 0
+     continue
+  endif
+  
   t_range=[t_day_range[i,0],t_day_range[i,1]]
 ;  mvn_spice_load,trange=t_range,/download_only,/quaternion
 ;  mk = mvn_spice_kernels(trange=t_range,/load,/all,/valid_only)
   seconds = round(t_range[1] - t_range[0])
   openw,lun,"E:\MAVEN\SPICE\"+t_day[i]+"_swia_qu.csv",/get_lun
-  
-;  old_error_setting = ON_ERROR(/GET)
-;  ON_ERROR, 2
 
   for j = 0,seconds,2 do begin
     ut = j + round(t_range[0])   
-      scrotmat = spice_body_att('MAVEN_SWIA','IAU_MARS',ut,/quaternion)
+;      scrotmat = spice_body_att('MAVEN_SWIA','IAU_MARS',ut,/quaternion)
       msorotmat = spice_body_att('MAVEN_SWIA','MAVEN_MSO',ut,/quaternion)
-    printf,lun,ut,scrotmat,msorotmat,format="(I10,1x,4(f14.10,1x),4(f14.10,1x))
+    printf,lun,ut,msorotmat,format="(I10,1x,4(f14.10,1x))
   endfor
 ;  ON_ERROR, old_error_setting
   close,lun

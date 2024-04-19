@@ -409,6 +409,62 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
     return density
 end
+function sta_pickup(dat)#计算拾取率,需要conut2df处理过的dat切片
+    function get_vfn(dat,dF;m_int=1)
+        phi = dat[:phi] .|> deg2rad# 8,64,32
+        theta = dat[:theta] .|> deg2rad# (8, 64, 32)
+        energy = dat[:energy]# (8, 64, 32)
+        denergy = dat[:denergy]# (8, 64, 32)
+    
+        dtheta = dat[:dtheta] .|> deg2rad
+        dphi = dat[:dphi] .|> deg2rad
+        mass = dat[:mass]
+    
+        mass=dat[:mass]*m_int
+    
+        dF_t = dF .* m_int.^2
+    
+        Const = 2.0/mass/mass*1e5
+        flux0 = Const.*denergy.*energy.*dF_t
+        theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
+        flux3dx = sum(flux0.*theta0.*cos.(phi))
+        flux3dy = sum(flux0.*theta0.*sin.(phi))
+        flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
+        flux = [flux3dx,flux3dy,flux3dz]
+    
+        Const = mass^(-1.5)*2.0^(0.5)
+        density = sum(Const.*denergy.*sqrt.(energy).*dF_t.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    
+        vel = 1e-5 .* flux ./(density .+ 1e-10)
+        return vel,flux,density
+    end
+    function get_bin_mask(dat,vec)
+        phi = dat[:phi]# 8,64,32
+        theta = dat[:theta]# (8, 64, 32)
+        vec_1 = normalize(vec)
+        A0 = MAVEN_STATIC.sphere2xyz_for_STATIC.([1],theta,phi)
+        dl = 2*π*30/360
+        bin_mask = [norm(xyz.-vec_1) > dl for xyz in A0]
+        return bin_mask
+    end
+    df_mass = dat[:df_mass_mass]
+    mass_arr = dat[:mass_arr]
+    mass_mask_H = (mass_arr .> 0) .& (mass_arr .<= 1.3);
+    v_H,_,n_H = get_vfn(dat,df_mass.*mass_mask_H;m_int=1);
+    bin_mask = get_bin_mask(dat,v_H);
+    
+    mass_mask_He = (dat[:mass_arr] .> 1.3) .& (dat[:mass_arr] .<= 2.3);
+    v_He,_,n_He = get_vfn(dat,df_mass.*mass_mask_He;m_int=2);
+    df_He_1 = sum(dat[:df].*mass_mask_He,dims=1);
+    He_mask = (df_He_1 .== 0);
+
+    df_1 = dat[:df] .* bin_mask .* He_mask # 去除掉有He部分的H数据，H主速度方向的离子
+    _,_,n_H_no_sw = get_vfn(dat,df_1.*mass_mask_H;m_int=1);
+
+    pickup_rate = n_H_no_sw/n_H
+
+    return pickup_rate,v_H,v_He,n_H,n_He,n_H_no_sw
+end
 function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
     function rotate_vector(u::AbstractVector,q::QuaternionF64)
         q_u = QuaternionF64(0, u[1], u[2], u[3])
@@ -660,7 +716,6 @@ function rotate_vector_with_quat(u::AbstractVector, q::QuaternionF64)
     q_v = q * q_u * conj(q)
     return [imag_part(q_v)...]
 end
-
 function rotate_vector_with_quat_reverse(u::AbstractVector, q::QuaternionF64)
     q_u = QuaternionF64(0, u[1], u[2], u[3])
     q_v = conj(q) * q_u * q
@@ -688,8 +743,9 @@ function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位�
     return F
 end
 function sphere2xyz_for_STATIC(r,θ,ϕ) #spedas_6_1\general\science\sphere_to_cart.pro
-    x = r * cosd(θ) *  cosd(ϕ)
-    y = r * cosd(θ) *  sind(ϕ)
+    ct = cosd(θ)
+    x = r * ct *  cosd(ϕ)
+    y = r * ct *  sind(ϕ)
     z = r * sind(θ)
     return [x,y,z]
 end;

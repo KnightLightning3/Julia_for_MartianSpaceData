@@ -157,7 +157,7 @@ function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, 
     return energy
 end
 function MINPA_sphere2xyz(r,θ,ϕ) # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
-    local theta = 0.5π - θ
+    local theta = 0.5π - θ #由于数据是视野方向，所以需要反向
     local phi = 2π - ϕ
     local ct = cos(theta)
     local st = sin(theta)
@@ -172,6 +172,27 @@ function MINPA_sphere2xyz(r,θ,ϕ) # 转换为仪器坐标系下的情况/ref: h
     local z = -r * st * sp
 
     return [x,y,z]
+end
+function MINPA_xyz2sphere(x,y,z) # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
+    local r = norm([x,y,z])
+    local st = norm([y,z]) / r
+    local ct = x / r
+    local r_st = r*st
+    local cp = -y/r_st
+    local sp = -z/r_st
+    local θ = atan(st,ct) # 俯仰角
+    local ϕ = atan(sp,cp) # 方位角
+
+    local θ = 0.5π - θ #反转回仪器的视野方向
+    local ϕ = 2π - ϕ
+
+    return [r,θ,ϕ]
+    
+    # include(Package_path * "TW_data/TW_MINPA.jl");import .TW_MINPA; 已经验证反变换的可靠性
+    # x1,y1,z1 = 1,10,-12
+    # r,t,p = TW_MINPA.MINPA_xyz2sphere(x1,y1,z1)
+    # x,y,z = TW_MINPA.MINPA_sphere2xyz(r,t,p)
+    # @show norm([x,y,z] .- [x1,y1,z1])
 end
 function MINPA_energy2v(dat;m_int=1) #  取得质量数为m_int的速度分布,单位km/s
     nenergy = dat[:nenergy]
