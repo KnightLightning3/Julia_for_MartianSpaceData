@@ -5,31 +5,31 @@
         "KP":[
             "kp/insitu/",
             "^mvn_kp_insitu_.+\\.tab$",
-            "KP/",
+            "KP/insitu/",
             "load_kp"
         ],
         "MAG_ss":[
             "mag/l2/",
             "mvn_mag_l2_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
-            "MAG/ss/",
+            "MAG/l2/",
             "load_mag"
         ],
         "MAG_ss1s":[
             "mag/l2/",
             "mvn_mag_l2_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
-            "MAG/ss_1s/",
+            "MAG/l2/",
             "load_mag"
         ],
         "MAG_pc":[
             "mag/l2/",
             "mvn_mag_l2_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
-            "MAG/pc/",
+            "MAG/l2/",
             "load_mag"
         ],
         "MAG_pc1s":[
             "mag/l2/",
             "mvn_mag_l2_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
-            "MAG/pc_1s/",
+            "MAG/l2/",
             "load_mag"
         ],
         "SWEA_spec":[

@@ -85,6 +85,10 @@ def requests_downlaod(url,save_path):
                 buffer.extend(data)  # 将下载的数据添加到缓冲区
             progress_bar.close()
             
+            # 如果路径不存在,创建路径
+            if not os.path.exists(os.path.dirname(save_path)):
+                os.makedirs(save_path)
+                print(f"创建路径:{save_path}")
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
                 file.write(buffer)
@@ -163,8 +167,15 @@ def file_check(file_names,save_path,model):
                     print(f,"False")
                     counter+=1
             return counter
-      
-
+def sreach_dowloaded_files(save_path):
+    filenames =[]
+    yyyy = os.listdir(save_path)
+    for iy in yyyy:
+        mm   = os.listdir(save_path+iy+"/")
+        for im in mm:
+            files = os.listdir(save_path+iy+"/"+im+"/")
+            filepath = [iy+"/"+im+"/"+file for file in files]
+            filenames.append(filepath)
 if __name__ == '__main__':
     start_date   = datetime.date(2014, 10, 1)
     end_date     = datetime.date(2020, 6, 1)
@@ -188,8 +199,8 @@ if __name__ == '__main__':
         url_path,save_path,filestyle = downlaod_model(model)
         folder = os.path.exists(save_path)
         if not folder:                   #判断是否存在文件夹如果不存在则创建为文件夹
-            os.makedirs(save_path) 
-        file_names = os.listdir(save_path)
+            os.makedirs(save_path)
+        file_names = sreach_dowloaded_files(save_path)
         with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n') 
@@ -214,7 +225,7 @@ if __name__ == '__main__':
                         print(date,model,'文件已下载')
                         current_date+=datetime.timedelta(days=1)
                         continue
-                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
+                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
                     print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
             month+=1
@@ -222,7 +233,7 @@ if __name__ == '__main__':
                 month=1
                 year+=1
             current_date = datetime.date(year, month, 1)
-        file_names = os.listdir(save_path)
+        file_names = sreach_dowloaded_files(save_path)
         with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
@@ -232,7 +243,7 @@ if __name__ == '__main__':
     for model in models:
         try:
             url_path,save_path,filestyle = downlaod_model(model)
-            file_names = os.listdir(save_path)
+            file_names = sreach_dowloaded_files(save_path)
             with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
@@ -256,7 +267,7 @@ if __name__ == '__main__':
                         print(date,model,'文件已下载')
                         current_date+=datetime.timedelta(days=1)
                         continue
-                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+filename)
+                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
                     print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
                     if logic:
@@ -268,9 +279,9 @@ if __name__ == '__main__':
                     month=1
                     year+=1
                 current_date = datetime.date(year, month, 1)
-            file_names = os.listdir(save_path)
         except:
             print("停止下载，保存已下载文件列表")
+        file_names = sreach_dowloaded_files(save_path)
         with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')

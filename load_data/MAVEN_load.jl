@@ -4,6 +4,7 @@
 # 所有的CDF文件统一读取为cdf对应的字典，并去除PyObjects
 # STATIC中的theta值在球坐标系下,应当为90-Theta.
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
+# 默认能量单位: EV. 默认粒子质量单位:AMU
 module MAVEN_load
 using PyCall
 cdflib = pyimport("cdflib")
@@ -172,7 +173,6 @@ function load_swea_pad(file;  mean_PA=true)
     # "diff_en_fluxes_mean"
     # "g_pa_mean"
     # "pa_mean"
-
     data_dict = load_cdf(file)
     if mean_PA
         data_dict= mean_SWEA_pad_pa(data_dict)
@@ -225,70 +225,193 @@ function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典，将其角�
     data_dict["pa_mean"] = pitch_angle_mean
     return data_dict
 end
-function caculate_static(data;model="total",mass_range=[0,0],energy_range=[0,1e4])
+function static_c6_mass_mean(data;mass_range)  # static 3d数据处理(不包括角度信息)
+    # energy_spec为在mass维度做求和,得到eflux,energy谱
+    # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
+    # mass_range单位AMU
     # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
-    epoch,energy,denergy,eflux,swp_arr,AMU_arr = data["Vars"]
-    if model == "total"
-        energy_all_mass = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1); energy_all_mass = energy_all_mass[1,:,:]  
-        eflux_all_mass  = sum(eflux[:,:,:], dims=2) ; eflux_all_mass = eflux_all_mass[:,1,:]
-        return_data = Dict(
-            "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
-            "Vars"    => [epoch,energy_all_mass,eflux_all_mass,swp_arr],
-            "flag"    => true
-        )
-        return return_data
-    elseif model == "mass"
-        ntime = length(epoch)
-        nmass = length(AMU_arr[:,1,1])
-        eflux_mass = zeros(ntime,nmass)
-        mass = zeros(ntime,nmass)
+    epoch   = data["epoch"]
+    energy  = data["energy"]
+    denergy = data["denergy"]
+    eflux   = data["eflux"]
+    swp_ind = data["swp_ind"] .+ 1
+    apid    = data["apid"]
+    mass_arr = data["mass_arr"]
+    ntime    = data["num_dists"]
+    # nmass    = data["nmass"]
+    # nswp    = data["nswp"]
+    # nenergy = data["nenergy"]
 
-        eflux_mass = sum(eflux[:,:,:],dims=3); eflux_mass=eflux_mass[:,:,1]
-        for i = 1:ntime
-            for j =1:nmass
-                # energy_ind = findall(x-> energy_range[1] <= x <= energy_range[2],energy[j,:,swp_arr[i]])
-                # eflux_mass[i,j] = sum(eflux[i,j,energy_ind],dims=3)[1]
-                # mass[i,j] = mean(AMU_arr[j,:,swp_arr[i]],dims=2)[1]
-                mass[i,j] = AMU_arr[j,1,swp_arr[i]]
-            end
+    eflux_mass   = zeros(ntime,nenergy)
+    energy_mass  = zeros(nenergy,nswp)
+    
+
+    if  ismissing(mass_range)
+        energy_mass[:,:] = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1)
+        eflux_mass[:,:]  = sum(eflux,dims=2)
+    else
+        ind = findall(x->mass_range[2] >= x >= mass_range[1] , mass_arr)
+        energy_t = energy[ind]
+        denergy_t = denergy[ind]
+        energy_mass[:,:] = sum(energy_t .* denergy_t, dims=1)  ./ sum(denergy_t, dims=1)
+
+        mapped_mass_arr = zeros(ntime,nmass,nenergy)
+        for i in 1:ntime
+            mapped_mass_arr[i,:,:] = mass_arr[:,:,swp_ind[i]]
         end
-        return_data = Dict(
-            "Var name"=> "time,energy[Nenergy,Nswp], mass[Ntime,Nmass],eflux[ Ntime,Nenergy]",
-            "Vars"    => [epoch,mass,eflux_mass],
-            "flag"    => true
-        )
-        return return_data
+        ind = findall(x->mass_range[2] >= x >= mass_range[1] , mapped_mass_arr)
+        eflux_mass[:,:]=sum(eflux[ind],dims=2)
     end
-    n = size(eflux)
-    ntime   = n[1]
-    n = size(energy)
-    nswp    = n[3] 
-    nenergy = n[2]
-    nmass   = n[1]
-    
-    eflux_mass=zeros((ntime,nmass,nenergy))
-    energy_mass = zeros(nmass,nenergy,nswp)
-    denergy_mass = zeros(nmass,nenergy,nswp)
-    ind_mass=findall(m -> mass_range[1] <= m <= mass_range[2], AMU_arr)
-    energy_mass[ind_mass] = energy[ind_mass]
-    denergy_mass[ind_mass] = denergy[ind_mass]
-    energy_mass = sum(energy.* denergy, dims=1)  ./ sum(denergy, dims=1); energy_mass = energy_mass[1,:,:]  
-    
-    for i =1:ntime
-        ind_mass_t=findall(m -> mass_range[1] <= m <= mass_range[2], AMU_arr[:,:,swp_arr[i]+1])
-        eflux_t=eflux[i,:,:]
-        eflux_mass[i,ind_mass_t]=eflux_t[ind_mass_t]
-    end
-    eflux_mass = sum(eflux_mass,dims=2); eflux_mass=eflux_mass[:,1,:]
-    return_data = Dict(
-        "Var name" => "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
-        "Vars"     => [epoch,energy_mass,eflux_mass,swp_arr],
-        "flag"     => true
+
+    return_data = Dict{String,Any}(
+        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
+        "apid"           => apid,
+        "epoch"          => epoch,
+        "energy"         => energy_mass,
+        "eflux"          => eflux_mass,
+        "swp_ind"        => swp_ind,
+        "data_load_flag" => true
     )
     return return_data
 end
+function static_c6_energy_mean(data;energy_range)  # static 3d数据处理(不包括角度信息)
+    # 在energy维度做求和,得到eflux,mass谱
+    # energy_range单位energy,不设置时默认计算所有energy的值
+    # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
+    epoch   = data["epoch"]
+    energy  = data["energy"]
+    eflux   = data["eflux"]
+    swp_ind = data["swp_ind"] .+ 1
+    apid    = data["apid"]
+    mass_arr = data["mass_arr"]
+    ntime    = data["num_dists"]
+    nmass    = data["nmass"]
+    nswp    = data["nswp"]
+    nenergy = data["nenergy"]
+
+    eflux_out   = zeros(ntime,nmass)
+    mass_out    = zeros(nmass,nswp)
+    
+    if  ismissing(energy_range)
+        mass_out[:,:] = mean(mass_arr, dims=2)
+        eflux_out[:,:]  = sum(eflux,dims=3)
+    else
+        ind = findall(x->energy_range[2] >= x >= energy_range[1] , energy)
+        mass_arr_t = mass_arr[ind]
+        mass_out[:,:] = mean(mass_arr_t, dims=2)
+
+        mapped_energy = zeros(ntime,nmass,nenergy)
+        for i in 1:ntime
+            mapped_energy[i,:,:] = energy[:,:,swp_ind[i]]
+        end
+        ind = findall(x->energy_range[2] >= x >= energy_range[1] , mapped_energy)
+        eflux_out[:,:]=sum(eflux[ind],dims=3)
+    end
+
+    return_data = Dict{String,Any}(
+        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
+        "apid"           => apid,
+        "epoch"          => epoch,
+        "mass"           => mass_out,
+        "eflux"          => eflux_out,
+        "swp_ind"        => swp_ind,
+        "data_load_flag" => true
+    )
+    return return_data
+end
+function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑
+    dat_slip =Dict{String,Any}()
+    
+    dat_slip["eflux"]    = dat["eflux"][time_ind,:,:]
+    dat_slip["epoch"]    = dat["epoch"][time_ind]
+    dat_slip["swp_ind"]  = dat["swp_ind"][time_ind]
+    dat_slip["sc_pot"]   = dat["sc_pot"][time_ind]
+    
+    dat_slip["energy"]   = dat["energy"][:,:,swp_ind]
+    dat_slip["denergy"]  = dat["denergy"][:,:,swp_ind]
+    dat_slip["theta"]    = dat["theta"][:,:,swp_ind]
+    dat_slip["phi"]      = dat["phi"][:,:,swp_ind]
+    dat_slip["dtheta"]   = dat["dtheta"][:,:,swp_ind]
+    dat_slip["dphi"]     = dat["dphi"][:,:,swp_ind]
+    dat_slip["mass_arr"] = dat["mass_arr"][:,:,swp_ind]
+    
+    keys_slip = keys(dat_slip)
+    keys_dat  = keys(dat)
+
+    keys = setdiff(keys_dat,keys_slip)
+
+    for key in keys
+        dat_slip[key] = dat[key]
+    end
+    return dat_slip
+end
+    # function static_v4d(dat,local_time;energy_range,mass_range,mint)
+    #     # dat = conv_units(dat2,"counts")		# initially use counts
+    #     eflux = dat["eflux"]
+    #     # na = dat["nenergy"]
+    #     # nb = dat["nbins"]
+    #     # nm = dat["nmass"]
+    
+    #     bkg = dat["bkg"]
+    #     energy = dat["energy"]
+    #     denergy = dat["denergy"]
+    #     theta = dat["theta"]./RADG
+    #     phi = dat["phi"]./RADG
+    #     dtheta = dat["dtheta"]./RADG
+    #     dphi = dat["dphi"]./RADG
+    #     # domega = dat["domega"]
+    #     sc_pot = dat["sc_pot"]
+    #     mass_arr = dat["mass_arr"]
+    #     mass = dat["mass"].*mass_arr
+
+    #     if !ismissing(energy_range)
+    #         ind = findall(x-> energy_range[2]>= x >= energy_range[1],energy)
+    #         if !isempty(ind) 
+    #             data[ind] .=0.0
+    #             bkg[ind]  .=0.0
+    #         end
+    #     end
+
+    #     if !ismissing(mass_range)
+    #         ind = findall(x-> mass_range[2]>= x >= mass_range[1],mass_arr)
+    #         if !isempty(ind) 
+    #             data[ind] .=0.0
+    #             bkg[ind]  .=0.0
+    #         end
+    #     end
+
+    #     if keyword_set(mint)
+    #         mass_arr=mint 
+    #         mass=mass.*mass_arr 
+    #     else
+    #         mass_arr=round(mass_arr .- 0.1)
+    #         mass=mass.*mass_arr	#the minus 0.1 helps account for straggling at low mass
+    #     end
+
+    #     data = ion_eflux2F.(energy,eflux,mass_arr)
+
+    #     charge=dat["charge"]
+    #     energy=(energy+charge.*sc_pot./abs.(charge))		# energy/charge analyzer, require positive energy
+    #     Const = 2.0./mass./mass.*1e5
+    #     # flux 
+    #     flux3dx = sum(sum(Const*denergy*(energy)*data*(dtheta/2.0+cos(2*theta)*sin(dtheta)/2.0)*(2.0*sin(dphi/2.)*cos(phi)),dims=1),dims=1)
+    # 	flux3dy = sum(sum(Const*denergy*(energy)*data*(dtheta/2.0+cos(2*theta)*sin(dtheta)/2.0)*(2.0*sin(dphi/2.)*sin(phi)),dims=1),dims=1)
+    # 	flux3dz = sum(sum(Const*denergy*(energy)*data*(2.0*sin(theta)*cos(theta)*sin(dtheta/2.0)*cos(dtheta/2.))*dphi,dims=1),dims=1)
+
+    #     density = sum(sum(Const.*denergy.*(energy.^(0.5)).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi,dims=1),dims=1)
+
+    #     v_4d = 1e-5*reform([flux[0,*]/(density+1.e-10),flux[1,*]/(density+1.e-10),flux[2,*]/(density+1.e-10)],3,n_elements(density))
+
+    #     return nothing
+    # end
 function carclu_SWEA_pad(data; energy_range=[])
-    time, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data["Vars"]
+    # time, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data["Vars"]
+    time        = data["epoch"]
+    pitch_angle = data["pa"]
+    energy_arr  = data["energy"]
+    flux_arr    = data["diff_en_fluxes"]
+    g_pa        = data["g_pa"]
+    g_engy      = data["g_engy"]
     if size(energy_range)[1] == 1
         _, index = findmin(abs.(energy_arr .- energy_range))
         index = index[1]
@@ -322,13 +445,14 @@ function carclu_SWEA_pad(data; energy_range=[])
         return return_data #[time,pitch_angle_PAD,flux_PAD,energy_double]
     end
 end
-function pc2ss(pc_data,Rotation_Martrix)
-    pc2ss_data = Rotation_Martrix * pc_data
-    return pc2ss_data
+function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
+    out_data = Rotation_Martrix * in_data
+    return out_data
 end
-function ss2pc(ss_data,Rotation_Martrix)
-    ss2pc_data = inv(Rotation_Martrix) * ss_data
-    return ss2pc_data
+function rotate_vector_with_quat(u::AbstractVector,q::QuaternionF64)
+    q_u = QuaternionF64(0, u[1], u[2], u[3])
+    q_v = q*q_u*conj(q)
+    return [imag_part(q_v)...]
 end
 function eflux2F(energy,eflux)  # 电子eflux转PSD
     M = me
@@ -389,6 +513,7 @@ const EV=1.602176487e-19
 const C=3.0e8
 const Me=9.109e-31
 const Mp=1.672621637e-27
+const RADG=180.0/π
 
 dir = dirname(@__FILE__)
 data = JSON.parsefile(dir*"/"*"MAVEN_data_format.json")
