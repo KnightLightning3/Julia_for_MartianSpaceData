@@ -462,7 +462,7 @@ for (key, value) in data_model
     read_models[key] = (value[3],func)
 end
 
-data = JSON.parsefile(root_path*"lists/"*"filename_lists.json")
-filename_list = data
+# data = JSON.parsefile(root_path*"lists/"*"filename_lists.json")
+# filename_list = data
 
 end # module
