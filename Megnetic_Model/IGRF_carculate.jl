@@ -83,7 +83,7 @@ function RK4_Trace_fortran(r::Float64,θ::Float64,ϕ::Float64,h::Float64)
     path_next = Array{Float64}(undef, 3)
 
     B_result = Array{Float64}(undef, 3)  #[Br,Bt,Bp,abs(B)]
-    dBs = Array{Float64}(undef, 3)
+    dB = Ref{Float64}(0.0)
 
     h_in = Ref{Float64}(h)
     # lib = "Megnetic_Model/IGRF_DLL.dll"
@@ -92,13 +92,13 @@ function RK4_Trace_fortran(r::Float64,θ::Float64,ϕ::Float64,h::Float64)
     ccall(("MAIN_mp_RK4_STEP", IGRF_DLL_PATH), Cvoid,
         (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ptr{Float64},
-        Ptr{Float64},Ptr{Float64},
+        Ptr{Float64},Ref{Float64},
         Ref{Float64}),
         GG,HH,REALK,SS,
         path,path_next,
-        B_result,dBs,
+        B_result,dB,
         h_in)
-    return  B_result,dBs,path_next
+    return  B_result,dB.x,path_next
 end
 function IGRF_pc(x::Float64,y::Float64,z::Float64)
     r,θ,ϕ=pc2sphere(x,y,z)
@@ -242,7 +242,40 @@ function IGRF(r::Float64,θ::Float64,ϕ::Float64) # r θ ϕ[BR,BT,BP,DBBDRR,DBBD
     # )
     return BR,BT,BP,BB
 end
-function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortran内核
+function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
+    B_data = Array{Float64}(undef, max_trace, 6)
+    PATH = Array{Float64}([r,θ,ϕ])
+
+    dir_in = Ref{Float64}(dir)
+    step_in = Ref{Float64}(step)
+    r_range_in = Array{Float64}(r_range)
+    max_trace_in = Ref{Int64}(max_trace)
+    maxfac_in = Ref{Float64}(maxfac)
+    minfac_in = Ref{Float64}(minfac)
+    tol_in = Ref{Float64}(tol)
+    trace_conts = Ref{Int64}(0)
+
+    # lib = "Megnetic_Model/IGRF_DLL.dll"
+    # IGRF_DLL_PATH = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
+
+    ccall(("MAIN_mp_ADAPTIVE_STEP_TRACE", IGRF_DLL_PATH), Cvoid,
+        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
+        Ptr{Float64},Ptr{Float64},
+        Ref{Float64},Ref{Float64},Ref{Float64},Ref{Float64},Ref{Float64},
+        Ptr{Float64},
+        Ref{Int64},Ref{Int64}),
+        GG,HH,REALK,SS,
+        PATH,B_data,
+        dir_in,step_in,maxfac_in,minfac_in,tol_in,
+        r_range_in,
+        max_trace_in,trace_conts)
+    trace_conts=trace_conts.x
+    if show_steps
+        println("Stop after \033[36m$trace_conts\033[0m  steps at alt of $( B_data[trace_conts,1] ) km")
+    end
+    return B_data[1:trace_conts,:]
+end
+function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核
     B_data = []
     r , θ , ϕ = r0 , θ0 , ϕ0
     r_state = 500 + Rm
@@ -252,7 +285,7 @@ function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,
     B_data = zeros(max_trace, 6)
 
     while r_state >= r_range[1] && r_state <= r_range[2] && trace_steps < max_trace
-        B_result,dBs,path_next = RK4_Trace_fortran(r,θ,ϕ,h_new)
+        B_result,dB,path_next = RK4_Trace_fortran(r,θ,ϕ,h_new)
         r , θ , ϕ = path_next[1],path_next[2],path_next[3]
         Br, Bθ, Bϕ = B_result[1],B_result[2],B_result[3]
         r_state = r
@@ -260,8 +293,7 @@ function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,
         @inbounds B_data[trace_steps,:]=[r , θ , ϕ, Br , Bθ , Bϕ]
 
         #自适应步长:
-        dBs_norm =sqrt(dBs[1]^2+dBs[2]^2+dBs[3]^2)
-        error = abs(h/dBs_norm)
+        error = abs(h/dB)
         h_new = h*min(maxfac,max(minfac,(tol/error)^(1/5)))
     end
     if show_steps
