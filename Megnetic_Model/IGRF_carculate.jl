@@ -5,7 +5,8 @@ using FortranFiles
 #返回nT
 function pc2sphere(x,y,z)
     r = sqrt(x^2 + y^2 + z^2)
-    θ = π/2 - atan(z,sqrt(x^2+y^2))
+    # θ = π/2 - atan(z,sqrt(x^2+y^2))
+    θ = acos(z/r)
     ϕ = atan(y,x) 
     return r,θ,ϕ
 end
@@ -67,11 +68,11 @@ function IGRF_fortran(r,θ,ϕ)
     path = Array{Float64}([r,θ,ϕ])
     # lib = "Megnetic_Model/IGRF_DLL.dll"
     # lib = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
-    
+    B_compress_in = Array{Float64}(B_compress)
     ccall(("MAIN_mp_IGRF_110", IGRF_DLL_PATH), Cvoid,
-        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
+        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ptr{Float64}),
-        GG,HH,REALK,SS,
+        GG,HH,REALK,SS,B_compress_in,
         path,B_result)
     Br,Bθ,Bϕ,BB = B_result[1],B_result[2],B_result[3],B_result[4]
     return  Br,Bθ,Bϕ,BB
@@ -84,17 +85,17 @@ function RK4_Trace_fortran(r::Float64,θ::Float64,ϕ::Float64,h::Float64)
 
     B_result = Array{Float64}(undef, 3)  #[Br,Bt,Bp,abs(B)]
     dB = Ref{Float64}(0.0)
-
+    B_compress_in = Array{Float64}(B_compress)
     h_in = Ref{Float64}(h)
     # lib = "Megnetic_Model/IGRF_DLL.dll"
     # lib = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
 
     ccall(("MAIN_mp_RK4_STEP", IGRF_DLL_PATH), Cvoid,
-        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
+        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ref{Float64},
         Ref{Float64}),
-        GG,HH,REALK,SS,
+        GG,HH,REALK,SS,B_compress_in,
         path,path_next,
         B_result,dB,
         h_in)
@@ -113,9 +114,9 @@ function IGRF(r::Float64,θ::Float64,ϕ::Float64) # r θ ϕ[BR,BT,BP,DBBDRR,DBBD
     SINMPH = zeros(NIGRF+1)
       P = zeros(NIGRF+1, NIGRF+1)
      DP = zeros(NIGRF+1, NIGRF+1)
-    DDP = zeros(NIGRF+1, NIGRF+1)
+    #DDP = zeros(NIGRF+1, NIGRF+1)
     
-      P[1,1] = 1.0e0 ;  DP[1,1] = 0.0e0 ; DDP[1,1] = 0.0e0
+     P[1,1] = 1.0e0 ;  DP[1,1] = 0.0e0 #; DDP[1,1] = 0.0e0
     BR       = 0.0e0 ; BT       = 0.0e0 ; BP       = 0.0e0
     # DBRDRR   = 0.0e0 ; DBTDRR   = 0.0e0 ; DBPDRR   = 0.0e0
     # DBRDTH   = 0.0e0 ; DBTDTH   = 0.0e0 ; DBPDTH   = 0.0e0
@@ -254,17 +255,17 @@ function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=
     minfac_in = Ref{Float64}(minfac)
     tol_in = Ref{Float64}(tol)
     trace_conts = Ref{Int64}(0)
-
+    B_compress_in = Array{Float64}(B_compress)
     # lib = "Megnetic_Model/IGRF_DLL.dll"
     # IGRF_DLL_PATH = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
 
     ccall(("MAIN_mp_ADAPTIVE_STEP_TRACE", IGRF_DLL_PATH), Cvoid,
-        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
+        (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ptr{Float64},
         Ref{Float64},Ref{Float64},Ref{Float64},Ref{Float64},Ref{Float64},
         Ptr{Float64},
         Ref{Int64},Ref{Int64}),
-        GG,HH,REALK,SS,
+        GG,HH,REALK,SS,B_compress_in,
         PATH,B_data,
         dir_in,step_in,maxfac_in,minfac_in,tol_in,
         r_range_in,
@@ -275,7 +276,7 @@ function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=
     end
     return B_data[1:trace_conts,:]
 end
-function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核
+function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
     B_data = []
     r , θ , ϕ = r0 , θ0 , ϕ0
     r_state = 500 + Rm
@@ -301,26 +302,42 @@ function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,
     end
     return B_data[1:trace_steps,:]
 end
-function mag_trace_Euler_step(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,show_steps=false)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
+function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,show_steps=false)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
     B_data = []
     r , θ , ϕ = r0 , θ0 , ϕ0
-    r_state = 500 + Rm
     trace_steps = 0
     Δs = dir*step
     B_data = zeros(max_trace, 6)
-    while r_state >= r_range[1] && r_state <= r_range[2] && trace_steps < max_trace
+    trace_state = true
+    while trace_state
         Br,Bθ,Bϕ,BB = IGRF_fortran(r,θ,ϕ)
         r , θ , ϕ = r+Br/BB*Δs, θ+Bθ/BB*Δs/r , ϕ+Bϕ/BB*Δs/r/sin(θ)
         r_state= r
         trace_steps +=1
         @inbounds B_data[trace_steps,:]=[r , θ , ϕ, Br , Bθ , Bϕ]
+        trace_state =  r_state >= r_range[1] && r_state <= r_range[2] && trace_steps < max_trace
     end
     if show_steps
     println("Stop after \033[36m$trace_steps\033[0m  steps")
     end
     return B_data[1:trace_steps,:]
 end
-
+function combina_two_dir_trace(B_data_1,B_data_2;to_pc = false)
+    B_data_2 = reverse(B_data_2,dims=1)
+    B_data = [B_data_2;B_data_1]
+    if to_pc
+        mag_line_num = length(B_data[:,1])
+        data = zeros(mag_line_num,6)
+        @inbounds for i in 1:mag_line_num
+            x = B_data[i,:]
+            x,y,z= IGRF_carculate.sphere2pc(x[1],x[2],x[3])
+            Bx,By,Bz=IGRF_carculate.Bsphere2pc(x[1],x[2],x[3],x[4],x[5],x[6]) 
+            data[i,:] = [x,y,z,Bx,By,Bz]
+        end
+        B_data = data
+    end
+    return B_data
+end
 #global
 NIGRF=110
 Rm=3393.5
