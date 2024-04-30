@@ -52,24 +52,27 @@ function read_gh()
     f = FortranFile(gh_filename)
     GG = read(f, (Float64, NIGRF+1,NIGRF+1))
     HH = read(f, (Float64, NIGRF+1,NIGRF+1)) 
-    # data = readdlm(filename,header=false)
-    # raw1=data[1:111*111]
-    # raw2=data[111*111+1:end]
-    # GG = reshape(raw1, 111, 111)
-    # HH = reshape(raw2, 111, 111)    
-    # # GG = OffsetArray(GG, 0:NIGRF, 0:NIGRF)
-    # # HH = OffsetArray(HH, 0:NIGRF, 0:NIGRF)
     return [GG,HH]
+end
+function IGRF_fortran_free(r,θ,ϕ)  #working on ,输入半径是归一化的,输入阶数
+    B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
+    DBs = Array{Float64}(undef, 3)
+    path = Array{Float64}([r/3393.5,θ,ϕ])
+    B_compress_in = Array{Float64}(B_compress)
+    ii =Ref{Int32}(110)
+    ccall(("IGRF_FREE_MODEL_mp_IGRF_FREE", IGRF_DLL_PATH), Cvoid,
+        (Ref{Int32},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
+        Ptr{Float64},Ptr{Float64},Ptr{Float64}),
+        ii,GG,HH,REALK,SS,B_compress_in,
+        path,B_result,DBs)
+    Br,Bθ,Bϕ,BB = B_result[1],B_result[2],B_result[3],B_result[4]
+    return  Br,Bθ,Bϕ,BB
 end
 function IGRF_fortran(r,θ,ϕ)
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
-    # DYs = Array{Float64}(undef, 9)
-    # DBs = Array{Float64}(undef, 3)
     path = Array{Float64}([r,θ,ϕ])
-    # lib = "Megnetic_Model/IGRF_DLL.dll"
-    # lib = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
     B_compress_in = Array{Float64}(B_compress)
-    ccall(("MAIN_mp_IGRF_110", IGRF_DLL_PATH), Cvoid,
+    ccall(("IGRF_110_MODEL_mp_IGRF_110", IGRF_DLL_PATH), Cvoid,
         (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ptr{Float64}),
         GG,HH,REALK,SS,B_compress_in,
@@ -90,7 +93,7 @@ function RK4_Trace_fortran(r::Float64,θ::Float64,ϕ::Float64,h::Float64)
     # lib = "Megnetic_Model/IGRF_DLL.dll"
     # lib = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
 
-    ccall(("MAIN_mp_RK4_STEP", IGRF_DLL_PATH), Cvoid,
+    ccall(("IGRF_110_MODEL_mp_RK4_STEP", IGRF_DLL_PATH), Cvoid,
         (Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ptr{Float64},
         Ptr{Float64},Ref{Float64},
@@ -311,6 +314,7 @@ function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],ma
     trace_state = true
     while trace_state
         Br,Bθ,Bϕ,BB = IGRF_fortran(r,θ,ϕ)
+        # Br,Bθ,Bϕ,BB = IGRF_fortran_free(r,θ,ϕ)
         r , θ , ϕ = r+Br/BB*Δs, θ+Bθ/BB*Δs/r , ϕ+Bϕ/BB*Δs/r/sin(θ)
         r_state= r
         trace_steps +=1
@@ -322,7 +326,7 @@ function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],ma
     end
     return B_data[1:trace_steps,:]
 end
-function combina_two_dir_trace(B_data_1,B_data_2;to_pc = false)
+function combina_two_dir_trace(B_data_1,B_data_2;to_pc = false) # 翻转第二个，获得指向磁场方向的磁力线
     B_data_2 = reverse(B_data_2,dims=1)
     B_data = [B_data_2;B_data_1]
     if to_pc
