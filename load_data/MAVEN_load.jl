@@ -12,8 +12,10 @@ using TimesDates, Dates
 using DataFrames
 using DelimitedFiles
 using JSON
+using JLD2
 using Statistics
 using Quaternions
+using FortranFiles
 # -------------------------Read filelist parts-------------------------
 function show_load_models()  # 打印所有可支持的数据的读取.
     keys_arr = keys(read_models)
@@ -28,7 +30,7 @@ function file_list(model)
     data = file_path.*filename_list[model]
     return data
 end
-function find_file_of_data(model, date)
+function find_file_of_data(model::String, date::DateTime)
     FileList_path = root_path*read_models[model][1]
     FileList = FileList_path.*filename_list[model]
     element = Dates.format(date, "yyyymmdd")
@@ -39,7 +41,7 @@ function find_file_of_data(model, date)
     end
     return false,"noflie"
 end
-function data_get_from_date(date; model_index = []) #全局读取函数 date 格式为yyyymmdd
+function data_get_from_date(date::DateTime; model_index = [],show_filename=false) #全局读取函数 date 格式为yyyymmdd
     datas_dict = Dict()
     for model in model_index
         file_flag, filename = find_file_of_data(model, date)
@@ -48,6 +50,9 @@ function data_get_from_date(date; model_index = []) #全局读取函数 date 格
             datas_dict[model] = Dict("data_load_flag" => false)
         else
             datas_dict[model] = function_name(filename)
+            if show_filename
+                println(model,":",filename)
+            end
             # println(keys(datas_dict[model]))
             datas_dict[model]["data_load_flag"] = true
         end
@@ -69,7 +74,7 @@ end
 function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读取的值有哪些. 格式为Dict{String,Int32}(变量名 => 变量序号)
     kp_dict_out = Dict()
     for (key,n) in kp_dict_in
-        kp_dict_out[key] = n * 16-16 .+ (4:19)
+        kp_dict_out[key] = (n, n * 16-16 .+ (4:19))
     end
     global kp_dict = kp_dict_out
     return kp_dict_out
@@ -78,6 +83,7 @@ end
 function load_cdf(file)  # 将CDF文件读为字典
     data   = cdflib.cdfread.CDF(file);
     var_list = data.cdf_info()["zVariables"]
+    # var_list = var_lists
     data_dict=Dict{String, Any}()
     for var_name in var_list
         var = get(data,var_name)
@@ -85,10 +91,38 @@ function load_cdf(file)  # 将CDF文件读为字典
             data_dict[var_name] = var
         end
     end
+    # data_dict["cdf_data"] = data
     data_dict["epoch"] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
-    return data
+    data_dict["filename"] = file
+    return data_dict
 end
-function load_mag(file);
+# function load_sta(file)
+#     data   = cdflib.cdfread.CDF(file);
+#     data_out_dict=Dict{String, Any}()
+#     data_out_dict["apid"]= get(data,apid)
+#     var_lists = [
+#         "energy",
+#         "denergy",
+#         "eflux",
+#         "sc_pot",
+#         "swp_ind",
+#         "mass_arr",
+#         "theta",
+#         "phi",
+#         "dtheta",
+#         "dphi",
+#         "num_dists",
+#         "nmass",
+#         "nswp",
+#         "nenergy",   
+#     ]
+#     for var_name in var_lists
+#         var = get(data,var_name)
+#         data_out_dict[var_name] = var
+#     end
+#     return data
+# end
+function load_mag_l2(file);
     function get_data_from_line_for_mag_read(line::String)
         # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
         year, doy, hour, min, sec, msec = parse.(Int32, [
@@ -115,9 +149,25 @@ function load_mag(file);
 
     B_total = sqrt.(sum(B.^2, dims=2)); B_total = B_total[:,1]
 
-    data=Dict(
-        "Var name"=> "time[Ntime], B_total[Ntime],B[Ntime,3],local_time[Ntime],latitude[Ntime], alt[Ntime],position[Ntime,3]",
+    data=Dict{String, Any}(
+        "Var name"=> "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
         "Vars"    => [times,B_total,B,position],
+    )
+    return data
+end
+function load_mag_l3(file);
+    f = FortranFile(file,"r")
+    n_time = read(f, Int64)
+    timeB = read(f, (Float64,n_time))
+    BB = read(f, (Float32,n_time))
+    B = read(f, (Float32,n_time,3))
+    position = read(f, (Float32,n_time,3))
+    close(f)
+
+    timeB_datetime=Dates.julian2datetime.(timeB)
+    data=Dict{String, Any}(
+        "Var name"=> "time[Ntime], BB[Ntime],B[Ntime,3],position[Ntime,3]",
+        "Vars"    => [timeB_datetime,BB,B,position],
     )
     return data
 end
@@ -132,12 +182,14 @@ function load_kp(filename;pc2ss_Matrix_load = false)
     time_dt = Dates.DateTime.(time, "yyyy-mm-ddTHH:MM:SS")
     Ntime=length(time)
  
-    result_dict = Dict()
+    result_dict = Dict{String, Any}()
+
     for (key, value) in kp_dict
-        var = [line[value] for line in lines]
+        var = [line[value[2]] for line in lines]
         var_float = parse.(Float64, var)
         result_dict[key] = var_float
     end
+
     # if NaN2missing
     #     for (key, value) in result_dict
     #         ind = findall(x-> isnan(x), value)
@@ -147,7 +199,7 @@ function load_kp(filename;pc2ss_Matrix_load = false)
     #     end
     # end
     result_dict["time"] = time_dt
-    result_dict["version"] = filename[24:26]
+    result_dict["version"] = filename[end-10:end-8]
     if pc2ss_Matrix_load == false
         return result_dict
     else
@@ -179,6 +231,41 @@ function load_swea_pad(file;  mean_PA=true)
     end
     return data_dict
 end
+function load_NGIMS_den_l3(file)
+    lines = readlines(file)
+    lines = lines[2:end]
+    #t_utc,t_unix,t_sclk,t_tid,tid,orbit,focusmode,alt,mass,species,density_bins,quality
+    n = length(lines)
+    str_vars = Matrix{String}(undef,n,12)
+    for (i,line) in enumerate(lines)
+        vars = split(line,",")
+        str_vars[i,:] = vars
+    end
+    t_unix = parse.(Float64,str_vars[:,2])
+    t_datetime = unix2datetime.(t_unix)
+    data_out_dict = Dict{String, Any}()
+    species = str_vars[:,10]
+    unique_elements = unique(species)
+    for element in unique_elements
+        indices = findall(x -> x == element, species)
+        data_out_dict[element] = Dict{String,Any}(
+            "epoch"        => t_datetime[indices],
+            "orbit"        => parse.(Int32,str_vars[indices,6]),
+            "focusmode"    => str_vars[indices,7],
+            "alt"          => parse.(Float64,str_vars[indices,8]),
+            "mass"         => parse.(Float64,str_vars[indices,9]),
+            "density_bins" => parse.(Float64,str_vars[indices,11]),
+            "quality"      => str_vars[indices,12],
+        )
+    end
+    return data_out_dict
+end
+function load_NGIMS_den_l4(file::String)
+    f = jldopen(file, "r")
+    data_out_dict = f["data"]
+    close(f)
+    return data_out_dict
+end
 ## ------------------------------数据处理--------------------------------
 function caculate_mag(position;models=["alt"])
     function c_alt(position) 
@@ -194,7 +281,7 @@ function caculate_mag(position;models=["alt"])
         latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
         return latitude
     end
-    funcs = Dict(
+    funcs = Dict{String, Any}(
         "alt" => c_alt,
         "local_time" => c_local_time,
         "latitude" => c_latitude,
@@ -225,7 +312,7 @@ function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典，将其角�
     data_dict["pa_mean"] = pitch_angle_mean
     return data_dict
 end
-function static_c6_mass_mean(data;mass_range)  # static 3d数据处理(不包括角度信息)
+function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(不包括角度信息)
     # energy_spec为在mass维度做求和,得到eflux,energy谱
     # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
     # mass_range单位AMU
@@ -234,37 +321,37 @@ function static_c6_mass_mean(data;mass_range)  # static 3d数据处理(不包括
     energy  = data["energy"]
     denergy = data["denergy"]
     eflux   = data["eflux"]
-    swp_ind = data["swp_ind"] .+ 1
+    swp_ind = data["swp_ind"]
     apid    = data["apid"]
     mass_arr = data["mass_arr"]
     ntime    = data["num_dists"]
-    # nmass    = data["nmass"]
-    # nswp    = data["nswp"]
-    # nenergy = data["nenergy"]
+    nmass    = data["nmass"]
+    nswp    = data["nswp"]
+    nenergy = data["nenergy"]
 
     eflux_mass   = zeros(ntime,nenergy)
     energy_mass  = zeros(nenergy,nswp)
     
 
-    if  ismissing(mass_range)
-        energy_mass[:,:] = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1)
-        eflux_mass[:,:]  = sum(eflux,dims=2)
-    else
-        ind = findall(x->mass_range[2] >= x >= mass_range[1] , mass_arr)
-        energy_t = energy[ind]
-        denergy_t = denergy[ind]
-        energy_mass[:,:] = sum(energy_t .* denergy_t, dims=1)  ./ sum(denergy_t, dims=1)
+    # if  !isassigned(mass_range)
+    #     energy_mass[:,:] = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1)
+    #     eflux_mass[:,:]  = sum(eflux,dims=2)
+    # else
+        # ind = findall(x->mass_range[2] >= x >= mass_range[1] , mass_arr)
+    mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
+    energy_mass[:,:] = sum(energy.* denergy .* mask , dims=1)  ./ sum(denergy.* mask, dims=1)
 
-        mapped_mass_arr = zeros(ntime,nmass,nenergy)
-        for i in 1:ntime
-            mapped_mass_arr[i,:,:] = mass_arr[:,:,swp_ind[i]]
-        end
-        ind = findall(x->mass_range[2] >= x >= mass_range[1] , mapped_mass_arr)
-        eflux_mass[:,:]=sum(eflux[ind],dims=2)
+    mapped_mass_arr = zeros(ntime,nmass,nenergy)
+    for i in 1:ntime
+        mapped_mass_arr[i,:,:] = mass_arr[:,:,swp_ind[i]+1]
     end
+    # ind = findall(x->mass_range[2] >= x >= mass_range[1] , mapped_mass_arr)
+    mask = (mapped_mass_arr .>= mass_range[1]) .& (mapped_mass_arr .<= mass_range[2])
+    eflux_mass[:,:]=sum(eflux.*mask,dims=2)
+    # end
 
     return_data = Dict{String,Any}(
-        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
+        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[Ntime,Nenergy], nswp[Nswp]",
         "apid"           => apid,
         "epoch"          => epoch,
         "energy"         => energy_mass,
@@ -274,14 +361,14 @@ function static_c6_mass_mean(data;mass_range)  # static 3d数据处理(不包括
     )
     return return_data
 end
-function static_c6_energy_mean(data;energy_range)  # static 3d数据处理(不包括角度信息)
+function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处理(不包括角度信息)
     # 在energy维度做求和,得到eflux,mass谱
     # energy_range单位energy,不设置时默认计算所有energy的值
     # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
     epoch   = data["epoch"]
     energy  = data["energy"]
     eflux   = data["eflux"]
-    swp_ind = data["swp_ind"] .+ 1
+    swp_ind = data["swp_ind"]
     apid    = data["apid"]
     mass_arr = data["mass_arr"]
     ntime    = data["num_dists"]
@@ -292,21 +379,24 @@ function static_c6_energy_mean(data;energy_range)  # static 3d数据处理(不�
     eflux_out   = zeros(ntime,nmass)
     mass_out    = zeros(nmass,nswp)
     
-    if  ismissing(energy_range)
-        mass_out[:,:] = mean(mass_arr, dims=2)
-        eflux_out[:,:]  = sum(eflux,dims=3)
-    else
-        ind = findall(x->energy_range[2] >= x >= energy_range[1] , energy)
-        mass_arr_t = mass_arr[ind]
-        mass_out[:,:] = mean(mass_arr_t, dims=2)
+    # if  !isassigned(energy_range)
+    #     mass_out[:,:] = mean(mass_arr, dims=2)
+    #     eflux_out[:,:]  = sum(eflux,dims=3)
+    # else
+        # ind = findall(x->energy_range[2] >= x >= energy_range[1] , energy)
+        # mass_arr_t = mass_arr[ind]
+        # mass_out[:,:] = mean(mass_arr_t, dims=2)
+    mask = (energy .>= energy_range[1]) .& (energy .<= energy_range[2])
+    mass_out[:,:] = mean(mass_arr.*mask, dims=2)
 
-        mapped_energy = zeros(ntime,nmass,nenergy)
-        for i in 1:ntime
-            mapped_energy[i,:,:] = energy[:,:,swp_ind[i]]
-        end
-        ind = findall(x->energy_range[2] >= x >= energy_range[1] , mapped_energy)
-        eflux_out[:,:]=sum(eflux[ind],dims=3)
+    mapped_energy = zeros(ntime,nmass,nenergy)
+    for i in 1:ntime
+        mapped_energy[i,:,:] = energy[:,:,swp_ind[i]+1]
     end
+    # ind = findall(x->energy_range[2] >= x >= energy_range[1] , mapped_energy)
+    mask = (mapped_energy .>= energy_range[1]) .& (mapped_energy .<= energy_range[2])
+    eflux_out[:,:]=sum(eflux.*mask,dims=3)
+    # end
 
     return_data = Dict{String,Any}(
         # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
@@ -319,91 +409,177 @@ function static_c6_energy_mean(data;energy_range)  # static 3d数据处理(不�
     )
     return return_data
 end
+# STA计算
+function STA_count2df(dat;m_int=m_int)
+    energy = dat["energy"]
+    ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
+    gf = reshape(dat["gf"], 1, ngf[1],ngf[2])
+    eff = dat["eff"]
+    gf = dat["geom_factor"].*eff.*gf
+    dt = dat["time_integ"]
+    mass = dat["mass"].*m_int
+    dead = dat["dead"]						# dead time array usec for STATIC
+    bkg = dat["bkg"]							# background array usec for STATIC
+    tmp = dat["data"]
+
+    tmp = tmp.*dead
+    scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
+    dat["df"] = scale .* (tmp .- bkg)
+    return dat
+end
+function STA_eflux2df(dat;m_int=m_int)
+    energy = dat["energy"]
+    mass = dat["mass"].*m_int
+    scale = 1 ./(energy.^2 .* 2 ./mass./mass.*1e5)
+    dat["df"] = scale .* dat["eflux"]
+    return dat
+end
+function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片
+    if dat["valid"] == 0
+        println("Invalid Data")
+        return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
+    end
+
+    # 		# Use distribution function
+    
+    # if unit != "df"
+    #     if unit == "eflux"
+    #         dat = STA_eflux2df(dat;m_int=m_int)
+    #     elseif unit == "counts"
+    #         dat = STA_count2df(dat;m_int=m_int)
+    #     end
+    # end
+    dat = STA_eflux2df(dat;m_int=m_int)
+    data=dat["df"]
+
+    energy = dat["energy"] 
+    denergy = dat["denergy"] 
+    theta = dat["theta"]./RADG
+    phi = dat["phi"] ./RADG
+    dtheta = dat["dtheta"] ./RADG
+    dphi = dat["dphi"] ./RADG
+    mass_arr = dat["mass_arr"]
+    pot = dat["sc_pot"]
+
+    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+    data[ind].=0.0
+
+    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+    data[ind].=0.0
+    
+    # if m_int != 0
+    # mass_arr[:] .= m_int
+    # else
+    #     mass_arr=round.(mass_arr .-0.1) # the minus 0.1 helps account for straggling at low mass
+    #     mass_arr[mass_arr .< 1] .= 1.0
+    # end
+    mass=dat["mass"]*m_int
+    
+    Const = 2.0/mass/mass*1e5
+    energy=energy.+pot		# energy/charge analyzer, require positive energy
+    energy[energy .< 0.0] .=0.0
+
+    flux0 = Const.*denergy.*energy.*data
+    theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
+    flux3dx = sum(flux0.*theta0.*cos.(phi))
+    flux3dy = sum(flux0.*theta0.*sin.(phi))
+    flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
+    #units are 1/cm^2-s
+    Const = mass^(-1.5)*2.0^(0.5)
+    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    
+    flux = [flux3dx,flux3dy,flux3dz]
+    vel = 1e-5 .* flux ./(density .+ 1e-10)
+    return vel,flux,density
+end
+function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
+    function rotate_vector(u::AbstractVector,q::QuaternionF64)
+        q_u = QuaternionF64(0, u[1], u[2], u[3])
+        q_v = q*q_u*conj(q)
+        return [imag_part(q_v)...]
+    end
+    function sphere2xyz_for_static_rotation(θ,ϕ)
+        x = cosd.(θ) .*  cosd.(ϕ)
+        y = cosd.(θ) .*  sind.(ϕ)
+        z = sind.(θ)
+        return [x,y,z]
+    end;
+    function xyz2sphere_for_static_rotation(xyz)
+        x,y,z=xyz[1],xyz[2],xyz[3]
+        theta = 90. - acosd(z)
+        phi = atand(y, x)
+        return theta,phi
+    end
+    local dat2
+    dat2 = dat
+    theta = dat2["theta"]
+    phi = dat2["phi"]
+    n_m = dat2["nmass"]
+    n_b = dat2["nbins"]
+    n_e = dat2["nenergy"]
+    if frame == "MSO"
+        frame_t = "quat_mso"
+    elseif frame == "SC"
+        frame_t = "quat_sc"
+    end
+
+    quat = QuaternionF64(dat2[frame_t][1],dat2[frame_t][2],dat2[frame_t][3],dat2[frame_t][4])
+
+    xyz = sphere2xyz_for_static_rotation.(theta,phi);
+    xyz_mso = rotate_vector.(xyz,quat);
+    sphere_mso = xyz2sphere_for_static_rotation.(xyz_mso)
+
+    thetaT=zeros(n_m,n_b,n_e)
+    phiT=zeros(n_m,n_b,n_e)
+
+    for (i,var) in enumerate(sphere_mso)
+        phiT[i] = var[2]
+        thetaT[i] = var[1]
+    end
+    dat2["theta"] = thetaT
+    dat2["phi"] = phiT
+    return dat2
+end
 function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑
     dat_slip =Dict{String,Any}()
-    
-    dat_slip["eflux"]    = dat["eflux"][time_ind,:,:]
-    dat_slip["epoch"]    = dat["epoch"][time_ind]
-    dat_slip["swp_ind"]  = dat["swp_ind"][time_ind]
-    dat_slip["sc_pot"]   = dat["sc_pot"][time_ind]
-    
-    dat_slip["energy"]   = dat["energy"][:,:,swp_ind]
-    dat_slip["denergy"]  = dat["denergy"][:,:,swp_ind]
-    dat_slip["theta"]    = dat["theta"][:,:,swp_ind]
-    dat_slip["phi"]      = dat["phi"][:,:,swp_ind]
-    dat_slip["dtheta"]   = dat["dtheta"][:,:,swp_ind]
-    dat_slip["dphi"]     = dat["dphi"][:,:,swp_ind]
-    dat_slip["mass_arr"] = dat["mass_arr"][:,:,swp_ind]
-    
-    keys_slip = keys(dat_slip)
-    keys_dat  = keys(dat)
-
-    keys = setdiff(keys_dat,keys_slip)
-
-    for key in keys
+    for key in keys(dat)
         dat_slip[key] = dat[key]
     end
+    swp_ind = dat["swp_ind"][time_ind]
+    att_ind = dat["att_ind"][time_ind]
+    eff_ind = dat["eff_ind"][time_ind]
+
+    dat_slip["eflux"]    = dat["eflux"][time_ind,:,:,:]
+    dat_slip["data"]     = dat["data"][time_ind,:,:,:]
+    dat_slip["bkg"]     = dat["bkg"][time_ind,:,:,:]
+    dat_slip["epoch"]    = dat["epoch"][time_ind]
+    dat_slip["time_integ"]= dat["time_integ"][time_ind]
+    dat_slip["swp_ind"]  = dat["swp_ind"][time_ind]
+    dat_slip["att_ind"]  = dat["att_ind"][time_ind]
+    dat_slip["eff_ind"]  = dat["eff_ind"][time_ind]
+    dat_slip["sc_pot"]   = dat["sc_pot"][time_ind]
+    dat_slip["dead"]   = dat["dead"][time_ind,:,:,:]
+    dat_slip["quat_mso"]   = dat["quat_mso"][time_ind,:]
+    dat_slip["quat_sc"]   = dat["quat_sc"][time_ind,:]
+    
+    dat_slip["energy"]   = dat["energy"][:,:,:,swp_ind+1]
+    dat_slip["denergy"]  = dat["denergy"][:,:,:,swp_ind+1]
+    dat_slip["theta"]    = dat["theta"][:,:,:,swp_ind+1]
+    dat_slip["phi"]      = dat["phi"][:,:,:,swp_ind+1]
+    dat_slip["dtheta"]   = dat["dtheta"][:,:,:,swp_ind+1]
+    dat_slip["dphi"]     = dat["dphi"][:,:,:,swp_ind+1]
+    dat_slip["mass_arr"] = dat["mass_arr"][:,:,:,swp_ind+1]
+    dat_slip["gf"]       = dat["gf"][att_ind+1,:,:,swp_ind+1]
+    dat_slip["eff"]      = dat["eff"][:,:,:,eff_ind+1]
+
+    # # time:			tt1,					
+    # # end_time:		tt2,					
+    # delta_t = dat["endtime"][time_ind] - dat["time_unix"][time_ind]		
+    # dt_cor = 3.89/4.0
+    # dat_slip["integ_t"]=delta_t/(dat["nenergy"]*dat["ndef"])*dt_cor
+
     return dat_slip
 end
-    # function static_v4d(dat,local_time;energy_range,mass_range,mint)
-    #     # dat = conv_units(dat2,"counts")		# initially use counts
-    #     eflux = dat["eflux"]
-    #     # na = dat["nenergy"]
-    #     # nb = dat["nbins"]
-    #     # nm = dat["nmass"]
-    
-    #     bkg = dat["bkg"]
-    #     energy = dat["energy"]
-    #     denergy = dat["denergy"]
-    #     theta = dat["theta"]./RADG
-    #     phi = dat["phi"]./RADG
-    #     dtheta = dat["dtheta"]./RADG
-    #     dphi = dat["dphi"]./RADG
-    #     # domega = dat["domega"]
-    #     sc_pot = dat["sc_pot"]
-    #     mass_arr = dat["mass_arr"]
-    #     mass = dat["mass"].*mass_arr
-
-    #     if !ismissing(energy_range)
-    #         ind = findall(x-> energy_range[2]>= x >= energy_range[1],energy)
-    #         if !isempty(ind) 
-    #             data[ind] .=0.0
-    #             bkg[ind]  .=0.0
-    #         end
-    #     end
-
-    #     if !ismissing(mass_range)
-    #         ind = findall(x-> mass_range[2]>= x >= mass_range[1],mass_arr)
-    #         if !isempty(ind) 
-    #             data[ind] .=0.0
-    #             bkg[ind]  .=0.0
-    #         end
-    #     end
-
-    #     if keyword_set(mint)
-    #         mass_arr=mint 
-    #         mass=mass.*mass_arr 
-    #     else
-    #         mass_arr=round(mass_arr .- 0.1)
-    #         mass=mass.*mass_arr	#the minus 0.1 helps account for straggling at low mass
-    #     end
-
-    #     data = ion_eflux2F.(energy,eflux,mass_arr)
-
-    #     charge=dat["charge"]
-    #     energy=(energy+charge.*sc_pot./abs.(charge))		# energy/charge analyzer, require positive energy
-    #     Const = 2.0./mass./mass.*1e5
-    #     # flux 
-    #     flux3dx = sum(sum(Const*denergy*(energy)*data*(dtheta/2.0+cos(2*theta)*sin(dtheta)/2.0)*(2.0*sin(dphi/2.)*cos(phi)),dims=1),dims=1)
-    # 	flux3dy = sum(sum(Const*denergy*(energy)*data*(dtheta/2.0+cos(2*theta)*sin(dtheta)/2.0)*(2.0*sin(dphi/2.)*sin(phi)),dims=1),dims=1)
-    # 	flux3dz = sum(sum(Const*denergy*(energy)*data*(2.0*sin(theta)*cos(theta)*sin(dtheta/2.0)*cos(dtheta/2.))*dphi,dims=1),dims=1)
-
-    #     density = sum(sum(Const.*denergy.*(energy.^(0.5)).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi,dims=1),dims=1)
-
-    #     v_4d = 1e-5*reform([flux[0,*]/(density+1.e-10),flux[1,*]/(density+1.e-10),flux[2,*]/(density+1.e-10)],3,n_elements(density))
-
-    #     return nothing
-    # end
 function carclu_SWEA_pad(data; energy_range=[])
     # time, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data["Vars"]
     time        = data["epoch"]
@@ -420,12 +596,18 @@ function carclu_SWEA_pad(data; energy_range=[])
         flux_PAD        = flux_arr[:, :, index]
         flux_PAD = [isnan(t) ? 1e-10 : t for t in flux_PAD]
         return_data = Dict(
-            "Var name" => "time[Ntime], pitch_angle[Ntime,Npa], eflux[Ntime,Npa], energy_single[1]",
-            "Vars"     => [time, pitch_angle_PAD, flux_PAD, energy_single],
-            "flag"     => true
+            "epoch"              => time,
+            "pa"                 => pitch_angle_PAD,
+            "diff_en_fluxes"     => flux_PAD,
+            "energy"             => energy_single,
+            "data_load_flag"     => true
         )
         return return_data #[time,pitch_angle_PAD,flux_PAD,energy_single]
     else
+        # mask = (energy_arr .>= energy_range[1]) .& (energy_arr .<= energy_range[2])
+        # mapped_mask = zeros(1,1,64)
+        # mapped_mask[1,1,:] = mask
+        
         energy_i = findall(e -> energy_range[1] <= e <= energy_range[2], energy_arr)
         energy_double = [energy_arr[energy_i[1]],energy_arr[energy_i[end]] ]
         pitch_angle_PADt = sum(pitch_angle[:, :, energy_i] .* g_pa[:,:,energy_i], dims=3) ./ sum(g_pa[:,:,energy_i], dims=3)
@@ -437,10 +619,17 @@ function carclu_SWEA_pad(data; energy_range=[])
         flux_PADt = sum(flux_arr[:, :, energy_i] .* g_engy_t[:,:,energy_i], dims=3) / sum(g_engy_t[:,:,energy_i])
         flux_PAD=flux_PADt[:,:,1]
         flux_PAD = [isnan(t) ? 1e-10 : t for t in flux_PAD]
+        # return_data = Dict(
+        #     "Var name" => "time[Ntime], pitch_angle[Ntime,Npa], eflux[Ntime,Npa], energy_double[2]",
+        #     "Vars"     => [time, pitch_angle_PAD, flux_PAD, energy_double],
+        #     "flag"     => true
+        # )
         return_data = Dict(
-            "Var name" => "time[Ntime], pitch_angle[Ntime,Npa], eflux[Ntime,Npa], energy_double[2]",
-            "Vars"     => [time, pitch_angle_PAD, flux_PAD, energy_double],
-            "flag"     => true
+            "epoch"              => time,
+            "pa"                 => pitch_angle_PAD,
+            "diff_en_fluxes"     => flux_PAD,
+            "energy"             => energy_double,
+            "data_load_flag"     => true
         )
         return return_data #[time,pitch_angle_PAD,flux_PAD,energy_double]
     end
@@ -489,6 +678,12 @@ function sphere2xyz_for_STATIC(r,θ,ϕ)
     z = r .* sind.(θ)
     return [x,y,z]
 end;
+function xyz2sphere_for_STATIC(x,y,z)
+    r=sqrt(x^2 + y^2 + z^2)
+    theta = 90. - acosd(z/r)
+    phi = atand(y, x)
+    return [r,theta,phi]
+end
 function sphere2xyz(r,θ,ϕ)
     x = r .* sind.(θ) .*  cosd.(ϕ)
     y = r .* sind.(θ) .*  sind.(ϕ)
@@ -516,7 +711,9 @@ const Mp=1.672621637e-27
 const RADG=180.0/π
 
 dir = dirname(@__FILE__)
-data = JSON.parsefile(dir*"/"*"MAVEN_data_format.json")
+f = open(dir*"/"*"MAVEN_data_format.json","r")
+data = JSON.parse(f)
+close(f)
 root_path = data["save_path"] #所有文件的根目录
 kp_dict = data["kp_dict"]
 kp_dict = change_kp_read_data(kp_dict)
@@ -529,6 +726,9 @@ for (key, value) in data_model
     read_models[key] = (value[3],func)
 end
 
-data = JSON.parsefile(root_path*"lists/"*"filename_lists.json")
+# data = JSON.parsefile(root_path*"lists/"*"filename_lists.json")
+f = open(dir*"/"*"filename_lists.json","r")
+data = JSON.parse(f)
+close(f)
 filename_list = data
 end # module

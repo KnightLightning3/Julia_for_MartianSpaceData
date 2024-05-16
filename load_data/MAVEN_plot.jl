@@ -11,12 +11,12 @@ const me=9.109e-31
 const Rm = 3393.5  #km
 const E0 = 511.0 # 电子静止能量KeV
 const RAD = π / 180
-function sta_heatmap(ax,x,y,c,nswp;c_range=(1e4,1e10),ylabel="energy")    #默认叠加绘图
+function sta_heatmap(ax,x,y,c,swp_ind;c_range=(1e4,1e10),ylabel="energy")    #默认叠加绘图
     ax.ylabel = ylabel
-    ax.yscale = log10
-    unique_elements = unique(nswp)
+    # ax.yscale = log10
+    unique_elements = unique(swp_ind)
     for element in unique_elements
-        indices = findall(x -> x == element, nswp)
+        indices = findall(x -> x == element, swp_ind)
         heatmap!(ax,x[indices],y[:,element+1],c[indices,:],colormap=:jet,colorscale=log10,colorrange=c_range,overdraw=true)
     end
     return ax
@@ -46,7 +46,6 @@ end
 function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,0,0],times = ([],[]))
     ax.limits = (xlimit, ylimit)
     ax.xreversed=true
-
     p_mso = position_ss./Rm
     x=p_mso[:,1]
     y= sqrt.(p_mso[:,2].^2 .+ p_mso[:,3].^2)
@@ -256,6 +255,12 @@ function time2x(time,time_julian0,range)
     x = time[time_i]
     x = Dates.datetime2julian.(x) .- time_julian0
     return x,time_i
+end
+function time_ticks(time_range; step=Dates.Minute(20),format = "HH:MM:SS",time_julian0) # 取得time_range 对应步长的
+    xd = Dates.datetime2julian.(range(time_range[1], time_range[2], step=step))
+    x_i=xd.-time_julian0
+    xtimes = (x_i, Dates.format.(julian2datetime.(xd), "HH:MM"))
+    return xtimes
 end
 function x_ticks(ax , x,var,x_i;xlabel="",xticklabelpad=3,num_pannel=1,model="null",range=x_range_julian)
     ax.limits = (range, nothing) 

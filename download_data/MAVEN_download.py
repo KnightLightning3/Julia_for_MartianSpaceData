@@ -27,14 +27,14 @@ def test_proxies():
     try:
         response = requests.get("https://lasp.colorado.edu/maven/sdc/public/data/sci/",proxies=porxies,timeout=timeout)
         if response.status_code == 200:
-            print("成功连接到代理服务器:"+porxies["http"])
+            print("\033[1;32m 成功连接到代理服务器\033[0m:"+porxies["http"])
         response.close()
         return True
     except requests.exceptions.RequestException as e:
         print(False)
         print(e)
     return False
-def search_url(url,filename):
+def search_url(url,filestyle):
     global porxies
     global timeout
     sleep(step_time)
@@ -55,7 +55,7 @@ def search_url(url,filename):
             for element in file_elements:
                 file_url = element['href']
                 file_urls.append(file_url)
-            urls=[string for string in file_urls if re.match(filename, string)]
+            urls=[string for string in file_urls if re.match(filestyle, string)]
             response.close()
             if urls == None:
                 return response.status_code,False,0
@@ -99,7 +99,7 @@ def requests_downlaod(url,save_path):
         sleep(sleep_time)
         return response.status_code,False
     return response.status_code,False
-def downlaod_model(model):
+def download_model(model):
     url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
     save_dir = json_data["save_path"]
     data_model = json_data["data_model"]
@@ -112,6 +112,9 @@ def downlaod_model(model):
     save_path =  save_dir+pathname
     return [url,save_path,filename]
 def find_downloaded_file(file_names, element):
+    if file_names is None:
+        print("第一次下载")
+        return False
     for file_name in file_names:
         if element in file_name:
             return True
@@ -167,18 +170,20 @@ def file_check(file_names,save_path,model):
                     print(f,"False")
                     counter+=1
             return counter
-def sreach_dowloaded_files(save_path):
+def sreach_dowloaded_files(save_path,filestyle):
     filenames =[]
     yyyy = os.listdir(save_path)
     for iy in yyyy:
         mm   = os.listdir(save_path+iy+"/")
         for im in mm:
             files = os.listdir(save_path+iy+"/"+im+"/")
-            filepath = [iy+"/"+im+"/"+file for file in files]
-            filenames.append(filepath)
+            filepaths = [iy+"/"+im+"/"+file for file in files if re.match(filestyle,file)]
+            for filepath in filepaths:
+                filenames.append(filepath)
+    return filenames
 if __name__ == '__main__':
     start_date   = datetime.date(2014, 10, 1)
-    end_date     = datetime.date(2020, 6, 1)
+    end_date     = datetime.date(2020,  6, 1)
     
     current_date = start_date
 
@@ -190,59 +195,59 @@ if __name__ == '__main__':
     
     logic = test_proxies()
     if(logic == False):
-        print('代理服务器连接失败')
+        print('\033[1;31m 代理服务器连接失败 \033[0m')
         exit(0)
 
-    downloadmodel = "single"
-    if downloadmodel == "single": # single model
-        model= "STATIC_d1"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf"
-        url_path,save_path,filestyle = downlaod_model(model)
-        folder = os.path.exists(save_path)
-        if not folder:                   #判断是否存在文件夹如果不存在则创建为文件夹
-            os.makedirs(save_path)
-        file_names = sreach_dowloaded_files(save_path)
+    model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+    url_path,save_path,filestyle = download_model(model)
+    if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(save_path)
+    file_names = sreach_dowloaded_files(save_path,filestyle)
+    if not (file_names is None):
         with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n') 
-        #get all url:
-        while current_date <= end_date:
-            date=str(current_date.strftime("%Y%m%d"))
-    
-            if find_downloaded_file(file_names, date):
-                print(date,model,'文件已存在')
-                current_date+=datetime.timedelta(days=1)
-                continue
-            year      = current_date.year
-            month     = current_date.month
-            yyyymm    = str(current_date.strftime("%Y/%m/"))
-            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
-            if bool_urls:
-                print(f'{len(urls)} {model} files in '+yyyymm)
-                for url in urls:
-                    filename = str(url)
-                    date=re.findall(r"\d{8}", filename)
-                    if find_downloaded_file(file_names, filename):
-                        print(date,model,'文件已下载')
-                        current_date+=datetime.timedelta(days=1)
-                        continue
-                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                    time_now = datetime.datetime.now()
-                    print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
-            month+=1
-            if month == 13:
-                month=1
-                year+=1
-            current_date = datetime.date(year, month, 1)
-        file_names = sreach_dowloaded_files(save_path)
-        with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
-            for item in file_names:
-                file.write(str(item) + '\n')
-        exit(0)
+    #get all url:
+    while current_date <= end_date:
+        date=str(current_date.strftime("%Y%m%d"))
+        
+        if find_downloaded_file(file_names, date):
+            print(date,model,'\033[1;32m文件已存在\033[0m')
+            current_date+=datetime.timedelta(days=1)
+            continue
+        year      = current_date.year
+        month     = current_date.month
+        yyyymm    = str(current_date.strftime("%Y/%m/"))
+        urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
+        if bool_urls:
+            print(f'\033[0;32m {len(urls)} {model} files in '+yyyymm+'\033[0m')
+            for url in urls:
+                filename = str(url)
+                date=re.findall(r"\d{8}", filename)[0]
+                if find_downloaded_file(file_names, date):
+                    print(date,model,'\033[1;32m文件已下载\033[0m')
+                    current_date+=datetime.timedelta(days=1)
+                    continue
+                if not os.path.exists(save_path+yyyymm):
+                    os.makedirs(save_path+yyyymm)
+                url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+yyyymm+filename)
+                time_now = datetime.datetime.now()
+                print(f'{date}下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
+        month+=1
+        if month == 13:
+            month=1
+            year+=1
+        current_date = datetime.date(year, month, 1)
+    file_names = sreach_dowloaded_files(save_path,filestyle)
+    with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+        for item in file_names:
+            file.write(str(item) + '\n')
+    exit(0)
 ## muti model
     models = ["STATIC_c8","STATIC_ca","LPW_we12"]
     for model in models:
         try:
-            url_path,save_path,filestyle = downlaod_model(model)
+            url_path,save_path,filestyle = download_model(model)
             file_names = sreach_dowloaded_files(save_path)
             with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
                 for item in file_names:

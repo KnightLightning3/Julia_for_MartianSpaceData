@@ -54,6 +54,7 @@ function read_gh()
     HH = read(f, (Float64, NIGRF+1,NIGRF+1)) 
     return [GG,HH]
 end
+
 function IGRF_fortran_free(r,θ,ϕ)  #working on ,输入半径是归一化的,输入阶数
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     DBs = Array{Float64}(undef, 3)
@@ -61,11 +62,11 @@ function IGRF_fortran_free(r,θ,ϕ)  #working on ,输入半径是归一化的,�
     B_compress_in = Array{Float64}(B_compress)
     ii =Ref{Int32}(110)
     ccall(("IGRF_FREE_MODEL_mp_IGRF_FREE", IGRF_DLL_PATH), Cvoid,
-        (Ref{Int32},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
-        Ptr{Float64},Ptr{Float64},Ptr{Float64}),
-        ii,GG,HH,REALK,SS,B_compress_in,
-        path,B_result,DBs)
-    Br,Bθ,Bϕ,BB = B_result[1],B_result[2],B_result[3],B_result[4]
+            (Ref{Int32},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},Ptr{Float64},
+            Ptr{Float64},Ptr{Float64},Ptr{Float64}),
+            ii,GG,HH,REALK,SS,B_compress_in,
+            path,B_result,DBs)
+            Br,Bθ,Bϕ,BB = B_result[1],B_result[2],B_result[3],B_result[4]
     return  Br,Bθ,Bϕ,BB
 end
 function IGRF_fortran(r,θ,ϕ)
