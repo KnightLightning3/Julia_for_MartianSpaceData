@@ -1,0 +1,398 @@
+# 读取和计算MAVEN数据
+# data_get_from_date 返回字典dates_dict["数据类型"]["数据内容"]
+# dates_dict["数据类型"]["data_load_flag"]表示读取是否成功
+# 所有的CDF文件统一读取为cdf对应的字典，并去除PyObjects
+# STATIC中的theta值在球坐标系下,应当为90-Theta.
+# 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
+# 默认能量单位: EV. 默认粒子质量单位:AMU
+module MAVEN_STATIC
+using TimesDates, Dates
+using Statistics
+using Quaternions
+
+function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(不包括角度信息)
+    # energy_spec为在mass维度做求和,得到eflux,energy谱
+    # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
+    # mass_range单位AMU
+    # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
+    epoch   = data["epoch"]
+    energy  = data["energy"]
+    denergy = data["denergy"]
+    eflux   = data["eflux"]
+    swp_ind = data["swp_ind"]
+    apid    = data["apid"]
+    mass_arr = data["mass_arr"]
+    ntime    = data["num_dists"]
+    nmass    = data["nmass"]
+    nswp    = data["nswp"]
+    nenergy = data["nenergy"]
+
+    eflux_mass   = zeros(ntime,nenergy)
+    energy_mass  = zeros(nenergy,nswp)
+    
+
+    # if  !isassigned(mass_range)
+    #     energy_mass[:,:] = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1)
+    #     eflux_mass[:,:]  = sum(eflux,dims=2)
+    # else
+        # ind = findall(x->mass_range[2] >= x >= mass_range[1] , mass_arr)
+    mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
+    energy_mass[:,:] = sum(energy.* denergy .* mask , dims=1)  ./ sum(denergy.* mask, dims=1)
+
+    mapped_mass_arr = zeros(ntime,nmass,nenergy)
+    for i in 1:ntime
+        mapped_mass_arr[i,:,:] = mass_arr[:,:,swp_ind[i]+1]
+    end
+    # ind = findall(x->mass_range[2] >= x >= mass_range[1] , mapped_mass_arr)
+    mask = (mapped_mass_arr .>= mass_range[1]) .& (mapped_mass_arr .<= mass_range[2])
+    eflux_mass[:,:]=sum(eflux.*mask,dims=2)
+    # end
+
+    return_data = Dict{String,Any}(
+        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[Ntime,Nenergy], nswp[Nswp]",
+        "apid"           => apid,
+        "epoch"          => epoch,
+        "energy"         => energy_mass,
+        "eflux"          => eflux_mass,
+        "swp_ind"        => swp_ind,
+        "data_load_flag" => true
+    )
+    return return_data
+end
+function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处理(不包括角度信息)
+    # 在energy维度做求和,得到eflux,mass谱
+    # energy_range单位energy,不设置时默认计算所有energy的值
+    # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
+    epoch   = data["epoch"]
+    energy  = data["energy"]
+    eflux   = data["eflux"]
+    swp_ind = data["swp_ind"]
+    apid    = data["apid"]
+    mass_arr = data["mass_arr"]
+    ntime    = data["num_dists"]
+    nmass    = data["nmass"]
+    nswp    = data["nswp"]
+    nenergy = data["nenergy"]
+
+    eflux_out   = zeros(ntime,nmass)
+    mass_out    = zeros(nmass,nswp)
+    
+    # if  !isassigned(energy_range)
+    #     mass_out[:,:] = mean(mass_arr, dims=2)
+    #     eflux_out[:,:]  = sum(eflux,dims=3)
+    # else
+        # ind = findall(x->energy_range[2] >= x >= energy_range[1] , energy)
+        # mass_arr_t = mass_arr[ind]
+        # mass_out[:,:] = mean(mass_arr_t, dims=2)
+    mask = (energy .>= energy_range[1]) .& (energy .<= energy_range[2])
+    mass_out[:,:] = mean(mass_arr.*mask, dims=2)
+
+    mapped_energy = zeros(ntime,nmass,nenergy)
+    for i in 1:ntime
+        mapped_energy[i,:,:] = energy[:,:,swp_ind[i]+1]
+    end
+    # ind = findall(x->energy_range[2] >= x >= energy_range[1] , mapped_energy)
+    mask = (mapped_energy .>= energy_range[1]) .& (mapped_energy .<= energy_range[2])
+    eflux_out[:,:]=sum(eflux.*mask,dims=3)
+    # end
+
+    return_data = Dict{String,Any}(
+        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
+        "apid"           => apid,
+        "epoch"          => epoch,
+        "mass"           => mass_out,
+        "eflux"          => eflux_out,
+        "swp_ind"        => swp_ind,
+        "data_load_flag" => true
+    )
+    return return_data
+end
+# UNITS计算
+function STA_count2df(dat;m_int=m_int)
+    energy = dat["energy"]
+    ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
+    gf = reshape(dat["gf"], 1, ngf[1],ngf[2])
+    eff = dat["eff"]
+    gf = dat["geom_factor"].*eff.*gf
+    dt = dat["time_integ"]
+    mass = dat["mass"].*m_int
+    dead = dat["dead"]						# dead time array usec for STATIC
+    bkg = dat["bkg"]							# background array usec for STATIC
+    tmp = dat["data"]
+
+    tmp = (tmp./dead .- bkg ).*dead
+    scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
+    dat["df"] = scale .* tmp
+    return dat
+end
+function STA_count2eflux(dat;m_int=m_int)
+    # energy = dat["energy"]
+    ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
+    gf = reshape(dat["gf"], 1, ngf[1],ngf[2])
+    eff = dat["eff"]
+    gf = dat["geom_factor"].*eff.*gf
+    dt = dat["time_integ"]
+    # mass = dat["mass"].*m_int
+    dead = dat["dead"]						# dead time array usec for STATIC
+    bkg = dat["bkg"]							# background array usec for STATIC
+    tmp = dat["data"]
+
+    tmp = (tmp./dead .- bkg ).*dead
+    scale = 1 ./(dt.* gf)
+    dat["eflux"] = scale .* tmp
+    return dat
+end
+function STA_eflux2df(dat;m_int=m_int)
+    energy = dat["energy"]
+    mass = dat["mass"].*m_int
+    scale = 1 ./(energy.^2 .* 2 ./mass./mass.*1e5)
+    dat["df"] = scale .* dat["eflux"]
+    return dat
+end
+#数据切片
+function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑
+    dat_slip =Dict{String,Any}()
+    for key in keys(dat)
+        dat_slip[key] = dat[key]
+    end
+    swp_ind = dat["swp_ind"][time_ind]
+    att_ind = dat["att_ind"][time_ind]
+    eff_ind = dat["eff_ind"][time_ind]
+
+    dat_slip["eflux"]    = dat["eflux"][time_ind,:,:,:]
+    dat_slip["data"]     = dat["data"][time_ind,:,:,:]
+    dat_slip["bkg"]     = dat["bkg"][time_ind,:,:,:]
+    dat_slip["epoch"]    = dat["epoch"][time_ind]
+    dat_slip["time_integ"]= dat["time_integ"][time_ind]
+    dat_slip["swp_ind"]  = dat["swp_ind"][time_ind]
+    dat_slip["att_ind"]  = dat["att_ind"][time_ind]
+    dat_slip["eff_ind"]  = dat["eff_ind"][time_ind]
+    dat_slip["sc_pot"]   = dat["sc_pot"][time_ind]
+    dat_slip["dead"]   = dat["dead"][time_ind,:,:,:]
+    dat_slip["quat_mso"]   = dat["quat_mso"][time_ind,:]
+    dat_slip["quat_sc"]   = dat["quat_sc"][time_ind,:]
+    dat_slip["magf"]   = dat["magf"][time_ind,:]
+    
+    dat_slip["energy"]   = dat["energy"][:,:,:,swp_ind+1]
+    dat_slip["denergy"]  = dat["denergy"][:,:,:,swp_ind+1]
+    dat_slip["theta"]    = dat["theta"][:,:,:,swp_ind+1]
+    dat_slip["phi"]      = dat["phi"][:,:,:,swp_ind+1]
+    dat_slip["dtheta"]   = dat["dtheta"][:,:,:,swp_ind+1]
+    dat_slip["dphi"]     = dat["dphi"][:,:,:,swp_ind+1]
+    dat_slip["mass_arr"] = dat["mass_arr"][:,:,:,swp_ind+1]
+    dat_slip["gf"]       = dat["gf"][att_ind+1,:,:,swp_ind+1]
+    dat_slip["eff"]      = dat["eff"][:,:,:,eff_ind+1]
+
+    # # time:			tt1,					
+    # # end_time:		tt2,					
+    # delta_t = dat["endtime"][time_ind] - dat["time_unix"][time_ind]		
+    # dt_cor = 3.89/4.0
+    # dat_slip["integ_t"]=delta_t/(dat["nenergy"]*dat["ndef"])*dt_cor
+
+    return dat_slip
+end
+# 速度计算
+function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片
+    if dat["valid"] == 0
+        println("Invalid Data")
+        return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
+    end
+
+    # 		# Use distribution function
+    
+    # if unit != "df"
+    #     if unit == "eflux"
+    #         dat = STA_eflux2df(dat;m_int=m_int)
+    #     elseif unit == "counts"
+    #         dat = STA_count2df(dat;m_int=m_int)
+    #     end
+    # end
+    dat = STA_count2df(dat;m_int=m_int)
+    data=dat["df"]
+
+    energy = dat["energy"] 
+    denergy = dat["denergy"] 
+    theta = dat["theta"]./RADG
+    phi = dat["phi"] ./RADG
+    dtheta = dat["dtheta"] ./RADG
+    dphi = dat["dphi"] ./RADG
+    mass_arr = dat["mass_arr"]
+    pot = dat["sc_pot"]
+
+    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+    data[ind].=0.0
+
+    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+    data[ind].=0.0
+    
+    # if m_int != 0
+    # mass_arr[:] .= m_int
+    # else
+    #     mass_arr=round.(mass_arr .-0.1) # the minus 0.1 helps account for straggling at low mass
+    #     mass_arr[mass_arr .< 1] .= 1.0
+    # end
+    mass=dat["mass"]*m_int
+    
+    Const = 2.0/mass/mass*1e5
+    energy=energy.+pot		# energy/charge analyzer, require positive energy
+    energy[energy .< 0.0] .=0.0
+
+    flux0 = Const.*denergy.*energy.*data
+    theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
+    flux3dx = sum(flux0.*theta0.*cos.(phi))
+    flux3dy = sum(flux0.*theta0.*sin.(phi))
+    flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
+    #units are 1/cm^2-s
+    Const = mass^(-1.5)*2.0^(0.5)
+    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    
+    flux = [flux3dx,flux3dy,flux3dz]
+    vel = 1e-5 .* flux ./(density .+ 1e-10)
+    return vel,flux,density
+end
+function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
+    function rotate_vector(u::AbstractVector,q::QuaternionF64)
+        q_u = QuaternionF64(0, u[1], u[2], u[3])
+        q_v = q*q_u*conj(q)
+        return [imag_part(q_v)...]
+    end
+    function sphere2xyz_for_static_rotation(θ,ϕ)
+        x = cosd.(θ) .*  cosd.(ϕ)
+        y = cosd.(θ) .*  sind.(ϕ)
+        z = sind.(θ)
+        return [x,y,z]
+    end;
+    function xyz2sphere_for_static_rotation(xyz)
+        x,y,z=xyz[1],xyz[2],xyz[3]
+        theta = 90. - acosd(z)
+        phi = atand(y, x)
+        return theta,phi
+    end
+    local dat2
+    dat2 = dat
+    theta = dat2["theta"]
+    phi = dat2["phi"]
+    magf = dat2["magf"]
+    n_m = dat2["nmass"]
+    n_b = dat2["nbins"]
+    n_e = dat2["nenergy"]
+    if frame == "MSO"
+        frame_t = "quat_mso"
+    elseif frame == "SC"
+        frame_t = "quat_sc"
+    end
+
+    quat = QuaternionF64(dat2[frame_t][1],dat2[frame_t][2],dat2[frame_t][3],dat2[frame_t][4])
+
+    xyz = sphere2xyz_for_static_rotation.(theta,phi);
+    xyz_mso = rotate_vector.(xyz,quat);
+    sphere_mso = xyz2sphere_for_static_rotation.(xyz_mso)
+
+    thetaT=zeros(n_m,n_b,n_e)
+    phiT=zeros(n_m,n_b,n_e)
+
+    for (i,var) in enumerate(sphere_mso)
+        phiT[i] = var[2]
+        thetaT[i] = var[1]
+    end
+    magfT = rotate_vector(magf,quat);
+    dat2["theta"] = thetaT
+    dat2["phi"] = phiT
+    dat2["magf"] = magfT
+    return dat2
+end
+function static_slip_2_V(dat;mass_range=[10,20],m_int = 16) #use slip_data
+    nenergy  = dat["nenergy"]
+    nbins    = dat["nbins"]
+    energy   = dat["energy"]      
+    phi      = dat["phi"]        
+    theta    = dat["theta"]         
+    mass_arr = dat["mass_arr"]   
+    sc_pot   = dat["sc_pot"]     
+
+    dat = MAVEN_load.STA_count2df(dat;m_int=m_int)
+    data=dat["df"]
+    
+    mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
+    energy_mass = energy[1,:,:]
+    phi_mass = phi[1,:,:]
+    theta_mass = theta[1,:,:]
+    
+    df_data = sum(data.*mask,dims=1)
+    df_data = df_data[1,:,:]
+    
+    V_MSO = zeros(nbins,nenergy,3)
+    
+    energy_t = energy_mass .+ sc_pot
+    energy_t[energy_t .<= 0] .= 0.001
+    
+    v0 = ion_energy2v.(energy_t,m_int) ./1e3
+    
+    APP_position = sphere2xyz_for_STATIC.(v0,theta_mass,phi_mass)
+    
+    V_MSO[:,:,1] = [x[1] for x in APP_position]
+    V_MSO[:,:,2] = [x[2] for x in APP_position]
+    V_MSO[:,:,3] = [x[3] for x in APP_position]
+    
+    return_data = Dict{String,Any}(
+        "dF" => df_data,
+        "v"  => V_MSO,
+        "mass" => m_int,
+        "nbins" =>nbins,
+        "nenergy" =>nenergy,
+        "magf"  => dat["magf"],
+    )
+    return return_data
+end
+function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
+    out_data = Rotation_Martrix * in_data
+    return out_data
+end
+function rotate_vector_with_quat(u::AbstractVector,q::QuaternionF64)
+    q_u = QuaternionF64(0, u[1], u[2], u[3])
+    q_v = q*q_u*conj(q)
+    return [imag_part(q_v)...]
+end
+function ion_eflux2F(energy,eflux,mION)  # 离子eflux转PSD
+    M = mION * Mp
+    E0 = 511.0 * mION * 1836.23 # 离子静止能量
+    #energy 与 eflux 一一对应
+    γ=(energy * 1e-3 /E0 + 1)
+    β=sqrt(1.0 - 1.0 / γ^2)
+    P=γ *M * β *C        # kg m/s
+    # V=β .* C
+    F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2
+    return F
+end
+function sphere2xyz_for_STATIC(r,θ,ϕ)
+    x = r .* cosd.(θ) .*  cosd.(ϕ)
+    y = r .* cosd.(θ) .*  sind.(ϕ)
+    z = r .* sind.(θ)
+    return [x,y,z]
+end;
+function xyz2sphere_for_STATIC(x,y,z)
+    r=sqrt(x^2 + y^2 + z^2)
+    theta = 90. - acosd(z/r)
+    phi = atand(y, x)
+    return [r,theta,phi]
+end
+function sphere2xyz(r,θ,ϕ)
+    x = r .* sind.(θ) .*  cosd.(ϕ)
+    y = r .* sind.(θ) .*  sind.(ϕ)
+    z = r .* cosd.(θ)
+    return [x,y,z]
+end
+function ion_energy2v(energy,mass) # 离子子能量对应速度(相对论)
+    E0 = 511.0 * mass * 1836.23 
+    γ=(energy * 1e-3 /E0 + 1)
+    β=sqrt(1.0 - 1.0 / γ^2)
+    v = β .* 3e8
+    return v
+end
+const EV=1.602176487e-19
+const C=3.0e8
+const Me=9.109e-31
+const Mp=1.672621637e-27
+const RADG=180.0/π
+
+end # module

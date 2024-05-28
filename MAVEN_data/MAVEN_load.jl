@@ -427,6 +427,23 @@ function STA_count2df(dat;m_int=m_int)
     dat["df"] = scale .* (tmp .- bkg)
     return dat
 end
+function STA_count2eflux(dat;m_int=m_int)
+    energy = dat["energy"]
+    ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
+    gf = reshape(dat["gf"], 1, ngf[1],ngf[2])
+    eff = dat["eff"]
+    gf = dat["geom_factor"].*eff.*gf
+    dt = dat["time_integ"]
+    mass = dat["mass"].*m_int
+    dead = dat["dead"]						# dead time array usec for STATIC
+    bkg = dat["bkg"]							# background array usec for STATIC
+    tmp = dat["data"]
+
+    tmp = tmp.*dead
+    scale = 1 ./(dt.* gf)
+    dat["eflux"] = scale .* (tmp .- bkg)
+    return dat
+end
 function STA_eflux2df(dat;m_int=m_int)
     energy = dat["energy"]
     mass = dat["mass"].*m_int
@@ -449,7 +466,7 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = 
     #         dat = STA_count2df(dat;m_int=m_int)
     #     end
     # end
-    dat = STA_eflux2df(dat;m_int=m_int)
+    dat = STA_count2df(dat;m_int=m_int)
     data=dat["df"]
 
     energy = dat["energy"] 
@@ -514,6 +531,7 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
     dat2 = dat
     theta = dat2["theta"]
     phi = dat2["phi"]
+    magf = dat2["magf"]
     n_m = dat2["nmass"]
     n_b = dat2["nbins"]
     n_e = dat2["nenergy"]
@@ -536,8 +554,10 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
         phiT[i] = var[2]
         thetaT[i] = var[1]
     end
+    magfT = rotate_vector(magf,quat);
     dat2["theta"] = thetaT
     dat2["phi"] = phiT
+    dat2["magf"] = magfT
     return dat2
 end
 function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑
@@ -561,6 +581,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip["dead"]   = dat["dead"][time_ind,:,:,:]
     dat_slip["quat_mso"]   = dat["quat_mso"][time_ind,:]
     dat_slip["quat_sc"]   = dat["quat_sc"][time_ind,:]
+    dat_slip["magf"]   = dat["magf"][time_ind,:]
     
     dat_slip["energy"]   = dat["energy"][:,:,:,swp_ind+1]
     dat_slip["denergy"]  = dat["denergy"][:,:,:,swp_ind+1]
@@ -580,6 +601,50 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
 
     return dat_slip
 end
+function static_slip_2_V(dat;mass_range=[10,20],m_int = 16) #use slip_data
+    nenergy  = dat["nenergy"]
+    nbins    = dat["nbins"]
+    energy   = dat["energy"]      
+    phi      = dat["phi"]        
+    theta    = dat["theta"]         
+    mass_arr = dat["mass_arr"]   
+    sc_pot   = dat["sc_pot"]     
+
+    dat = MAVEN_load.STA_count2df(dat;m_int=m_int)
+    data=dat["df"]
+    
+    mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
+    energy_mass = energy[1,:,:]
+    phi_mass = phi[1,:,:]
+    theta_mass = theta[1,:,:]
+    
+    df_data = sum(data.*mask,dims=1)
+    df_data = df_data[1,:,:]
+    
+    V_MSO = zeros(nbins,nenergy,3)
+    
+    energy_t = energy_mass .+ sc_pot
+    energy_t[energy_t .<= 0] .= 0.001
+    
+    v0 = ion_energy2v.(energy_t,m_int) ./1e3
+    
+    APP_position = sphere2xyz_for_STATIC.(v0,theta_mass,phi_mass)
+    
+    V_MSO[:,:,1] = [x[1] for x in APP_position]
+    V_MSO[:,:,2] = [x[2] for x in APP_position]
+    V_MSO[:,:,3] = [x[3] for x in APP_position]
+    
+    return_data = Dict{String,Any}(
+        "dF" => df_data,
+        "v"  => V_MSO,
+        "mass" => m_int,
+        "nbins" =>nbins,
+        "nenergy" =>nenergy,
+        "magf"  => dat["magf"],
+    )
+    return return_data
+end
+
 function carclu_SWEA_pad(data; energy_range=[])
     # time, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data["Vars"]
     time        = data["epoch"]

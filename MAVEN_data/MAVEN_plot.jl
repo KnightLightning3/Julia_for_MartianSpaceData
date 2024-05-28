@@ -5,6 +5,8 @@ using TimesDates, Dates
 using DataFrames
 using Interpolations
 using LinearAlgebra
+using Statistics
+using DelaunayTriangulation
 const EV=1.602176487e-19
 const C=3.0e8
 const me=9.109e-31
@@ -19,6 +21,144 @@ function sta_heatmap(ax,x,y,c,swp_ind;c_range=(1e4,1e10),ylabel="energy")    #�
         indices = findall(x -> x == element, swp_ind)
         heatmap!(ax,x[indices],y[:,element+1],c[indices,:],colormap=:jet,colorscale=log10,colorrange=c_range,overdraw=true)
     end
+    return ax
+end
+function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-12,1e0),angle_range=[-30,30],ylabel = "",xlabel = "",plot_range=(-120,120)) # dat imported by MAVEN_load.static_slip_2_V
+    # ROTATION: (case insensitive)
+    # ;         'xy': the x axis is v_x and the y axis is v_y. (DEFAULT)
+    # ;         'xz': the x axis is v_x and the y axis is v_z.
+    # ;         'yz': the x axis is v_y and the y axis is v_z.
+    # ;       rotations shown below require valid MAGF tag in the data structure
+    # ;         'bv': the x axis is v_para (to the magnetic field) and
+    # ;               the bulk velocity is in the x-y plane.
+    # ;         'be': the x axis is v_para (to the magnetic field) and
+    # ;               the VxB direction is in the x-y plane.
+    # ;         'perp': the x-y plane is perpendicular to the B field,
+    # ;                 while the x axis is the velocity projection on the plane.
+    # ;         'perp_xy': the x-y plane is perpendicular to the B field,
+    # ;                    while the x axis is the x projection on the plane.
+    # ;         'perp_xz': the x-y plane is perpendicular to the B field,
+    # ;                    while the x axis is the x projection on the plane.
+    # ;         'perp_yz': the x-y plane is perpendicular to the B field,
+    # ;                    while the x axis is the y projection on the plane.
+    # ;       ANGLE: the lower and upper angle limits of the slice selected to plot (DEFAULT [-20,20]).
+    function remove_repeat_points(x,y,z,c;angle = [-30,30])
+        points = [x y c]
+        theta_xy = [asind(zi / norm([xi,yi,zi]) ) for (xi,yi,zi) in eachrow([x y z])]
+        ind = findall(x -> angle[1] <= x <= angle[2], theta_xy)
+        data1 = Dict()
+        for (p1, p2 ,ci) in eachrow(points[ind,:])
+            push!(get!(data1, (p1, p2), []), ci)
+        end
+        new_x =[]
+        new_y =[]
+        new_c =[]
+        for (key,val) in data1
+            push!(new_x,key[1])
+            push!(new_y,key[2])
+            push!(new_c,mean(val))
+        end 
+        new_x = convert(Array{Float64},new_x)
+        new_y = convert(Array{Float64},new_y)
+        new_c = convert(Array{Float64},new_c)
+        return new_x,new_y,new_c
+    end
+    function color_mapping(vars,color_range;scaler=nothing)
+        if scaler == "log"
+            color_range_in = log10.(color_range)
+            vars_in = log10.(vars)
+        else
+            color_range_in = color_range
+            vars_in = vars
+        end
+        vars_mapped = round.(Int, ((vars_in .- color_range_in[1]) ./ (color_range_in[2] - color_range_in[1])) .* 255 .+ 1)
+        vars_mapped[vars_mapped .> 256] .= 256
+        vars_mapped[vars_mapped .< 1] .= 1
+        return vars_mapped
+    end
+    function slice2d_cal_rot(v1,v2)
+        a = normalize(v1)
+        d = normalize(v2)
+        c = cross(a,d)
+        c = normalize(c)
+        b = -cross(a,c)
+        b = normalize(b)
+        rotinv = zeros(3,3)
+        rotinv[:,1] = a
+        rotinv[:,2] = b
+        rotinv[:,3] = c
+        rot = inv(rotinv)
+        return rot
+    end
+    bvec = dat["magf"]
+    vvec = vbluk
+    rot = zeros(3,3)
+    if frame == "xy"
+        rot = slice2d_cal_rot([1,0,0], [0,1,0])
+        elseif frame == "xz"
+            rot = slice2d_cal_rot([1,0,0], [0,0,1])
+        elseif frame == "yz"
+            rot = slice2d_cal_rot([0,1,0], [0,0,1])
+        elseif frame == "bv"
+            rot = slice2d_cal_rot(bvec, vvec)
+        elseif frame == "be"    
+            rot = slice2d_cal_rot(bvec, cross(bvec,vvec))
+        elseif frame == "perp"
+            rot = slice2d_cal_rot( cross(cross(bvec,vvec),bvec), cross(bvec,vvec))
+        elseif frame == "perp_xy"
+            rot = slice2d_cal_rot( cross(cross(bvec,[1,0,0]),bvec), cross(cross(bvec,[0,1,0]),bvec) )
+        elseif frame == "perp_xz"
+            rot = slice2d_cal_rot( cross(cross(bvec,[1,0,0]),bvec), cross(cross(bvec,[0,0,1]),bvec))
+        elseif frame == "perp_yz"
+            rot = slice2d_cal_rot( cross(cross(bvec,[0,1,0]),bvec), cross(cross(bvec,[0,0,1]),bvec))
+        else
+            println("Error occurred: bad rot frame")
+            return ax
+    end
+
+    # ax.ylabel = ylabel
+    # ax.xlabel = xlabel
+    ax.limits = (plot_range,plot_range)
+    df_data = dat["dF"]
+    V = dat["v"]
+    m_int = ["mass"]
+    nenergy  = dat["nenergy"]
+    nbins    = dat["nbins"]
+
+    V[:,:,1] = V[:,:,1] .+ vsc[1]
+    V[:,:,2] = V[:,:,2] .+ vsc[2]
+    V[:,:,3] = V[:,:,3] .+ vsc[3]
+
+    vbluk1 = vbluk .+ vsc
+
+    new_v = zeros(nbins,nenergy,3)
+    for i in 1:nbins, j in 1:nenergy
+        new_v[i,j,:] = rot * V[i,j,:]
+    end
+    new_vbluk = rot * vbluk1
+    new_b = rot * bvec
+    new_b = normalize(new_b)
+
+    x,y,z,c = new_v[:,:,1],new_v[:,:,2],new_v[:,:,3],df_data
+    x = vec(x) ; y = vec(y) ; z = vec(z); c = vec(c)
+    # 去除0点
+    ind_c = findall(x-> x <= 0 , c)
+    c[ind_c] .= 1e-20
+    # ind_c = findall(x-> x > 1e-20 , c)
+    # x = x[ind_c] ; y = y[ind_c] ; z = z[ind_c]; c = c[ind_c]
+
+    x_filtered,y_filtered,c_filtered = remove_repeat_points(x,y,z,c;angle = angle_range)
+    scatter_colors = color_mapping(c_filtered,colorrange;scaler="log")
+
+    pts = hcat(x_filtered, y_filtered)' ; tri = triangulate(pts) ;
+
+    tricontourf!(ax, tri, scatter_colors, colormap = :jet,bottom = :black,levels = 256)
+
+    lines!(ax,[-1000,1000],[0,0],linestyle=:dash,color=:white)
+    lines!(ax,[0,0],[-1000,1000],linestyle=:dash,color=:white)
+
+    lines!(ax,[0,1000*new_b[1]],[0,1000*new_b[2]],linestyle=:dash,color=:green)
+    scatter!(ax,new_vbluk[1],new_vbluk[2],color=:white,marker = :rect,markersize = 20)
     return ax
 end
 function SWEA_PAD_heatmap(ax,time,pa,eflux;c_range=(1e4,1e10),ylabel="Pitch Angle [deg]")
