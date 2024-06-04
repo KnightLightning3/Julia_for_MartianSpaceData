@@ -108,10 +108,42 @@ function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处�
     return return_data
 end
 # UNITS计算
+# function STA_count2eflux_full_time_4d(dat)
+#     ntime   = dat["ntime"]
+#     nbins   = dat["nbins"]
+#     nenergy = dat["nenergy"]
+#     nmass   = dat["nmass"]
+#     eflux2  = zeros(ntime,nmass,nbins,nenergy)
+#     # eflux    = dat["eflux"]
+#     dead = dat["dead"]
+#     bkg  = dat["bkg"]
+#     tmp  = dat["data"]
+#     tmp = (tmp./dead .- bkg ).*dead
+
+#     gf1 = zeros(ntime,1,nbins,nenergy)
+#     eff1= zeros(ntime,nmass,nbins,nenergy)
+#     dt1 = reshape(dat["time_integ"], ntime,1,1,1)
+#     for time_ind in 1:ntime
+#         swp_ind = dat["swp_ind"][time_ind]
+#         att_ind = dat["att_ind"][time_ind]
+#         eff_ind = dat["eff_ind"][time_ind]
+#         gf   = reshape(dat["gf"][att_ind+1,:,:,swp_ind+1], 1, nbins,nenergy)
+#         eff  = dat["eff"][:,:,:,eff_ind+1]
+#         gf   = dat["geom_factor"].*eff.*gf
+#         dt   = dat["time_integ"][time_ind]
+
+#         scale = 1 ./(dt.* gf)
+#         eflux2[time_ind,:,:,:] = scale .* tmp[time_ind,:,:,:]
+#     end
+#     dat["eflux"] = eflux2
+#     return dat
+# end
 function STA_count2df(dat;m_int=m_int)
+    nbins   = dat["nbins"]
+    nenergy = dat["nenergy"]
     energy = dat["energy"]
-    ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
-    gf = reshape(dat["gf"], 1, ngf[1],ngf[2])
+    # ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
+    gf = reshape(dat["gf"], 1, nbins,nenergy)
     eff = dat["eff"]
     gf = dat["geom_factor"].*eff.*gf
     dt = dat["time_integ"]
@@ -126,9 +158,10 @@ function STA_count2df(dat;m_int=m_int)
     return dat
 end
 function STA_count2eflux(dat;m_int=m_int)
-    # energy = dat["energy"]
-    ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
-    gf = reshape(dat["gf"], 1, ngf[1],ngf[2])
+    nbins   = dat["nbins"]
+    nenergy = dat["nenergy"]
+    # energy = dat["energy"]   					# in eV     (n_e,nbins,n_m)
+    gf = reshape(dat["gf"], 1, nbins,nenergy)
     eff = dat["eff"]
     gf = dat["geom_factor"].*eff.*gf
     dt = dat["time_integ"]
@@ -301,7 +334,7 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
     dat2["magf"] = magfT
     return dat2
 end
-function static_slip_2_V(dat;mass_range=[10,20],m_int = 16) #use slip_data
+function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use slip_data
     nenergy  = dat["nenergy"]
     nbins    = dat["nbins"]
     energy   = dat["energy"]      
@@ -310,7 +343,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16) #use slip_data
     mass_arr = dat["mass_arr"]   
     sc_pot   = dat["sc_pot"]     
 
-    dat = MAVEN_load.STA_count2df(dat;m_int=m_int)
+    dat = STA_count2df(dat;m_int=m_int)
     data=dat["df"]
     
     mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
@@ -333,6 +366,10 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16) #use slip_data
     V_MSO[:,:,1] = [x[1] for x in APP_position]
     V_MSO[:,:,2] = [x[2] for x in APP_position]
     V_MSO[:,:,3] = [x[3] for x in APP_position]
+
+    vsc1 = reshape(vsc,1,1,3)
+
+    V_MSO =V_MSO .+ vsc1
     
     return_data = Dict{String,Any}(
         "dF" => df_data,

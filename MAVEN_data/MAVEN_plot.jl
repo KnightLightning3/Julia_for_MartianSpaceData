@@ -183,28 +183,43 @@ function WaveSpactra_heatmap(ax,time,freq,data; c_range=(1e-14,1e-9),ylabel = "f
     heatmap!(ax,x,y,c,colormap=:jet,colorscale=log10,colorrange=c_range,overdraw=true)
     return ax
 end
-function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,0,0],times = ([],[]))
+function Orbit(ax,position_ss; xlimit=(-5,4), ylimit=(0,3),obs_position = [-0.5,0,0],times = ([],[]),frame = "x-yz")
     ax.limits = (xlimit, ylimit)
     ax.xreversed=true
     p_mso = position_ss./Rm
     x=p_mso[:,1]
-    y= sqrt.(p_mso[:,2].^2 .+ p_mso[:,3].^2)
+    if frame == "x-yz"
+        y= sqrt.(p_mso[:,2].^2 .+ p_mso[:,3].^2)
+    elseif frame == "x-y"
+        y= p_mso[:,2]
+    elseif frame == "x-z"
+        y= p_mso[:,3]
+    end
+
     lines!(ax,x,y,label="Orbit",overdraw=true)
 
-    if times != ([],[])
-        times_t = times[2]
-        time_index = times[1]
-        colormap = :tab10
-        n_colors = length(time_index)
-        colors = resample_cmap(colormap, n_colors)
-        for (it,i) in enumerate(time_index)
-            poly!(ax,Circle(Point2f(x[i], y[i]), 0.1),color=colors[it],label = times_t[it])
-            # text!(ax, 0.98, 0.95-it*0.95/(n_colors+1), text = times_t[it], font = :bold, align = (:center, :center), space = :relative, fontsize = 15, color=colors[it])
-        end
-    end
+    # if times != ([],[])
+    #     times_t = times[2]
+    #     time_index = times[1]
+    #     colormap = :tab10
+    #     n_colors = length(time_index)
+    #     colors = resample_cmap(colormap, n_colors)
+    #     for (it,i) in enumerate(time_index)
+    #         poly!(ax,Circle(Point2f(x[i], y[i]), 0.1),color=colors[it],label = times_t[it])
+    #         # text!(ax, 0.98, 0.95-it*0.95/(n_colors+1), text = times_t[it], font = :bold, align = (:center, :center), space = :relative, fontsize = 15, color=colors[it])
+    #     end
+    # end
+    
     p_obs  = obs_position./Rm
     x=p_obs[1]
-    y= sqrt.(p_obs[2].^2 .+ p_obs[3].^2)
+    if frame == "x-yz"
+        y= sqrt.(p_obs[2].^2 .+ p_obs[3].^2)
+    elseif frame == "x-y"
+        y= p_obs[2]
+    elseif frame == "x-z"
+        y= p_obs[3]
+    end
+
     poly!(ax,Circle(Point2f(x, y), 0.1),color=:red)
 
     theta = LinRange(pi, 2pi, 100)
