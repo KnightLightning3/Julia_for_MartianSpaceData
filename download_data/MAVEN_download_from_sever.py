@@ -15,7 +15,7 @@ start_date   = datetime.date(2015, 10, 1)
 end_date     = datetime.date(2015, 11, 1)
 sleep_time = 60
 step_time= 0 #每个请求之间间隔的时间，以防被ban
-model= "KP"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+model= "MAG_ss_l3"#"KP"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
 
 vpn_proxy = None
 session = requests.Session()
