@@ -267,6 +267,22 @@ function load_NGIMS_den_l4(file::String)
     return data_out_dict
 end
 ## ------------------------------数据处理--------------------------------
+function Bpc2sphere(x,y,z,bx,by,bz)
+    r = sqrt(x^2 + y^2 + z^2)
+    θ = acos(z / r)
+    ϕ = atan(y, x)
+
+    sinθ = sin(θ)
+    cosθ = cos(θ)
+    sinϕ = sin(ϕ)
+    cosϕ = cos(ϕ)
+
+    Br = sinθ * cosϕ * bx + sinθ * sinϕ * by + cosθ * bz
+    Bθ = cosθ * cosϕ * bx + cosθ * sinϕ * by - sinθ * bz
+    Bϕ = -sinϕ * bx + cosϕ * by
+
+    return Br, Bθ, Bϕ
+end
 function caculate_mag(position;models=["alt"])
     function c_alt(position) 
         alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
