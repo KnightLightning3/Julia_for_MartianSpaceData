@@ -9,25 +9,33 @@ from time import sleep
 import json
 # from dateutil.relativedelta import relativedelta
 port=7897
-porxies = {
+vpn_proxy = {
 "http": "http://127.0.0.1:"+str(port),
 "https": "http://127.0.0.1:"+str(port),
 }
 timeout = None
 sleep_time = 60
 step_time= 5 #每个请求之间间隔的时间，以防被ban
+
+url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
+start_date   = datetime.date(2014, 10, 1)
+end_date     = datetime.date(2020,  6, 1)
+model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+
+
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(f"{data_format_path}\load_data\MAVEN_data_format.json", "r") as file:
+with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
 def test_proxies():
-    global porxies
+    global vpn_proxy
+    global url_path_0
     global timeout
     try:
-        response = requests.get("https://lasp.colorado.edu/maven/sdc/public/data/sci/",proxies=porxies,timeout=timeout)
+        response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
-            print("\033[1;32m 成功连接到代理服务器\033[0m:"+porxies["http"])
+            print("\033[1;32m 成功连接到代理服务器\033[0m:"+vpn_proxy["http"])
         response.close()
         return True
     except requests.exceptions.RequestException as e:
@@ -35,15 +43,15 @@ def test_proxies():
         print(e)
     return False
 def search_url(url,filestyle):
-    global porxies
+    global vpn_proxy
     global timeout
     sleep(step_time)
     try:
-        response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
+        response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠{sleep_time}秒")
             sleep(sleep_time)
-            response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
+            response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
 
@@ -65,16 +73,16 @@ def search_url(url,filestyle):
         sleep(sleep_time)
         return response.status_code,False,0
     return response.status_code,False,0
-def requests_downlaod(url,save_path):
-    global porxies
+def requests_download(url,save_path):
+    global vpn_proxy
     global timeout
     sleep(step_time)
     try:
-        response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
+        response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠{sleep_time}秒")
             sleep(sleep_time)
-            response = requests.get(url, stream=True,proxies=porxies,timeout=timeout)
+            response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
@@ -100,7 +108,7 @@ def requests_downlaod(url,save_path):
         return response.status_code,False
     return response.status_code,False
 def download_model(model):
-    url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
+    global url_path_0
     save_dir = json_data["save_path"]
     data_model = json_data["data_model"]
     model_key = {}
@@ -170,7 +178,7 @@ def file_check(file_names,save_path,model):
                     print(f,"False")
                     counter+=1
             return counter
-def sreach_dowloaded_files(save_path,filestyle):
+def search_downloaded_files(save_path,filestyle):
     filenames =[]
     yyyy = os.listdir(save_path)
     for iy in yyyy:
@@ -202,9 +210,9 @@ if __name__ == '__main__':
     url_path,save_path,filestyle = download_model(model)
     if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
         os.makedirs(save_path)
-    file_names = sreach_dowloaded_files(save_path,filestyle)
+    file_names = search_downloaded_files(save_path,filestyle)
     if not (file_names is None):
-        with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n') 
     #get all url:
@@ -230,7 +238,7 @@ if __name__ == '__main__':
                     continue
                 if not os.path.exists(save_path+yyyymm):
                     os.makedirs(save_path+yyyymm)
-                url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+yyyymm+filename)
+                url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                 time_now = datetime.datetime.now()
                 print(f'{date}下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
         month+=1
@@ -238,8 +246,8 @@ if __name__ == '__main__':
             month=1
             year+=1
         current_date = datetime.date(year, month, 1)
-    file_names = sreach_dowloaded_files(save_path,filestyle)
-    with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+    file_names = search_downloaded_files(save_path,filestyle)
+    with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
         for item in file_names:
             file.write(str(item) + '\n')
     exit(0)
@@ -248,7 +256,7 @@ if __name__ == '__main__':
     for model in models:
         try:
             url_path,save_path,filestyle = download_model(model)
-            file_names = sreach_dowloaded_files(save_path)
+            file_names = search_downloaded_files(save_path)
             with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
@@ -272,7 +280,7 @@ if __name__ == '__main__':
                         print(date,model,'文件已下载')
                         current_date+=datetime.timedelta(days=1)
                         continue
-                    url_status_code,logic = requests_downlaod(url_path+yyyymm+filename,save_path+yyyymm+filename)
+                    url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
                     print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
                     if logic:
@@ -286,7 +294,7 @@ if __name__ == '__main__':
                 current_date = datetime.date(year, month, 1)
         except:
             print("停止下载，保存已下载文件列表")
-        file_names = sreach_dowloaded_files(save_path)
+        file_names = search_downloaded_files(save_path)
         with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
@@ -298,7 +306,7 @@ if __name__ == '__main__':
     #         continue
     #     if model in ["SWEA_pad_arc","SWEA_pad_svy","KP"]:
     #         continue
-    #     url_path,save_path,filestyle = downlaod_model(model)
+    #     url_path,save_path,filestyle = download_model(model)
     #     file_names = os.listdir(save_path)
     #     if model == 'KP':
     #         counter = file_check(file_names,save_path,'kp')
