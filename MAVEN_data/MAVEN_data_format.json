@@ -1,6 +1,6 @@
 {   
     "description":"data_model: data_type:[path, file_name_pattern, save_path, load_function]",
-    "save_path": "E:/MAVEN/",
+    "save_path": "H:/MAVEN/",
     "data_model": {
         "KP":[
             "kp/insitu/",
@@ -34,25 +34,25 @@
         ],
         "MAG_ss_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_ss1s_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_pc_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_pc1s_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
