@@ -140,6 +140,7 @@ if __name__ == '__main__':
         os.makedirs(save_path)
     file_names = search_downloaded_files(save_path,filestyle)
     if not (file_names is None):
+        os.makedirs(json_data["save_path"]+"lists", exist_ok=True)
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n') 
