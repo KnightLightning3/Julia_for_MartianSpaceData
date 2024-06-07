@@ -16,5 +16,5 @@ linear_growth_rate.dll
 download.log
 download_data/修改文件树.py
 download_data/build_kp_format.py
-download_data/get_download_files.py
+# download_data/get_download_files.py
 load_data/MAVEN_data_filename_lists.json
