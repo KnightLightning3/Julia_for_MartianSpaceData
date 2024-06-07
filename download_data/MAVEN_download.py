@@ -25,7 +25,7 @@ start_date   = datetime.date(2014, 10, 1)  #下载数据的起始日期
 end_date     = datetime.date(2023,  6, 1)  #下载数据的终止日期，由于算法本身，一次会下载一个月的量
 model= "STATIC_c6"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
 
-models_pass = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,lasp服务器上不存在
+models_pass = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,lasp服务器上不存在
 single_model= 'LPW_wave'
 muti_models = []                   #填入想要批量下载的仪器模块，如果为空，则下载所有模块
 single_download = False            #为true时下载single_model，为false时下载 muti_models                                     
@@ -277,7 +277,7 @@ if __name__ == '__main__':
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        download_log.write("\n"+f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
+        download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
     download_log.close
     exit(0)
 #文件检查

@@ -234,7 +234,7 @@ function load_kp(filename;pc2ss_Matrix_load = false,str_model=false)
         return result_dict
     end
 end
-function load_KP_l3(file::String)
+function load_kp_l3(file::String)
     f = jldopen(file, "r")
     data_out_dict = f["KP_jld2_data"]
     close(f)
