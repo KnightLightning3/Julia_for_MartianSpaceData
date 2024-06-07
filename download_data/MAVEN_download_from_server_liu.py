@@ -2,7 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-save_dir = '/media/ExtHDD/data/maven/kp/'
+save_dir = 'H:/MAVEN/kp/'
 url = 'http://222.195.76.155:8000/MAVEN/KP/insitu'
 user_name = '待定用户007'
 password = '待定用户007的密码是待定用户007'

@@ -1,3 +1,4 @@
+#从lasp服务器下载数据,建议配置vpn到美国节点,不配置时需要设置vpn_proxy=None
 import datetime
 import os
 import re
@@ -7,7 +8,7 @@ from tqdm import tqdm
 import re
 from time import sleep
 import json
-# from dateutil.relativedelta import relativedelta
+
 port=7897
 vpn_proxy = {
 "http": "http://127.0.0.1:"+str(port),
@@ -204,11 +205,10 @@ if __name__ == '__main__':
             models.append(item)
     else:
         models=muti_models
-    download_log = open("download.log","a")
+    download_log = open("download_data/download.log","a")
     for model in models:
         nums_downloaded = 0
         nums_failed = 0
-        download_log = open("download.log","a")
         
         logic = test_proxies()
         if(logic == False):

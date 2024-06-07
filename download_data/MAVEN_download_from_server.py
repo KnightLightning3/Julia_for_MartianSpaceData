@@ -1,3 +1,4 @@
+#从自建服务器下载数据,校内访问不需要vpn，校外访问需要配置相应的vpn端口. 服务器不一定在运行
 import datetime
 import os
 import re
@@ -16,9 +17,9 @@ end_date     = datetime.date(2015, 10, 30)       #下载数据的终止日期，
 sleep_time = 60
 step_time= 0 #每个请求之间间隔的时间，以防被ban
 models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
-single_model= 'LPW_wave'#"MAG_ss_l3"#"KP"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+single_model= "LPW_lpiv"
 muti_models = []                                        #填入想要批量下载的仪器模块，如果为空，则下载所有模块
-single_download = False                                 #为true时下载single_model，为false时下载muti_models
+single_download = True                                 #为true时下载single_model，为false时下载muti_models
 vpn_proxy = None                                        #vpn设置,校外访问时可以忽略
 
 session = requests.Session()
@@ -140,7 +141,8 @@ if __name__ == '__main__':
             models.append(item)
     else:
         models=muti_models
-    download_log = open("download.log","a")
+    download_log = open("download_data/download.log","a")
+    download_log.write(f'{datetime.datetime.now()}下载开始'+"\n")
     for model in models:
         current_date = start_date
 
@@ -195,5 +197,5 @@ if __name__ == '__main__':
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        download_log.write("\n"+f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
+        download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
     download_log.close()
