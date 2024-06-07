@@ -8,6 +8,12 @@
             "KP/insitu/",
             "load_kp"
         ],
+        "KP_l3":[
+            "None",
+            "^mvn_kp_insitu_.+\\.jld2$",
+            "KP/l3/",
+            "load_kp_l3"
+        ],
         "MAG_ss":[
             "mag/l2/",
             "mvn_mag_l2_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",

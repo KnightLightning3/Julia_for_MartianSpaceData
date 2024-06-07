@@ -171,7 +171,7 @@ function load_mag_l3(file);
     )
     return data
 end
-function load_kp(filename;pc2ss_Matrix_load = false)
+function load_kp(filename;pc2ss_Matrix_load = false,str_model=false)
     function kp_indicate(n)
         m = n * 16-16 .+ (4:19)
         return m
@@ -183,13 +183,27 @@ function load_kp(filename;pc2ss_Matrix_load = false)
     Ntime=length(time)
  
     result_dict = Dict{String, Any}()
+    result_dict["version"] = filename[end-10:end-8]
 
-    for (key, value) in kp_dict
-        var = [line[value[2]] for line in lines]
-        var_float = parse.(Float64, var)
-        result_dict[key] = var_float
+    if str_model
+        for (key, value) in kp_dict
+            var = [line[value[2]] for line in lines]
+            result_dict[key] = var
+        end
+    else
+        for (key, value) in kp_dict
+            var = [line[value[2]] for line in lines]
+            # var_float = []
+            # if "SCP" in var || "SC0" in var || "I" in var || "O" in var
+            #     var_float = replace.(var, "SCP" => 1)
+            #     var_float = replace.(var_str, "SC0" => 0)
+            #     var_float = replace.(var_str, "I" => 1)
+            #     var_float = replace.(var_str, "O" => 0)
+            # end
+            var_float = parse.(Float64, var)
+            result_dict[key] = var_float
+        end
     end
-
     # if NaN2missing
     #     for (key, value) in result_dict
     #         ind = findall(x-> isnan(x), value)
@@ -199,7 +213,7 @@ function load_kp(filename;pc2ss_Matrix_load = false)
     #     end
     # end
     result_dict["time"] = time_dt
-    result_dict["version"] = filename[end-10:end-8]
+    
     if pc2ss_Matrix_load == false
         return result_dict
     else
@@ -219,6 +233,12 @@ function load_kp(filename;pc2ss_Matrix_load = false)
         result_dict["pc2ss_Matrix"] = pc2ss_Matrix
         return result_dict
     end
+end
+function load_KP_l3(file::String)
+    f = jldopen(file, "r")
+    data_out_dict = f["KP_jld2_data"]
+    close(f)
+    return data_out_dict
 end
 function load_swea_pad(file;  mean_PA=true) 
     # 默认将360°的数据投影到180°
