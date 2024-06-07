@@ -9,21 +9,23 @@ import re
 from time import sleep
 import json
 
+#vpn设置
 port=7897
 vpn_proxy = {
 "http": "http://127.0.0.1:"+str(port),
 "https": "http://127.0.0.1:"+str(port),
-}                                         #vpn设置
+}                                         
+vpn_proxy = None
 timeout = None
 sleep_time = 60
 step_time= 5 #每个请求之间间隔的时间，以防被ban
 
 url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
 start_date   = datetime.date(2014, 10, 1)  #下载数据的起始日期
-end_date     = datetime.date(2020,  6, 1)  #下载数据的终止日期，由于算法本身，一次会下载一个月的量
+end_date     = datetime.date(2023,  6, 1)  #下载数据的终止日期，由于算法本身，一次会下载一个月的量
 model= "STATIC_c6"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
 
-models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
+models_pass = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,lasp服务器上不存在
 single_model= 'LPW_wave'
 muti_models = []                   #填入想要批量下载的仪器模块，如果为空，则下载所有模块
 single_download = False            #为true时下载single_model，为false时下载 muti_models                                     
@@ -44,7 +46,16 @@ def test_proxies():
         response.close()
         return True
     except requests.exceptions.RequestException as e:
-        print(False)
+        print('\033[1;31m 代理服务器连接失败 \033[0m')
+        print(e)
+    try:
+        response = requests.get("https://www.google.com/",proxies=vpn_proxy,timeout=timeout)
+        if response.status_code == 200:
+            print("\033[1;32m VPN连接正常 \033[0m:"+vpn_proxy["http"])
+        response.close()
+        return True
+    except requests.exceptions.RequestException as e:
+        print('\033[1;31m VPN连接错误 \033[0m')
         print(e)
     return False
 def search_url(url,filestyle):
@@ -195,6 +206,14 @@ def search_downloaded_files(save_path,filestyle):
                 filenames.append(filepath)
     return filenames
 if __name__ == '__main__':
+    if vpn_proxy == None:
+        print("\033[1;32m 不使用代理服务器 \033[0m")
+    else:
+        logic = test_proxies()
+        if(logic == False):
+            print('\033[1;31m 退出程序 \033[0m')
+            exit(0)
+
     models=[]
     if single_download:
         models = [single_model]
@@ -206,16 +225,11 @@ if __name__ == '__main__':
     else:
         models=muti_models
     download_log = open("download_data/download.log","a")
+    download_log.write(f'{datetime.datetime.now()}下载开始'+"\n")
     for model in models:
         nums_downloaded = 0
         nums_failed = 0
-        
-        logic = test_proxies()
-        if(logic == False):
-            print('\033[1;31m 代理服务器连接失败 \033[0m')
-            exit(0)
-
-        model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+        current_date = start_date
         url_path,save_path,filestyle = download_model(model)
         if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
             os.makedirs(save_path)
