@@ -12,16 +12,20 @@ port=7897
 vpn_proxy = {
 "http": "http://127.0.0.1:"+str(port),
 "https": "http://127.0.0.1:"+str(port),
-}
+}                                         #vpn设置
 timeout = None
 sleep_time = 60
 step_time= 5 #每个请求之间间隔的时间，以防被ban
 
 url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
-start_date   = datetime.date(2014, 10, 1)
-end_date     = datetime.date(2020,  6, 1)
-model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+start_date   = datetime.date(2014, 10, 1)  #下载数据的起始日期
+end_date     = datetime.date(2020,  6, 1)  #下载数据的终止日期，由于算法本身，一次会下载一个月的量
+model= "STATIC_c6"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
 
+models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
+single_model= 'LPW_wave'
+muti_models = []                   #填入想要批量下载的仪器模块，如果为空，则下载所有模块
+single_download = False            #为true时下载single_model，为false时下载 muti_models                                     
 
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
@@ -190,116 +194,78 @@ def search_downloaded_files(save_path,filestyle):
                 filenames.append(filepath)
     return filenames
 if __name__ == '__main__':
-    start_date   = datetime.date(2014, 10, 1)
-    end_date     = datetime.date(2020,  6, 1)
-    
-    current_date = start_date
-
-    models=data_model.keys()
-
-    nums_downloaded = 0
-    nums_failed = 0
+    models=[]
+    if single_download:
+        models = [single_model]
+    elif muti_models == []:
+        for item in data_model.keys():
+            if item in models_pass:
+                continue
+            models.append(item)
+    else:
+        models=muti_models
     download_log = open("download.log","a")
-    
-    logic = test_proxies()
-    if(logic == False):
-        print('\033[1;31m 代理服务器连接失败 \033[0m')
-        exit(0)
-
-    model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
-    url_path,save_path,filestyle = download_model(model)
-    if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
-        os.makedirs(save_path)
-    file_names = search_downloaded_files(save_path,filestyle)
-    if not (file_names is None):
-        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
-            for item in file_names:
-                file.write(str(item) + '\n') 
-    #get all url:
-    while current_date <= end_date:
-        date=str(current_date.strftime("%Y%m%d"))
-        
-        if find_downloaded_file(file_names, date):
-            print(date,model,'\033[1;32m文件已存在\033[0m')
-            current_date+=datetime.timedelta(days=1)
-            continue
-        year      = current_date.year
-        month     = current_date.month
-        yyyymm    = str(current_date.strftime("%Y/%m/"))
-        urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
-        if bool_urls:
-            print(f'\033[0;32m {len(urls)} {model} files in '+yyyymm+'\033[0m')
-            for url in urls:
-                filename = str(url)
-                date=re.findall(r"\d{8}", filename)[0]
-                if find_downloaded_file(file_names, date):
-                    print(date,model,'\033[1;32m文件已下载\033[0m')
-                    current_date+=datetime.timedelta(days=1)
-                    continue
-                if not os.path.exists(save_path+yyyymm):
-                    os.makedirs(save_path+yyyymm)
-                url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                time_now = datetime.datetime.now()
-                print(f'{date}下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
-        month+=1
-        if month == 13:
-            month=1
-            year+=1
-        current_date = datetime.date(year, month, 1)
-    file_names = search_downloaded_files(save_path,filestyle)
-    with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
-        for item in file_names:
-            file.write(str(item) + '\n')
-    exit(0)
-## muti model
-    models = ["STATIC_c8","STATIC_ca","LPW_we12"]
     for model in models:
-        try:
-            url_path,save_path,filestyle = download_model(model)
-            file_names = search_downloaded_files(save_path)
-            with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+        nums_downloaded = 0
+        nums_failed = 0
+        download_log = open("download.log","a")
+        
+        logic = test_proxies()
+        if(logic == False):
+            print('\033[1;31m 代理服务器连接失败 \033[0m')
+            exit(0)
+
+        model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
+        url_path,save_path,filestyle = download_model(model)
+        if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
+            os.makedirs(save_path)
+        file_names = search_downloaded_files(save_path,filestyle)
+        if not (file_names is None):
+            with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
-            current_date =  start_date
-            while current_date <= end_date:
-                date=str(current_date.strftime("%Y%m%d"))
-
-                if find_downloaded_file(file_names, date):
-                    print(date,model,'文件已存在')
-                    current_date+=datetime.timedelta(days=1)
-                    continue
-                year    = current_date.year
-                month   = current_date.month
-                yyyymm  = str(current_date.strftime("%Y/%m/"))
-                urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
-                print(f'{len(urls)} {model} files in '+yyyymm)
+        #get all url:
+        while current_date <= end_date:
+            date=str(current_date.strftime("%Y%m%d"))
+            
+            if find_downloaded_file(file_names, date):
+                print(date,model,'\033[1;32m文件已存在\033[0m')
+                current_date+=datetime.timedelta(days=1)
+                continue
+            year      = current_date.year
+            month     = current_date.month
+            yyyymm    = str(current_date.strftime("%Y/%m/"))
+            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
+            if bool_urls:
+                print(f'\033[0;32m {len(urls)} {model} files in '+yyyymm+'\033[0m')
                 for url in urls:
                     filename = str(url)
-                    date=re.findall(r"\d{8}", filename)
-                    if find_downloaded_file(file_names, filename):
-                        print(date,model,'文件已下载')
+                    date=re.findall(r"\d{8}", filename)[0]
+                    if find_downloaded_file(file_names, date):
+                        print(date,model,'\033[1;32m文件已下载\033[0m')
                         current_date+=datetime.timedelta(days=1)
                         continue
+                    if not os.path.exists(save_path+yyyymm):
+                        os.makedirs(save_path+yyyymm)
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
-                    print(f'[{date}]下载状态:{logic}, status_code={url_status_code} 当前时间:{time_now}\n')
+                    print(f'{model}_{date}下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
                     if logic:
-                        nums_downloaded+=1
+                        nums_downloaded = nums_downloaded+1
                     else:
-                        nums_failed+=1
-                month+=1
-                if month == 13:
-                    month=1
-                    year+=1
-                current_date = datetime.date(year, month, 1)
-        except:
-            print("停止下载，保存已下载文件列表")
-        file_names = search_downloaded_files(save_path)
-        with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
+                        nums_failed = nums_failed+1
+            month+=1
+            if month == 13:
+                month=1
+                year+=1
+            current_date = datetime.date(year, month, 1)
+        file_names = search_downloaded_files(save_path,filestyle)
+        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
+        download_log.write("\n"+f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
     download_log.close
+    exit(0)
 #文件检查
     # for model in models:
     #     if model in ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc","SWEA_spec","LPW_mrgscpot"]:
