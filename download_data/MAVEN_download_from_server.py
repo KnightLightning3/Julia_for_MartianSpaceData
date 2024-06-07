@@ -1,4 +1,4 @@
-#从lasp服务器下载数据,建议配置vpn到美国节点,不配置时需要设置vpn_proxy=None
+#从自建服务器下载数据,校内访问不需要vpn，校外访问需要配置相应的vpn端口. 服务器不一定在运行
 import datetime
 import os
 import re
@@ -9,54 +9,39 @@ import re
 from time import sleep
 import json
 
-port=7897
-vpn_proxy = {
-"http": "http://127.0.0.1:"+str(port),
-"https": "http://127.0.0.1:"+str(port),
-}                                         #vpn设置
-timeout = None
+url_path_0='http://222.195.76.155:8000/MAVEN/'   #MAVEN服务器数据下载地址
+user_name = '待定用户007'
+password = '待定用户007的密码是待定用户007'
+start_date   = datetime.date(2015, 10, 1)        #下载数据的起始日期
+end_date     = datetime.date(2015, 10, 30)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
 sleep_time = 60
-step_time= 5 #每个请求之间间隔的时间，以防被ban
-
-url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
-start_date   = datetime.date(2014, 10, 1)  #下载数据的起始日期
-end_date     = datetime.date(2020,  6, 1)  #下载数据的终止日期，由于算法本身，一次会下载一个月的量
-model= "STATIC_c6"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
-
+step_time= 0 #每个请求之间间隔的时间，以防被ban
 models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
-single_model= 'LPW_wave'
-muti_models = []                   #填入想要批量下载的仪器模块，如果为空，则下载所有模块
-single_download = False            #为true时下载single_model，为false时下载 muti_models                                     
+single_model= "LPW_lpiv"
+muti_models = []                                        #填入想要批量下载的仪器模块，如果为空，则下载所有模块
+single_download = True                                 #为true时下载single_model，为false时下载muti_models
+vpn_proxy = None                                        #vpn设置,校外访问时可以忽略
 
+session = requests.Session()
+session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
+timeout = None
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
-def test_proxies():
-    global vpn_proxy
-    global url_path_0
-    global timeout
-    try:
-        response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
-        if response.status_code == 200:
-            print("\033[1;32m 成功连接到代理服务器\033[0m:"+vpn_proxy["http"])
-        response.close()
-        return True
-    except requests.exceptions.RequestException as e:
-        print(False)
-        print(e)
-    return False
 def search_url(url,filestyle):
     global vpn_proxy
+    global session
     global timeout
     sleep(step_time)
     try:
-        response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
+        response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠{sleep_time}秒")
             sleep(sleep_time)
-            response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
+            response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
 
@@ -80,14 +65,15 @@ def search_url(url,filestyle):
     return response.status_code,False,0
 def requests_download(url,save_path):
     global vpn_proxy
+    global session
     global timeout
     sleep(step_time)
     try:
-        response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
+        response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠{sleep_time}秒")
             sleep(sleep_time)
-            response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
+            response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
@@ -121,7 +107,7 @@ def download_model(model):
         model_key[key] = value[:3]
 
     model_url,filename,pathname=model_key[model]
-    url = url_path_0+model_url
+    url = url_path_0+pathname
     save_path =  save_dir+pathname
     return [url,save_path,filename]
 def find_downloaded_file(file_names, element):
@@ -132,57 +118,6 @@ def find_downloaded_file(file_names, element):
         if element in file_name:
             return True
     return False
-def read_last_line_large_file(filename):
-    with open(filename, 'r', encoding='utf-8') as f:
-        f.seek(0, 2)  # 移动到文件末尾
-        file_size = f.tell()
-        block = 10240  # 每次读取的块大小
-        last_line = ''
-        # 从文件末尾开始逐块向前读取
-        for pos in range(file_size, 0, -block):
-            if pos < block:
-                f.seek(0)
-            else:
-                f.seek(pos - block)
-            data = f.read(min(block, pos))
-            if '\n' in data:
-                last_line = data.splitlines()[-1]
-                break
-        else:  # 如果文件没有换行符，整个文件就是最后一行
-            f.seek(0)
-            last_line = f.read()
-    return last_line
-def file_check(file_names,save_path,model):
-        counter = 0
-        if model == 'cdf':
-            from cdflib import cdfread 
-            for f in file_names:
-                try :
-                    cdfread.CDF(save_path+f)
-                    # print(f,'True')
-                    continue
-                except Exception as e:
-                    print(e)
-                os.remove(os.path.join(save_path,f))
-                print(f,"False")
-                counter+=1
-            return counter
-        if model == 'kp':
-            for f in file_names:
-                last_line = read_last_line_large_file(save_path+f)
-                # file=open(save_path+f,'r')
-                # lines = file.readlines()
-                # last_line = lines[-1]
-                bool_1 = (len(last_line) >= 3360)
-                bool_2 = (int(last_line[14:16]) >= 59)
-                if bool_1 & bool_2:
-                    # print(f,'True')
-                    bool_1 = True
-                else:
-                    os.remove(os.path.join(save_path,f))
-                    print(f,"False")
-                    counter+=1
-            return counter
 def search_downloaded_files(save_path,filestyle):
     filenames =[]
     yyyy = os.listdir(save_path)
@@ -194,6 +129,7 @@ def search_downloaded_files(save_path,filestyle):
             for filepath in filepaths:
                 filenames.append(filepath)
     return filenames
+
 if __name__ == '__main__':
     models=[]
     if single_download:
@@ -206,21 +142,19 @@ if __name__ == '__main__':
     else:
         models=muti_models
     download_log = open("download_data/download.log","a")
+    download_log.write(f'{datetime.datetime.now()}下载开始'+"\n")
     for model in models:
+        current_date = start_date
+
         nums_downloaded = 0
         nums_failed = 0
         
-        logic = test_proxies()
-        if(logic == False):
-            print('\033[1;31m 代理服务器连接失败 \033[0m')
-            exit(0)
-
-        model= "STATIC_cf"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
         url_path,save_path,filestyle = download_model(model)
         if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
             os.makedirs(save_path)
         file_names = search_downloaded_files(save_path,filestyle)
         if not (file_names is None):
+            os.makedirs(json_data["save_path"]+"lists", exist_ok=True)
             with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
@@ -249,7 +183,7 @@ if __name__ == '__main__':
                         os.makedirs(save_path+yyyymm)
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
-                    print(f'{model}_{date}下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
+                    print(f'{model}_{date} 下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
                     if logic:
                         nums_downloaded = nums_downloaded+1
                     else:
@@ -263,27 +197,5 @@ if __name__ == '__main__':
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        download_log.write("\n"+f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
-    download_log.close
-    exit(0)
-#文件检查
-    # for model in models:
-    #     if model in ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc","SWEA_spec","LPW_mrgscpot"]:
-    #         continue
-    #     if model in ["SWEA_pad_arc","SWEA_pad_svy","KP"]:
-    #         continue
-    #     url_path,save_path,filestyle = download_model(model)
-    #     file_names = os.listdir(save_path)
-    #     if model == 'KP':
-    #         counter = file_check(file_names,save_path,'kp')
-    #     else:
-    #         counter = file_check(file_names,save_path,'cdf')
-
-    #     file_names = os.listdir(save_path)
-    #     with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
-    #         for item in file_names:
-    #             file.write(str(item) + '\n')
-    #     with open("download.log","a") as file:
-    #         file.write( f"{model}中{counter}个文件被删除"+"\n" )
-    #         print( f"{model}中{counter}个文件被删除"+"\n" )
-    # exit(0)
+        download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
+    download_log.close()

@@ -1,5 +1,5 @@
 {   
-    "description":"data_model: data_type:[path, file_name_pattern, save_path, load_function]",
+    "description":"data_model: data_type:[url_path, file_name_pattern, save_path, load_function]",
     "save_path": "E:/MAVEN/",
     "data_model": {
         "KP":[
@@ -34,68 +34,68 @@
         ],
         "MAG_ss_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_ss1s_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_pc_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_pc1s_l3":[
             "None",
-            "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
+            "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "SWEA_spec":[
             "swe/l2/",
             "mvn_swe_l2_svyspec_.+\\.cdf",
-            "SWEA/svyspec/",
+            "SWEA/l2/",
             "load_cdf"
         ],
         "LPW_mrgscpot":[
             "lpw/l2/",
             "mvn_lpw_l2_mrgscpot_.+\\.cdf",
-            "LPW/mrgscpot/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "SWEA_pad_arc":[
             "swe/l2/",
             "mvn_swe_l2_arcpad_.+\\.cdf",
-            "SWEA/arcpad/",
+            "SWEA/l2/",
             "load_swea_pad"
         ],
         "SWEA_pad_svy":[
             "swe/l2/",
             "mvn_swe_l2_svypad_.+\\.cdf",
-            "SWEA/svypad/",
+            "SWEA/l2/",
             "load_swea_pad"
         ],
         "STATIC_c6":[
             "sta/l2/",
             "mvn_sta_l2_c6-32e64m_.+\\.cdf",
-            "STATIC/c6_32e64m/",
+            "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_c8":[
             "sta/l2/",
             "mvn_sta_l2_c8-32e16d_.+\\.cdf",
-            "STATIC/c8_32e16d/",
+            "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_ca":[
             "sta/l2/",
             "mvn_sta_l2_ca-16e4d16a_.+\\.cdf",
-            "STATIC/ca_16e4d16a/",
+            "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_cf":[
@@ -107,19 +107,19 @@
         "STATIC_d0":[
             "sta/l2/",
             "mvn_sta_l2_d0-32e4d16a8m_.+\\.cdf",
-            "STATIC/d0_32e4d16a8m/",
+            "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_d1":[
             "sta/l2/",
             "mvn_sta_l2_d1-32e4d16a8m_.+\\.cdf",
-            "STATIC/d1_32e4d16a8m/",
+            "STATIC/l2/",
             "load_cdf"
         ],
         "LPW_wave":[
             "lpw/l2/",
             "mvn_lpw_l2_wspecpas_.+\\.cdf",
-            "LPW/wspecpas/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "LPW_wave_act":[
@@ -137,37 +137,37 @@
         "LPW_lpnt":[
             "lpw/l2/",
             "mvn_lpw_l2_lpnt_.+\\.cdf",
-            "LPW/lpnt/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "LPW_wn":[
             "lpw/l2/",
             "mvn_lpw_l2_wn_.+\\.cdf",
-            "LPW/wn/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "LPW_we12":[
             "lpw/l2/",
             "mvn_lpw_l2_we12_.+\\.cdf",
-            "LPW/we12/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "LPW_bursthf":[
             "lpw/l2/",
             "mvn_lpw_l2_we12bursthf_.+\\.cdf",
-            "LPW/we12bursthf/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "LPW_burstmf":[
             "lpw/l2/",
             "mvn_lpw_l2_we12burstmf_.+\\.cdf",
-            "LPW/we12burstmf/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "LPW_burstlf":[
             "lpw/l2/",
             "mvn_lpw_l2_we12burstlf_.+\\.cdf",
-            "LPW/we12burstlf/",
+            "LPW/l2/",
             "load_cdf"
         ],
         "NGIMS_den_l3":[
