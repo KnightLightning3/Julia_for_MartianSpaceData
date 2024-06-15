@@ -1,5 +1,6 @@
 module IGRF_carculate
 using FortranFiles
+using LinearAlgebra
 # using OffsetArrays
 # using DelimitedFiles
 #返回nT
@@ -29,6 +30,22 @@ function Bsphere2pc(r,θ,ϕ, Br, Bθ, Bϕ)
     By = sinθ * sinϕ * Br + cosθ * sinϕ * Bθ + cosϕ * Bϕ
     Bz = cosθ        * Br - sinθ        * Bθ
     return Bx,By,Bz
+end
+function Bpc2sphere(x,y,z,bx,by,bz)
+    r = sqrt(x^2 + y^2 + z^2)
+    θ = acos(z / r)
+    ϕ = atan(y, x)
+
+    sinθ = sin(θ)
+    cosθ = cos(θ)
+    sinϕ = sin(ϕ)
+    cosϕ = cos(ϕ)
+
+    Br = sinθ * cosϕ * bx + sinθ * sinϕ * by + cosθ * bz
+    Bθ = cosθ * cosϕ * bx + cosθ * sinϕ * by - sinθ * bz
+    Bϕ = -sinϕ * bx + cosϕ * by
+
+    return Br, Bθ, Bϕ
 end
 function CALCULATE_SCHMIDT_COEFFICIENTS()
     SS = zeros(NIGRF+1, NIGRF+1)
@@ -315,15 +332,14 @@ function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],ma
     trace_state = true
     while trace_state
         Br,Bθ,Bϕ,BB = IGRF_fortran(r,θ,ϕ)
-        # Br,Bθ,Bϕ,BB = IGRF_fortran_free(r,θ,ϕ)
-        r , θ , ϕ = r+Br/BB*Δs, θ+Bθ/BB*Δs/r , ϕ+Bϕ/BB*Δs/r/sin(θ)
-        r_state= r
         trace_steps +=1
         @inbounds B_data[trace_steps,:]=[r , θ , ϕ, Br , Bθ , Bϕ]
+        r , θ , ϕ = r+Br/BB*Δs, θ+Bθ/BB*Δs/r , ϕ+Bϕ/BB*Δs/r/sin(θ)
+        r_state= r
         trace_state =  r_state >= r_range[1] && r_state <= r_range[2] && trace_steps < max_trace
     end
     if show_steps
-    println("Stop after \033[36m$trace_steps\033[0m  steps")
+        println("Stop after \033[36m$trace_steps\033[0m  steps")
     end
     return B_data[1:trace_steps,:]
 end
@@ -335,13 +351,65 @@ function combina_two_dir_trace(B_data_1,B_data_2;to_pc = false) # 翻转第二�
         data = zeros(mag_line_num,6)
         @inbounds for i in 1:mag_line_num
             x = B_data[i,:]
-            x,y,z= IGRF_carculate.sphere2pc(x[1],x[2],x[3])
+            px,py,pz= IGRF_carculate.sphere2pc(x[1],x[2],x[3])
             Bx,By,Bz=IGRF_carculate.Bsphere2pc(x[1],x[2],x[3],x[4],x[5],x[6]) 
-            data[i,:] = [x,y,z,Bx,By,Bz]
+            data[i,:] = [px,py,pz,Bx,By,Bz]
         end
         B_data = data
     end
     return B_data
+end
+function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力线数据结构
+    position = data["position"]
+    mag_line_num = length(position[:,1])
+    s = zeros(mag_line_num)
+    s[1] = 0
+    @inbounds for i in 2:mag_line_num
+        x1 = position[i-1,1:3]
+        x2 = position[i,1:3]
+        s[i] = s[i-1] + norm(x2-x1)
+    end
+    data["S"] = s
+    data["alt"] =  [norm(x) for x in eachrow(position)] .-3393.5
+    data["B_strenth"] =  [norm(x) for x in eachrow(data["B"])]
+    return data
+end
+function trace_mag_line(p1,p2,p3;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,show_steps=false,input_frame="shpere",output_frame = "pc")
+    
+    # trace_function = Dict(
+    #     1 => mag_trace_Euler_step,
+    #     2 => mag_trace_rk4,
+    #     3 => mag_trace_rk4_fortran_ADAPTIVE_STEP,
+    # )
+    if input_frame == "pc"
+        r0,θ0,ϕ0 = pc2sphere(p1,p2,p3)
+    else
+        r0,θ0,ϕ0 = p1,p2,p3
+    end
+    B_data_1 = mag_trace_Euler_step(r0,θ0,ϕ0;show_steps=show_steps,r_range=r_range,step = step,dir=1.0,max_trace =max_trace)
+    B_data_2 = mag_trace_Euler_step(r0,θ0,ϕ0;show_steps=show_steps,r_range=r_range,step = step,dir=-1.0,max_trace =max_trace)
+    B_data_2 = reverse(B_data_2,dims=1)
+    n_source = length(B_data_2[:,1])
+    B_data = [B_data_2;B_data_1[2:end,:]]
+    if output_frame == "pc"
+        mag_line_num = length(B_data[:,1])
+        data = zeros(mag_line_num,6)
+        @inbounds for i in 1:mag_line_num
+            x = B_data[i,:]
+            px,py,pz= sphere2pc(x[1],x[2],x[3])
+            Bx,By,Bz=Bsphere2pc(x[1],x[2],x[3],x[4],x[5],x[6]) 
+            data[i,:] = [px,py,pz,Bx,By,Bz]
+        end
+        B_data = data
+    end
+    result = Dict(
+        "position" => B_data[:,1:3],
+        "B"        => B_data[:,4:6],
+        "step"     => step,
+        "frame"    => output_frame,
+        "start_position" => n_source    # 起点的坐标
+    )
+    return result
 end
 #global
 NIGRF=110

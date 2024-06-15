@@ -12,16 +12,17 @@ import json
 url_path_0='http://222.195.76.155:8000/MAVEN/'   #MAVEN服务器数据下载地址
 user_name = '待定用户007'
 password = '待定用户007的密码是待定用户007'
-start_date   = datetime.date(2015, 10, 1)        #下载数据的起始日期
-end_date     = datetime.date(2015, 10, 30)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
+start_date   = datetime.date(2014, 10, 1)        #下载数据的起始日期
+end_date     = datetime.date(2020, 10, 30)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
 sleep_time = 60
 step_time= 0 #每个请求之间间隔的时间，以防被ban
-models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
+models_skip = ["KP","MAG_ss_l3","MAG_ss1s_l3"]  #批量下载的时候跳过的模块
 single_model= "LPW_lpiv"
 muti_models = []                                        #填入想要批量下载的仪器模块，如果为空，则下载所有模块
-single_download = True                                 #为true时下载single_model，为false时下载muti_models
+single_download = False                                 #为true时下载single_model，为false时下载muti_models
 vpn_proxy = None                                        #vpn设置,校外访问时可以忽略
 
+models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候默认跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
 session = requests.Session()
 session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
 timeout = None
@@ -138,11 +139,12 @@ if __name__ == '__main__':
         for item in data_model.keys():
             if item in models_pass:
                 continue
+            if item in models_skip:
+                continue
             models.append(item)
     else:
         models=muti_models
-    download_log = open("download_data/download.log","a")
-    download_log.write(f'{datetime.datetime.now()}下载开始'+"\n")
+    
     for model in models:
         current_date = start_date
 
@@ -182,8 +184,7 @@ if __name__ == '__main__':
                     if not os.path.exists(save_path+yyyymm):
                         os.makedirs(save_path+yyyymm)
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                    time_now = datetime.datetime.now()
-                    print(f'{model}_{date} 下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{time_now}\033[0m\n')
+                    print(f'{model}_{date} 下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{datetime.datetime.now()}\033[0m\n')
                     if logic:
                         nums_downloaded = nums_downloaded+1
                     else:
@@ -197,5 +198,6 @@ if __name__ == '__main__':
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
-    download_log.close()
+        with open("download_data/download.log","a") as download_log:
+            download_log.write(f'[{datetime.datetime.now()}] {model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
+        
