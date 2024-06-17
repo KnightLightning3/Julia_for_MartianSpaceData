@@ -71,7 +71,6 @@ function read_gh()
     HH = read(f, (Float64, NIGRF+1,NIGRF+1)) 
     return [GG,HH]
 end
-
 function IGRF_fortran_free(r,θ,ϕ)  #working on ,输入半径是归一化的,输入阶数
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     DBs = Array{Float64}(undef, 3)
