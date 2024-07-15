@@ -81,20 +81,26 @@ function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读
 end
 ##----------------load parts------------------------
 function load_cdf(file)  # 将CDF文件读为字典
-    data   = cdflib.cdfread.CDF(file);
-    var_list = data.cdf_info()["zVariables"]
-    # var_list = var_lists
-    data_dict=Dict{String, Any}()
-    for var_name in var_list
-        var = get(data,var_name)
-        if typeof(var) != PyObject
-            data_dict[var_name] = var
+    try
+        data   = cdflib.cdfread.CDF(file);
+    catch e
+        println("Error: ",file)
+        println(e)
+        return Dict("data_load_flag" => false)
+    else
+        var_list = data.cdf_info()["zVariables"]
+        # var_list = var_lists
+        data_dict=Dict{String, Any}()
+        for var_name in var_list
+            var = get(data,var_name)
+            if typeof(var) != PyObject
+                data_dict[var_name] = var
+            end
         end
+        data_dict["epoch"] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
+        data_dict["filename"] = file
+        return data_dict
     end
-    # data_dict["cdf_data"] = data
-    data_dict["epoch"] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
-    data_dict["filename"] = file
-    return data_dict
 end
 # function load_sta(file)
 #     data   = cdflib.cdfread.CDF(file);

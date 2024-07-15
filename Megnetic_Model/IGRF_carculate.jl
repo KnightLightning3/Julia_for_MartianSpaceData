@@ -404,6 +404,7 @@ function trace_mag_line(p1,p2,p3;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,sh
     result = Dict(
         "position" => B_data[:,1:3],
         "B"        => B_data[:,4:6],
+        "num_steps"=> mag_line_num,
         "step"     => step,
         "frame"    => output_frame,
         "start_position" => n_source    # 起点的坐标

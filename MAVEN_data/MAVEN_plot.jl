@@ -24,6 +24,7 @@ function sta_heatmap(ax,x,y,c,swp_ind;c_range=(1e4,1e10),ylabel="energy")    #�
     return ax
 end
 function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-12,1e0),angle_range=[-30,30],ylabel = "",xlabel = "",plot_range=(-120,120)) # dat imported by MAVEN_load.static_slip_2_V
+    #默认vbluk已经经过vsc修正
     # ROTATION: (case insensitive)
     # ;         'xy': the x axis is v_x and the y axis is v_y. (DEFAULT)
     # ;         'xz': the x axis is v_x and the y axis is v_z.
@@ -129,13 +130,11 @@ function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-
     V[:,:,2] = V[:,:,2] .+ vsc[2]
     V[:,:,3] = V[:,:,3] .+ vsc[3]
 
-    vbluk1 = vbluk .+ vsc
-
     new_v = zeros(nbins,nenergy,3)
     for i in 1:nbins, j in 1:nenergy
         new_v[i,j,:] = rot * V[i,j,:]
     end
-    new_vbluk = rot * vbluk1
+    new_vbluk = rot * vbluk
     new_b = rot * bvec
     new_b = normalize(new_b)
 

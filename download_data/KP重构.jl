@@ -1,4 +1,4 @@
-include(raw"C:\Users\chengsw\Projects\Package_for_Julia_of_csw\MAVEN_data\MAVEN_load.jl")
+include("../MAVEN_data/MAVEN_load.jl")
 import .MAVEN_load
 using Dates
 using Base.Filesystem
@@ -64,7 +64,7 @@ for i in 2:235
     KP_dict[string(i)] = i
 end
 MAVEN_load.change_kp_read_data(KP_dict);
-f = open(raw"C:\Users\chengsw\Projects\Package_for_Julia_of_csw\MAVEN_data\KP_vars.json","r")
+f = open("../MAVEN_data/KP_vars.json","r")
 KP_vars = JSON.parse(f)
 close(f)
 
