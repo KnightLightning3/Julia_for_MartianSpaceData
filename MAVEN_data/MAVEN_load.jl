@@ -39,7 +39,7 @@ function find_file_of_data(model::String, date::DateTime)
             return true,file_name
         end
     end
-    return false,"noflie"
+    return false,"NaN"
 end
 function data_get_from_date(date::DateTime; model_index = [],show_filename=false) #全局读取函数 date 格式为yyyymmdd
     datas_dict = Dict()

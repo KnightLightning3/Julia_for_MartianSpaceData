@@ -1,6 +1,14 @@
 module Single_Particle_Orbit
 using LinearAlgebra
-using ProgressMeter
+using Dates
+
+function TimeFormat(time1,time2)
+    elapsed_time_ms = Dates.value(time2 - time1)
+    minutes = div(mod(elapsed_time_ms, 3600000), 60000)
+    seconds = div(mod(elapsed_time_ms, 60000), 1000)
+    milliseconds = mod(elapsed_time_ms, 1000)
+    return "$(lpad(minutes, 2, '0')):$(lpad(seconds, 2, '0')).$(lpad(milliseconds, 3, '0'))"
+end
 
 const e = 1.6e-19
 const me = 9.1093837e-31
@@ -10,20 +18,36 @@ const q2mp = e/mp
 
 # mq # 比荷
 function dvdt(v,E,B,mq)
-    return mq * (E + cross(v, B))
+    return mq * (E + cross3(v, B))
 end
-
-function solve_orbit(v0, x0, E, B, t, dt;mq=q2me)
+function cross3(a, b)
+    return [a[2]*b[3] - a[3]*b[2], a[3]*b[1] - a[1]*b[3], a[1]*b[2] - a[2]*b[1]]
+end
+function solve_orbit(v0, x0, E, B, t, dt;mq=q2me,hidde_progress = false,r_range=[0.0,1e10])
     v = v0
     x = x0
     s = 0.0
-    Nt = length(t)
+    time = 0:dt:t
+    Nt = length(time)
     v_data = zeros(Nt,3)
     x_data = zeros(Nt,3)
     b_data = zeros(Nt,3)
     s_data = zeros(Nt)
-    t_data = t
-    @showprogress dt=1 desc="carcu_orbit" for i in 1:Nt-1
+    r_data = zeros(Nt)
+    t_data = time
+    
+    v_data[1,:] = v
+    x_data[1,:] = x
+    s_data[1]   = s
+    r_data[1]   = norm(x)
+    b_data[1,:] = B(x)
+
+    if !hidde_progress
+        global time01 = Dates.now()
+        println("\033[42mStart Tarcing\033[0m at (\033[33m$time01\033[0m) Step = \033[36m $dt\033[0m")
+    end
+
+    @inbounds for i in 2:Nt
         b0 = B(x)
         
         k1v = dvdt(v, E(x), b0,mq);                k1x = v
@@ -37,22 +61,36 @@ function solve_orbit(v0, x0, E, B, t, dt;mq=q2me)
         kv = 0.5*dt*k3v; kx = 0.5*dt*k3x
         k4v = dvdt(v + kv, E(x + kx), B(x + kx),mq); k4x = v + kv
 
+        v = v + dt/6 * (k1v + 2.0*k2v + 2.0*k3v + k4v)
+        x = x + dt/6 * (k1x + 2.0*k2x + 2.0*k3x + k4x)
+        s = s + norm(dt/6 * (k1x + 2.0*k2x + 2.0*k3x + k4x))
+
         v_data[i,:] = v
         x_data[i,:] = x
         s_data[i]   = s
         b_data[i,:] = b0
-
-        v = v + dt/6 * (k1v + 2.0*k2v + 2.0*k3v + k4v)
-        x = x + dt/6 * (k1x + 2.0*k2x + 2.0*k3x + k4x)
-        s = s + norm(dt/6 * (k1x + 2.0*k2x + 2.0*k3x + k4x))
+        r_data[i] = norm(x)
     end
-        v_data[Nt,:] = v
-        x_data[Nt,:] = x
-        s_data[Nt]   = s
-        b_data[Nt,:] = B(x)
+
+    # fliter_index =  r_data .>= r_range[1] .&& r_data .<= r_range[2]
+    # if false in fliter_index
+    #     v_data = v_data[fliter_index,:]
+    #     x_data = x_data[fliter_index,:]
+    #     s_data = s_data[fliter_index]
+    #     b_data = b_data[fliter_index,:]
+    #     t_data = t_data[fliter_index]
+    #     r_data = r_data[fliter_index]
+    # end
+    if !hidde_progress
+        time02 = Dates.now()
+        total_time = TimeFormat(time01,time02)
+        println("\033[42mEnd Tarcing\033[0m at (\033[33m$time02\033[0m) Step = \033[36m $dt\033[0m, Total_Time = \033[36m$total_time\033[0m")
+    end
+
     return_data = Dict(
         "discription"   => "velocity,position,B_field,distence",
         "vel"           => v_data,
+        "r"             => r_data,
         "pos"           => x_data,
         "mag"           => b_data,
         "s"             => s_data,

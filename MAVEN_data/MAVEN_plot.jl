@@ -7,6 +7,7 @@ using Interpolations
 using LinearAlgebra
 using Statistics
 using DelaunayTriangulation
+using PyCall; griddata = pyimport("scipy.interpolate").griddata;
 const EV=1.602176487e-19
 const C=3.0e8
 const me=9.109e-31
@@ -23,7 +24,7 @@ function sta_heatmap(ax,x,y,c,swp_ind;c_range=(1e4,1e10),ylabel="energy")    #�
     end
     return ax
 end
-function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-12,1e0),angle_range=[-30,30],ylabel = "",xlabel = "",plot_range=(-120,120)) # dat imported by MAVEN_load.static_slip_2_V
+function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-12,1e0),angle_range=[-30,30],ylabel = "",xlabel = "",plot_range=(-120,120),return_rot_matrix = false,energy_range=[0,1e4],colormap=:jet,show_data=false) # dat imported by MAVEN_load.static_slip_2_V
     #默认vbluk已经经过vsc修正
     # ROTATION: (case insensitive)
     # ;         'xy': the x axis is v_x and the y axis is v_y. (DEFAULT)
@@ -63,6 +64,30 @@ function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-
         new_y = convert(Array{Float64},new_y)
         new_c = convert(Array{Float64},new_c)
         return new_x,new_y,new_c
+    end
+    function filter_points_optimized(x, y, c, r)  # 当无效点附近存在有效点，去除无效点
+        valid = c .!= 1e-20
+        # 遍历所有无效点
+        for i in 1:length(c)
+            if !valid[i]
+                nearby_valid = false
+                # 检查在距离 r 内是否有有效点
+                for j in 1:length(c)
+                    if valid[j]
+                        dist = sqrt((x[i] - x[j])^2 + (y[i] - y[j])^2)
+                        if dist <= r
+                            nearby_valid = true
+                            break
+                        end
+                    end
+                end
+                # 如果附近没有有效点，则将此无效点标记为有效点
+                if !nearby_valid
+                    valid[i] = true
+                end
+            end
+        end
+        return x[valid],y[valid],c[valid]
     end
     function color_mapping(vars,color_range;scaler=nothing)
         if scaler == "log"
@@ -117,47 +142,70 @@ function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-
             return ax
     end
 
-    # ax.ylabel = ylabel
-    # ax.xlabel = xlabel
+    ax.ylabel = ylabel
+    ax.xlabel = xlabel
     ax.limits = (plot_range,plot_range)
     df_data = dat["dF"]
-    V = dat["v"]
+    v0 = dat["v"]
     m_int = ["mass"]
     nenergy  = dat["nenergy"]
     nbins    = dat["nbins"]
+    energy0 = dat["energy"]
 
-    V[:,:,1] = V[:,:,1] .+ vsc[1]
-    V[:,:,2] = V[:,:,2] .+ vsc[2]
-    V[:,:,3] = V[:,:,3] .+ vsc[3]
+    V = reshape(v0,nbins*nenergy,3)
+    df = reshape(df_data,nbins*nenergy)
+    energy = reshape(energy0,nbins*nenergy)
+    V[:,1] = V[:,1] .+ vsc[1]
+    V[:,2] = V[:,2] .+ vsc[2]
+    V[:,3] = V[:,3] .+ vsc[3]
 
-    new_v = zeros(nbins,nenergy,3)
-    for i in 1:nbins, j in 1:nenergy
-        new_v[i,j,:] = rot * V[i,j,:]
-    end
+    new_v =  V * rot'
     new_vbluk = rot * vbluk
     new_b = rot * bvec
     new_b = normalize(new_b)
 
-    x,y,z,c = new_v[:,:,1],new_v[:,:,2],new_v[:,:,3],df_data
-    x = vec(x) ; y = vec(y) ; z = vec(z); c = vec(c)
+    x,y,z,c = new_v[:,1],new_v[:,2],new_v[:,3],df
+    ind_energy = (energy_range[1] .> energy) .|| (energy .> energy_range[2])
+    c[ind_energy] .= 0.0
+    # x = vec(x) ; y = vec(y) ; z = vec(z); c = vec(c)
     # 去除0点
-    ind_c = findall(x-> x <= 0 , c)
+    ind_c = c .<= 0
     c[ind_c] .= 1e-20
-    # ind_c = findall(x-> x > 1e-20 , c)
+    # ind_c = c .!= 1e-20
     # x = x[ind_c] ; y = y[ind_c] ; z = z[ind_c]; c = c[ind_c]
+    x,y,c = remove_repeat_points(x,y,z,c;angle = angle_range)
+    x,y,c = filter_points_optimized(x,y,c, 3.0)
 
-    x_filtered,y_filtered,c_filtered = remove_repeat_points(x,y,z,c;angle = angle_range)
-    scatter_colors = color_mapping(c_filtered,colorrange;scaler="log")
+    # points = cat(x,y,dims=2)
+    # xi = collect(LinRange(plot_range[1], plot_range[2],200))
+    # yi = collect(LinRange(plot_range[1], plot_range[2],200))
+    # grid_x = repeat(yi, 1, length(xi))
+    # grid_y = repeat(xi', length(yi), 1)
+    # grid_z = griddata(points, log10.(c), (grid_x, grid_y), method="cubic")  #The interpolant is constructed by triangulating the input data with Qhull [1], and constructing a piecewise cubic interpolating Bezier polynomial on each triangle, using a Clough-Tocher scheme [CT]. The interpolant is guaranteed to be continuously differentiable.
+    # heatmap!(ax,xi, yi, grid_z, colormap = colormap,bottom = :white,colorrange=log10.(colorrange))
+    # contourf!(ax,xi, yi, grid_z, colormap = colormap,levels=LinRange(log10.(colorrange)...,20),extendlow = :auto)#,
 
-    pts = hcat(x_filtered, y_filtered)' ; tri = triangulate(pts) ;
+    pts = hcat(x, y)' ; tri = triangulate(pts) ;
+    scatter_colors = color_mapping(c,colorrange;scaler="log")
+    voronoiplot!(ax, voronoi(tri)  ,color = scatter_colors, colormap = colormap,bottom = :black,levels = 256,strokewidth=0 ,markersize=0 )
+    # tricontourf!(ax, tri, scatter_colors, colormap = colormap,bottom = :black,levels = 256)
 
-    tricontourf!(ax, tri, scatter_colors, colormap = :jet,bottom = :black,levels = 256)
-
+    if show_data
+        colormap = :jet
+        n_colors = 256
+        colors = resample_cmap(colormap, n_colors)
+        scatter_color = [colors[i] for i in scatter_colors]
+        scatter!(ax,x,y,markersize = 7,color = :black)
+        scatter!(ax,x,y,markersize = 5,color = scatter_color)
+    end
     lines!(ax,[-1000,1000],[0,0],linestyle=:dash,color=:white)
     lines!(ax,[0,0],[-1000,1000],linestyle=:dash,color=:white)
 
     lines!(ax,[0,1000*new_b[1]],[0,1000*new_b[2]],linestyle=:dash,color=:green)
-    scatter!(ax,new_vbluk[1],new_vbluk[2],color=:white,marker = :rect,markersize = 20)
+    # scatter!(ax,new_vbluk[1],new_vbluk[2],color=:white,marker = :rect,markersize = 20)
+    if return_rot_matrix
+        return ax,rot
+    end
     return ax
 end
 function SWEA_PAD_heatmap(ax,time,pa,eflux;c_range=(1e4,1e10),ylabel="Pitch Angle [deg]")

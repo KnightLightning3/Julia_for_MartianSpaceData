@@ -201,10 +201,11 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip["att_ind"]  = dat["att_ind"][time_ind]
     dat_slip["eff_ind"]  = dat["eff_ind"][time_ind]
     dat_slip["sc_pot"]   = dat["sc_pot"][time_ind]
-    dat_slip["dead"]   = dat["dead"][time_ind,:,:,:]
-    dat_slip["quat_mso"]   = dat["quat_mso"][time_ind,:]
-    dat_slip["quat_sc"]   = dat["quat_sc"][time_ind,:]
-    dat_slip["magf"]   = dat["magf"][time_ind,:]
+    dat_slip["dead"]         = dat["dead"][time_ind,:,:,:]
+    dat_slip["quat_mso"]     = dat["quat_mso"][time_ind,:]
+    dat_slip["quat_sc"]      = dat["quat_sc"][time_ind,:]
+    dat_slip["magf"]         = dat["magf"][time_ind,:]
+    dat_slip["pos_sc_mso"]   = dat["pos_sc_mso"][time_ind,:]
     
     dat_slip["energy"]   = dat["energy"][:,:,:,swp_ind+1]
     dat_slip["denergy"]  = dat["denergy"][:,:,:,swp_ind+1]
@@ -376,6 +377,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
         "v"  => V_MSO,
         "mass" => m_int,
         "nbins" =>nbins,
+        "energy" =>energy_t,
         "nenergy" =>nenergy,
         "magf"  => dat["magf"],
     )
