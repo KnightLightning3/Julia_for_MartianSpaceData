@@ -14,17 +14,41 @@ const me=9.109e-31
 const Rm = 3393.5  #km
 const E0 = 511.0 # 电子静止能量KeV
 const RAD = π / 180
-function sta_heatmap(ax,x,y,c,swp_ind;c_range=(1e4,1e10),ylabel="energy")    #默认叠加绘图
+
+function vspan_plot(ax,x,y::Vector{Bool};krawg...)
+    # 转接vspan函数,y需要为bool值
+    segments1 = []
+    segments2 = []
+    start_idx = nothing
+    for (i,yi) in enumerate(y)
+        if yi
+            if start_idx === nothing
+                start_idx = i
+            end
+        elseif start_idx !== nothing
+            push!(segments1, x[start_idx])
+            push!(segments2, x[i-1])
+            start_idx = nothing
+        end
+    end
+    if start_idx !== nothing
+        push!(segments1, x[start_idx])
+        push!(segments2, x[end])
+    end
+    vspan!(ax,segments1,segments2;krawg...)
+    return ax
+end
+function sta_heatmap(ax, x, y, c, swp_ind; c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true, krawg...)
     ax.ylabel = ylabel
-    # ax.yscale = log10
     unique_elements = unique(swp_ind)
     for element in unique_elements
         indices = findall(x -> x == element, swp_ind)
-        heatmap!(ax,x[indices],y[:,element+1],c[indices,:],colormap=:jet,colorscale=log10,colorrange=c_range,overdraw=true)
+        heatmap!(ax, x[indices], y[:, element+1], c[indices, :], colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
     end
     return ax
 end
-function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-12,1e0),angle_range=[-30,30],ylabel = "",xlabel = "",plot_range=(-120,120),return_rot_matrix = false,energy_range=[0,1e4],colormap=:jet,show_data=false) # dat imported by MAVEN_load.static_slip_2_V
+function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-12,1e0),angle_range=[-30,30],ylabel = "",xlabel = "",plot_range=(-120,120),return_rot_matrix = false,energy_range=[0,1e4],colormap=:jet,show_data=false) 
+    # dat imported by MAVEN_load.static_slip_2_V
     #默认vbluk已经经过vsc修正
     # ROTATION: (case insensitive)
     # ;         'xy': the x axis is v_x and the y axis is v_y. (DEFAULT)
