@@ -211,7 +211,7 @@ function STA_2d_slip(ax,dat;frame="xy",vsc=[0,0,0],vbluk=[0,0,0],colorrange=(1e-
 
     pts = hcat(x, y)' ; tri = triangulate(pts) ;
     scatter_colors = color_mapping(c,colorrange;scaler="log")
-    voronoiplot!(ax, voronoi(tri)  ,color = scatter_colors, colormap = colormap,bottom = :black,levels = 256,strokewidth=0 ,markersize=0 )
+    voronoiplot!(ax, voronoi(tri)  ,color = scatter_colors, colormap = colormap,strokewidth=0 ,markersize=0 )
     # tricontourf!(ax, tri, scatter_colors, colormap = colormap,bottom = :black,levels = 256)
 
     if show_data
