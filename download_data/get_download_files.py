@@ -4,13 +4,18 @@ import os
 import json
 
 list_dict={}
-listnames = os.listdir("E:/MAVEN/lists/")
+
+data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
+    json_data = json.load(file)
+path = json_data["save_path"]+"lists/"
+listnames = os.listdir(path)
 listnames = [x for x in listnames if x[-4:] == ".txt"]
 
 print(listnames)
 for listname in listnames:
     model = listname[:-9]
-    with open("E:/MAVEN/lists/"+listname,'r') as f:
+    with open(path+listname,'r') as f:
         lines = [line.rstrip() for line in f]
     list_dict[model] = lines
 with open("MAVEN_data/filename_lists.json", 'w') as json_file:
