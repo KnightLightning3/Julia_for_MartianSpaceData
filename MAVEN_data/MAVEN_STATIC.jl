@@ -421,12 +421,19 @@ function sphere2xyz(r,θ,ϕ)
     z = r .* cosd.(θ)
     return [x,y,z]
 end
-function ion_energy2v(energy,mass) # 离子子能量对应速度(相对论)
-    E0 = 511.0 * mass * 1836.23 
-    γ=(energy * 1e-3 /E0 + 1)
+function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV
+    E0 = 938313.53 * AMU  # 质子静止能量 MeV
+    γ= energy*1e-3/E0 + 1.0
     β=sqrt(1.0 - 1.0 / γ^2)
-    v = β .* 3e8
+    v = β * 3e8
     return v
+end
+function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度
+    E0 = 938313.53 * AMU 
+    β  = v / 3e8
+    γ = 1.0 / sqrt(1.0 - β^2)
+    energy = (γ - 1.0) * E0 * 1e3
+    return energy
 end
 const EV=1.602176487e-19
 const C=3.0e8
@@ -434,4 +441,9 @@ const Me=9.109e-31
 const Mp=1.672621637e-27
 const RADG=180.0/π
 
+# vv0 =9.8e3
+# ee = ion_v2energy(vv0 ,32)
+# vv = ion_energy2v(ee,32)
+# println(vv0," ",vv," ",ee)
+# vv0^2 * 0.5*32*Mp/EV
 end # module
