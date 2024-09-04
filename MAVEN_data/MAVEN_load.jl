@@ -49,10 +49,10 @@ function data_get_from_date(date::DateTime; model_index = [],show_filename=false
         if !file_flag
             datas_dict[model] = Dict("data_load_flag" => false)
         else
-            datas_dict[model] = function_name(filename)
             if show_filename
-                println(model,":",filename)
+                println("\033[0;32mloading\033[0m $model from $filename")
             end
+            datas_dict[model] = function_name(filename)
             # println(keys(datas_dict[model]))
             datas_dict[model]["data_load_flag"] = true
         end
@@ -81,26 +81,27 @@ function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读
 end
 ##----------------load parts------------------------
 function load_cdf(file)  # 将CDF文件读为字典
+    local data      = []
+    
     try
-        data   = cdflib.cdfread.CDF(file);
+        data = cdflib.cdfread.CDF(file)
     catch e
-        println("Error: ",file)
+        println("Error: ", file)
         println(e)
         return Dict("data_load_flag" => false)
-    else
-        var_list = data.cdf_info()["zVariables"]
-        # var_list = var_lists
-        data_dict=Dict{String, Any}()
-        for var_name in var_list
-            var = get(data,var_name)
-            if typeof(var) != PyObject
-                data_dict[var_name] = var
-            end
-        end
-        data_dict["epoch"] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
-        data_dict["filename"] = file
-        return data_dict
     end
+
+    local data_dict = Dict{String, Any}()
+    local var_list  = data.cdf_info()["zVariables"]
+    local vars      = get.(Ref(data), var_list)
+    for (var_name, var) in zip(var_list, vars)
+        if typeof(var) != PyObject
+            data_dict[var_name] = var
+        end
+    end
+    data_dict["epoch"] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data,"epoch")))
+    data_dict["filename"] = file
+    return data_dict
 end
 # function load_sta(file)
 #     data   = cdflib.cdfread.CDF(file);
