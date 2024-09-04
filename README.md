@@ -2,7 +2,7 @@
 
 火星数据处理程序打包
 
-主要以Julia代码为主
+主要数据处理程序以Julia代码为主
 
 下载程序以Python为主
 
@@ -44,6 +44,7 @@ IGRF_carculate.jl
 - [ ]  全仪器读取  
 - [ ]  overview事件绘制example
 - [ ]  优化CDF读取为针对仪器的模式(为每个数据包写需要的变量列表，去除不用的量的读取和PyObject的判定)
+- [ ]  修改下载程序，让download_data\get_download_files.py可以自动读取文件目录来生成列表文件
 - [X]  简易Julia绘图包  
 - [X]  外接读取文件树  
 - [ ]  更多磁场模型  

@@ -12,8 +12,8 @@ import json
 url_path_0='http://222.195.76.155:8000/MAVEN/'   #MAVEN服务器数据下载地址
 user_name = '待定用户007'
 password = '待定用户007的密码是待定用户007'
-start_date   = datetime.date(2014, 10, 1)        #下载数据的起始日期
-end_date     = datetime.date(2023, 5, 1)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
+start_date   = datetime.date(2014, 10,1)        #下载数据的起始日期
+end_date     = datetime.date(2023, 5,1)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
 sleep_time = 60
 step_time= 0 #每个请求之间间隔的时间，以防被ban
 models_skip = []#["KP","MAG_ss_l3","MAG_ss1s_l3"]  #批量下载的时候跳过的模块
@@ -200,4 +200,6 @@ if __name__ == '__main__':
                 file.write(str(item) + '\n')
         with open("download_data/download.log","a") as download_log:
             download_log.write(f'[{datetime.datetime.now()}] {model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
-        
+
+        import runpy
+        runpy.run_path('download_data/get_download_files.py')  # 运行get_download_files.py文件，更新下载文件列表

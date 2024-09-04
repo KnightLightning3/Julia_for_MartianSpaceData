@@ -12,7 +12,6 @@ path = json_data["save_path"]+"lists/"
 listnames = os.listdir(path)
 listnames = [x for x in listnames if x[-4:] == ".txt"]
 
-print(listnames)
 for listname in listnames:
     model = listname[:-9]
     with open(path+listname,'r') as f:
@@ -20,3 +19,7 @@ for listname in listnames:
     list_dict[model] = lines
 with open("MAVEN_data/filename_lists.json", 'w') as json_file:
     json.dump(list_dict, json_file, indent=4)
+
+print("\033[1;32m成功录入以下数据模块目录:\033[0m") 
+for ls in listnames:
+    print("    "+ls)

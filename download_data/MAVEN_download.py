@@ -279,6 +279,9 @@ if __name__ == '__main__':
                 file.write(str(item) + '\n')
         download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
     download_log.close
+    
+    import runpy
+    runpy.run_path('download_data/get_download_files.py')  # 运行get_download_files.py文件，更新下载文件列表
     exit(0)
 #文件检查
     # for model in models:
