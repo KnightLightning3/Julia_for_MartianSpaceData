@@ -4,6 +4,15 @@ using LinearAlgebra
 # using OffsetArrays
 # using DelimitedFiles
 #返回nT
+# function linear_fit_mag(data,datam) #使用最小二乘法给模型三个维度加一个常数[a,b,c]来拟合模型和实际数据
+#     x = data[:,1:3]
+#     x1 = datam[:,1:3]
+#     dx = x1 .- x
+#     A = [ones(size(x1)[1]) x1[:,1] x1[:,2] x1[:,3]]
+#     B = dx
+
+# end
+########### 以下函数只能计算单个点的关系
 function pc2sphere(x,y,z)
     r = sqrt(x^2 + y^2 + z^2)
     # θ = π/2 - atan(z,sqrt(x^2+y^2))
@@ -47,6 +56,7 @@ function Bpc2sphere(x,y,z,bx,by,bz)
 
     return Br, Bθ, Bϕ
 end
+###########
 function CALCULATE_SCHMIDT_COEFFICIENTS()
     SS = zeros(NIGRF+1, NIGRF+1)
     REALK =  zeros(NIGRF+1, NIGRF+1)
@@ -263,7 +273,7 @@ function IGRF(r::Float64,θ::Float64,ϕ::Float64) # r θ ϕ[BR,BT,BP,DBBDRR,DBBD
     # )
     return BR,BT,BP,BB
 end
-function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
+function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
     B_data = Array{Float64}(undef, max_trace, 6)
     PATH = Array{Float64}([r,θ,ϕ])
 
@@ -291,12 +301,9 @@ function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=
         r_range_in,
         max_trace_in,trace_conts)
     trace_conts=trace_conts.x
-    if show_steps
-        println("Stop after \033[36m$trace_conts\033[0m  steps at alt of $( B_data[trace_conts,1] ) km")
-    end
     return B_data[1:trace_conts,:]
 end
-function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1,show_steps=false)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
+function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
     B_data = []
     r , θ , ϕ = r0 , θ0 , ϕ0
     r_state = 500 + Rm
@@ -317,12 +324,9 @@ function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,
         error = abs(h/dB)
         h_new = h*min(maxfac,max(minfac,(tol/error)^(1/5)))
     end
-    if show_steps
-        println("Stop after \033[36m$trace_steps\033[0m  steps at alt of $r_state km")
-    end
     return B_data[1:trace_steps,:]
 end
-function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,show_steps=false)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
+function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
     B_data = []
     r , θ , ϕ = r0 , θ0 , ϕ0
     trace_steps = 0
@@ -336,9 +340,6 @@ function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],ma
         r , θ , ϕ = r+Br/BB*Δs, θ+Bθ/BB*Δs/r , ϕ+Bϕ/BB*Δs/r/sin(θ)
         r_state= r
         trace_state =  r_state >= r_range[1] && r_state <= r_range[2] && trace_steps < max_trace
-    end
-    if show_steps
-        println("Stop after \033[36m$trace_steps\033[0m  steps")
     end
     return B_data[1:trace_steps,:]
 end
@@ -373,7 +374,7 @@ function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力
     data["B_strenth"] =  [norm(x) for x in eachrow(data["B"])]
     return data
 end
-function trace_mag_line(p1,p2,p3;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,show_steps=false,input_frame="shpere",output_frame = "pc")
+function trace_mag_line(p1,p2,p3;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,input_frame="sphere",output_frame = "pc")
     
     # trace_function = Dict(
     #     1 => mag_trace_Euler_step,
@@ -385,11 +386,12 @@ function trace_mag_line(p1,p2,p3;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,sh
     else
         r0,θ0,ϕ0 = p1,p2,p3
     end
-    B_data_1 = mag_trace_Euler_step(r0,θ0,ϕ0;show_steps=show_steps,r_range=r_range,step = step,dir=1.0,max_trace =max_trace)
-    B_data_2 = mag_trace_Euler_step(r0,θ0,ϕ0;show_steps=show_steps,r_range=r_range,step = step,dir=-1.0,max_trace =max_trace)
+    B_data_1 = mag_trace_Euler_step(r0,θ0,ϕ0;r_range=r_range,step = step,dir=1.0,max_trace =max_trace)
+    B_data_2 = mag_trace_Euler_step(r0,θ0,ϕ0;r_range=r_range,step = step,dir=-1.0,max_trace =max_trace)
     B_data_2 = reverse(B_data_2,dims=1)
     n_source = length(B_data_2[:,1])
     B_data = [B_data_2;B_data_1[2:end,:]]
+
     if output_frame == "pc"
         mag_line_num = length(B_data[:,1])
         data = zeros(mag_line_num,6)

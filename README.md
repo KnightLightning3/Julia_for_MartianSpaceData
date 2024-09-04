@@ -42,13 +42,15 @@ IGRF_carculate.jl
 # ToDo list
 - [X]  云MAVEN数据  
 - [ ]  全仪器读取  
+- [ ]  overview事件绘制example
 - [X]  简易Julia绘图包  
 - [X]  外接读取文件树  
 - [ ]  更多磁场模型  
 - [X]  天问数据  
-- [ ]  磁力线追踪  
-- [ ]  文件树去适配SPEDAS的结构  
-- [ ]   MAVEN STATIC
+- [X]  磁力线追踪  
+- [X]  文件树去适配SPEDAS的结构  
+- [X]   MAVEN STATIC
+- [ ] 增加项目初始化和文件处理流程的流程图
 随缘更新
 
 # MAVEN数据Tips

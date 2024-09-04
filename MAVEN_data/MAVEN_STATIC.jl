@@ -425,8 +425,15 @@ function ion_energy2v(energy,mass) # 离子子能量对应速度(相对论)
     E0 = 511.0 * mass * 1836.23 
     γ=(energy * 1e-3 /E0 + 1)
     β=sqrt(1.0 - 1.0 / γ^2)
-    v = β .* 3e8
+    v = β * 3e8
     return v
+end
+function ion_v2energy(v,mass) # 离子子能量对应速度(相对论)
+    E0 = 511.0 * mass * 1836.23
+    β = v / 3e8
+    γ = 1.0 / sqrt(1.0 - β^2)
+    energy = (γ - 1.0) * E0 * 1e3
+    return energy
 end
 const EV=1.602176487e-19
 const C=3.0e8
