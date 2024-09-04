@@ -23,7 +23,13 @@ end
 function cross3(a, b)
     return [a[2]*b[3] - a[3]*b[2], a[3]*b[1] - a[1]*b[3], a[1]*b[2] - a[2]*b[1]]
 end
-function solve_orbit(v0, x0, E, B, t, dt;mq=q2me,hidde_progress = false,r_range=[0.0,1e10])
+function solve_orbit(v0, x0, E, B, t, dt;AMU=1,hidde_progress = false,r_range=[0.0,1e10],particle = "ion") # mq: 反比荷
+    if particle == "ion"
+        mq = q2mp / AMU
+    elseif particle == "electron"
+        mq = q2me
+    end
+
     v = v0
     x = x0
     s = 0.0

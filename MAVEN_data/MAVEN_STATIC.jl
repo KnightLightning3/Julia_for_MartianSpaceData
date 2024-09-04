@@ -435,6 +435,13 @@ function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度
     energy = (γ - 1.0) * E0 * 1e3
     return energy
 end
+function ion_v2energy(v,mass) # 离子子能量对应速度(相对论)
+    E0 = 511.0 * mass * 1836.23
+    β = v / 3e8
+    γ = 1.0 / sqrt(1.0 - β^2)
+    energy = (γ - 1.0) * E0 * 1e3
+    return energy
+end
 const EV=1.602176487e-19
 const C=3.0e8
 const Me=9.109e-31
