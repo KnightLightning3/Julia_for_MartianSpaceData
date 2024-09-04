@@ -466,27 +466,17 @@ function PAD_slice_velocity(ax,pa,energy,eflux;potential=0.0,xlimit=(-1.5e7,1.5e
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:jet, colorrange=c_range , colorscale=log10)
     return ax
 end
-# function time_frequncy(ax)
-    
-#     heatmap!(ax,)
-# end
-function time2julian(x_range)
-    x_range_julian = Dates.datetime2julian.(x_range)
-    time_julian0   = x_range_julian[1]
-    x_range_julian = x_range_julian .- time_julian0
-    return x_range_julian, time_julian0
-end
-function time2x(time,time_julian0,range)
+function time2x(time,range)
     time_i = findall(t -> range[1] <= t <= range[2], time)
     x = time[time_i]
-    x = Dates.datetime2julian.(x) .- time_julian0
+    x = Dates.datetime2julian.(x)
     return x,time_i
 end
-function time_ticks(time_range; step=Dates.Minute(20),format = "HH:MM:SS",time_julian0) # 取得time_range 对应步长的
-    xd = Dates.datetime2julian.(range(time_range[1], time_range[2], step=step))
-    x_i=xd.-time_julian0
-    xtimes = (x_i, Dates.format.(julian2datetime.(xd), "HH:MM"))
-    return xtimes
+function time_ticks(time_range; step=Dates.Minute(20),format = "HH:MM:SS") # 取得time_range 对应步长的
+    xd = range(time_range[1], time_range[2], step=step)
+    x_i=Dates.datetime2julian.(xd)
+    xtimes = (x_i, Dates.format.(xd, format))
+    return xtimes,x_i
 end
 function x_ticks(ax , x,var,x_i;xlabel="",xticklabelpad=3,num_pannel=1,model="null",range=x_range_julian)
     ax.limits = (range, nothing) 
