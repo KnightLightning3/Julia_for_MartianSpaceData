@@ -13,22 +13,22 @@ url_path_0='http://222.195.76.155:8000/MAVEN/'   #MAVEN服务器数据下载地�
 user_name = '待定用户007'
 password = '待定用户007的密码是待定用户007'
 start_date   = datetime.date(2014, 10, 1)        #下载数据的起始日期
-end_date     = datetime.date(2020, 10, 30)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
+end_date     = datetime.date(2023, 5, 1)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
 sleep_time = 60
 step_time= 0 #每个请求之间间隔的时间，以防被ban
-models_skip = ["KP","MAG_ss_l3","MAG_ss1s_l3"]  #批量下载的时候跳过的模块
+models_skip = []#["KP","MAG_ss_l3","MAG_ss1s_l3"]  #批量下载的时候跳过的模块
 single_model= "LPW_lpiv"
 muti_models = []                                        #填入想要批量下载的仪器模块，如果为空，则下载所有模块
 single_download = False                                 #为true时下载single_model，为false时下载muti_models
 vpn_proxy = None                                        #vpn设置,校外访问时可以忽略
 
-models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候默认跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
+models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc","KP"]  #批量下载的时候默认跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
 session = requests.Session()
 session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
 timeout = None
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
+with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r") as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
