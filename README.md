@@ -31,6 +31,11 @@ import .IGRF_carculate
 ```
 pip install -r requirements.txt
 ```
+下载时,需要先运行'download_data\初始化下载参数.py'产生初始化设置文件'download_data\MAVEN_download_config.ini'
+完成设置文件的初始化后,根据内部参数设置调整下载模式,
+'download_data\MAVEN_download_from_server.py'将会下载科大服务器上的数据文件,
+'download_data\MAVEN_download.py'将会下载MAVEN官方服务器上的数据文件,
+此外,'download_data\磁场重构.jl'和'download_data\KP重构.jl'可以将MAVEN官方的磁场和KP文件转写为Fortran二进制和JULIA二进制文件以便读取
 
 # 火星磁场模型
 IGRF_carculate.jl

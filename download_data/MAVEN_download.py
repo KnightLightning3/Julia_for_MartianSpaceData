@@ -23,7 +23,7 @@ data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 config_file_path = os.path.join(data_format_path, "download_data", "MAVEN_download_config.ini")
 config_data = configparser.ConfigParser()
 config_data.optionxform = str
-config_data.read(config_file_path)
+config_data.read(config_file_path,encoding='utf-8')
 
 url_path_0 = config_data['DEFAULT']['MAVEN_Server_url']
 sleep_time = config_data.getint('DEFAULT','sleep_time')
@@ -45,7 +45,7 @@ muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
 models_pass = get_list_from_ini(config_data['Settings']['models_pass_MAVEN_server'])
 single_download = config_data['Settings'].getboolean('single_download')
 
-with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r") as file:
+with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
@@ -245,8 +245,7 @@ if __name__ == '__main__':
             models.append(item)
     else:
         models=muti_models
-    download_log = open("download_data/download.log","a")
-    download_log.write(f'{datetime.datetime.now()}下载开始'+"\n")
+
     for model in models:
         nums_downloaded = 0
         nums_failed = 0
@@ -256,7 +255,7 @@ if __name__ == '__main__':
             os.makedirs(save_path)
         file_names = search_downloaded_files(save_path,filestyle)
         if not (file_names is None):
-            with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
+            with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
         #get all url:
@@ -297,11 +296,11 @@ if __name__ == '__main__':
                 year+=1
             current_date = datetime.date(year, month, 1)
         file_names = search_downloaded_files(save_path,filestyle)
-        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w') as file:
+        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        download_log.write(f'{model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
-    download_log.close
+        with open("download_data/download.log","a", encoding='utf-8') as download_log:
+            download_log.write(f'[{datetime.datetime.now()}] {model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件[MAVEN官方]'+"\n")
     
     import runpy
     runpy.run_path('download_data/get_download_files.py')  # 运行get_download_files.py文件，更新下载文件列表

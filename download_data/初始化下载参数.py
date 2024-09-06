@@ -40,11 +40,11 @@ config['Settings'] = {
     "models_pass_MAVEN_server":"MAG_ss_l3,MAG_ss1s_l3,MAG_pc1s_l3,MAG_pc_l3,NGIMS_den_l4,KP_l3\n;从MAVEN官网批量下载的时候默认跳过的模块,这些模块为本地自制模块,lasp服务器上不存在,不同模块间用英文逗号分隔",
     "single_download": "False \n;为true时下载single_model，为false时下载muti_models",
 }
-with open(config_file_path, "w") as file:
+with open(config_file_path, "w", encoding='utf-8') as file:
     config.write(file)
 
-with open(config_file_path, 'r') as file:
+with open(config_file_path, 'r', encoding='utf-8') as file:
     lines = file.readlines()
 stripped_lines = [line.lstrip() for line in lines]
-with open(config_file_path, 'w') as file:
+with open(config_file_path, 'w', encoding='utf-8') as file:
     file.writelines(stripped_lines)
