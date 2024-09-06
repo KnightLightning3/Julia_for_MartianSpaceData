@@ -8,30 +8,66 @@ from tqdm import tqdm
 import re
 from time import sleep
 import json
+import configparser
 
-url_path_0='http://222.195.76.155:8000/MAVEN/'   #MAVEN服务器数据下载地址
-user_name = '待定用户007'
-password = '待定用户007的密码是待定用户007'
-start_date   = datetime.date(2014, 10,1)        #下载数据的起始日期
-end_date     = datetime.date(2023, 5,1)       #下载数据的终止日期，  由于算法本身，一次会下载一个月的量
-sleep_time = 60
-step_time= 0 #每个请求之间间隔的时间，以防被ban
-models_skip = []#["KP","MAG_ss_l3","MAG_ss1s_l3"]  #批量下载的时候跳过的模块
-single_model= "LPW_lpiv"
-muti_models = []                                        #填入想要批量下载的仪器模块，如果为空，则下载所有模块
-single_download = False                                 #为true时下载single_model，为false时下载muti_models
-vpn_proxy = None                                        #vpn设置,校外访问时可以忽略
+def get_list_from_ini(input_string):
+    if input_string == 'Null':
+        return []
+    if input_string == 'None':
+        return None
+    stripped_string = input_string.replace(' ', '')
+    items = stripped_string.split(',')
+    return items
 
-models_pass = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc","KP"]  #批量下载的时候默认跳过的模块，MAG数据的l3为占用更小的二进制格式，所以不需要下载l2的数据
-session = requests.Session()
-session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
-timeout = None
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+config_file_path = os.path.join(data_format_path, "download_data", "MAVEN_download_config.ini")
+config_data = configparser.ConfigParser()
+config_data.optionxform = str
+config_data.read(config_file_path)
+
+url_path_0 = config_data['DEFAULT']['USTC_Server_url']
+user_name = config_data['DEFAULT']['Username']
+password = config_data['DEFAULT']['Password']
+sleep_time = config_data.getint('DEFAULT','sleep_time')
+step_time = config_data.getint('DEFAULT','step_time')
+vpn_proxy1 = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
+if vpn_proxy1 == None:
+    vpn_proxy = None
+else:
+    vpn_proxy = {
+    "http": vpn_proxy1,
+    "https": vpn_proxy1,
+    }
+
+start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
+end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
+
+single_model = config_data['Settings'].get('single_model', [])
+muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
+models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
+single_download = config_data['Settings'].getboolean('single_download')
 
 with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r") as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
+session = requests.Session()
+session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
+timeout = None
+def test_server():
+    global vpn_proxy
+    global url_path_0
+    global timeout
+    try:
+        response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
+        if response.status_code == 200:
+            print("\033[1;32m 成功连接到服务器\033[0m:"+vpn_proxy["http"])
+        response.close()
+        return True
+    except requests.exceptions.RequestException as e:
+        print('\033[1;31m 服务器连接失败 \033[0m')
+        print(e)
+    return False
 def search_url(url,filestyle):
     global vpn_proxy
     global session
@@ -106,7 +142,6 @@ def download_model(model):
     model_key = {}
     for key, value in data_model.items():
         model_key[key] = value[:3]
-
     model_url,filename,pathname=model_key[model]
     url = url_path_0+pathname
     save_path =  save_dir+pathname
@@ -132,6 +167,8 @@ def search_downloaded_files(save_path,filestyle):
     return filenames
 
 if __name__ == '__main__':
+    if test_server() == False:
+        exit(0)
     models=[]
     if single_download:
         models = [single_model]
@@ -139,12 +176,11 @@ if __name__ == '__main__':
         for item in data_model.keys():
             if item in models_pass:
                 continue
-            if item in models_skip:
-                continue
             models.append(item)
     else:
         models=muti_models
-    
+    print(config_data['Settings'].get('muti_models', None))
+    print(vpn_proxy)
     for model in models:
         current_date = start_date
 
@@ -177,6 +213,8 @@ if __name__ == '__main__':
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)[0]
+                    if date > end_date.strftime("%Y%m%d"):  #跳过超出日期的部分
+                        continue
                     if find_downloaded_file(file_names, date):
                         print(date,model,'\033[1;32m文件已下载\033[0m')
                         current_date+=datetime.timedelta(days=1)
@@ -201,5 +239,5 @@ if __name__ == '__main__':
         with open("download_data/download.log","a") as download_log:
             download_log.write(f'[{datetime.datetime.now()}] {model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件'+"\n")
 
-        import runpy
-        runpy.run_path('download_data/get_download_files.py')  # 运行get_download_files.py文件，更新下载文件列表
+    import runpy
+    runpy.run_path('download_data/get_download_files.py')  # 运行get_download_files.py文件，更新下载文件列表

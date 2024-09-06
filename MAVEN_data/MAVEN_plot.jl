@@ -478,19 +478,26 @@ function time_ticks(time_range; step=Dates.Minute(20),format = "HH:MM:SS") # 取
     xtimes = (x_i, Dates.format.(xd, format))
     return xtimes,x_i
 end
-function x_ticks(ax , x,var,x_i;xlabel="",xticklabelpad=3,num_pannel=1,model="null",range=x_range_julian)
-    ax.limits = (range, nothing) 
-    ax.xlabel=xlabel
-    ax.xlabelpadding=3
-    ax.xticklabelpad=xticklabelpad
-    hidespines!(ax); hideydecorations!(ax)
-    if model == "time"
-        ax.xticks = var
-        return ax
+function x_ticks(ax,x,var,x_i;xticklabelpad=3,range=x_range_julian)
+    # ax = Axis(fig[np,1],limits = (range, nothing) ,xlabel=xlabel
+
+    #     ,xlabelpadding=3,xticklabelpad=xticklabelpad)
+
+    # hidespines!(ax); hideydecorations!(ax) 
+    ax.limits= (range, nothing)  
+    ax.xticklabelpad=xticklabelpad 
+    hidespines!(ax) 
+    hideydecorations!(ax) 
+    if typeof(var[1]) == String 
+        ax.xticks = (x_i,var)
+        return ax 
     end
-    y_i=[var[argmin(abs.(x .- xi))[1]] for xi in x_i]; y_i= string.(round.(y_i, digits=1))
-    ax.xticks = (x_i,y_i)
-    return ax
+    y_i=[var[argmin(abs.(x .- xi))[1]] for xi in x_i]; 
+
+    y_i=convert(Vector{Int64}, round.(y_i)) 
+    y_i= string.(y_i) 
+    ax.xticks = (x_i,y_i) 
+    return ax 
 end
 function vector_angle(a,b)
     a = a./norm(a)

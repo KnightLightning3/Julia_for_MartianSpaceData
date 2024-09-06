@@ -8,32 +8,51 @@ from tqdm import tqdm
 import re
 from time import sleep
 import json
+import configparser
 
-#vpn设置
-port=7897
-vpn_proxy = {
-"http": "http://127.0.0.1:"+str(port),
-"https": "http://127.0.0.1:"+str(port),
-}                                         
-vpn_proxy = None
-timeout = None
-sleep_time = 60
-step_time= 5 #每个请求之间间隔的时间，以防被ban
-
-url_path_0='https://lasp.colorado.edu/maven/sdc/public/data/sci/'
-start_date   = datetime.date(2014, 10, 1)  #下载数据的起始日期
-end_date     = datetime.date(2023,  6, 1)  #下载数据的终止日期，由于算法本身，一次会下载一个月的量
-model= "STATIC_c6"#"LPW_lpiv"#"NGIMS_den_l3"#"SWIA_mom"#"LPW_we12"#"SWEA_pad_svy"#"LPW_bursthf""STATIC_d1"
-
-models_pass = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,lasp服务器上不存在
-single_model= 'LPW_wave'
-muti_models = []                   #填入想要批量下载的仪器模块，如果为空，则下载所有模块
-single_download = False            #为true时下载single_model，为false时下载 muti_models                                     
+def get_list_from_ini(input_string):
+    if input_string == 'Null':
+        return []
+    if input_string == 'None':
+        return None
+    stripped_string = input_string.replace(' ', '')
+    items = stripped_string.split(',')
+    return items
 
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
+config_file_path = os.path.join(data_format_path, "download_data", "MAVEN_download_config.ini")
+config_data = configparser.ConfigParser()
+config_data.optionxform = str
+config_data.read(config_file_path)
+
+url_path_0 = config_data['DEFAULT']['MAVEN_Server_url']
+sleep_time = config_data.getint('DEFAULT','sleep_time')
+step_time = config_data.getint('DEFAULT','step_time')
+vpn_proxy1 = get_list_from_ini(config_data['VPN_proxy']['MAVEN_server'])
+if vpn_proxy1 == None:
+    vpn_proxy = None
+else:
+    vpn_proxy = {
+    "http": vpn_proxy1[0],
+    "https": vpn_proxy1[0],
+    }
+
+start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
+end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
+
+single_model = config_data['Settings'].get('single_model', [])
+muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
+models_pass = get_list_from_ini(config_data['Settings']['models_pass_MAVEN_server'])
+single_download = config_data['Settings'].getboolean('single_download')
+
+with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r") as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
+
+timeout = None
+step_time= 5 #每个请求之间间隔的时间，以防被ban
+
+models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,lasp服务器上不存在
 
 def test_proxies():
     global vpn_proxy
@@ -221,6 +240,8 @@ if __name__ == '__main__':
         for item in data_model.keys():
             if item in models_pass:
                 continue
+            if item in models_skip:
+                continue
             models.append(item)
     else:
         models=muti_models
@@ -255,6 +276,8 @@ if __name__ == '__main__':
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)[0]
+                    if date > end_date.strftime("%Y%m%d"):  #跳过超出日期的部分
+                        continue
                     if find_downloaded_file(file_names, date):
                         print(date,model,'\033[1;32m文件已下载\033[0m')
                         current_date+=datetime.timedelta(days=1)
