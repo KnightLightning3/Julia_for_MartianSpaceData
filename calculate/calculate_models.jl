@@ -86,6 +86,16 @@ function cyclotron_radius(B,ek;nM=1,nQ=-1)
     rc = cc * v
     return f,rc,v
 end
+function cyclotron_frequency(B;nM=1,nQ=-1)
+    B1=B*1e-9  # 输入nT，转T
+    if nQ == -1
+        cc = Me /(B1*Q)
+    else
+        cc = Mp*nM/(B1*Q*nQ)
+    end
+    f = 1  / (cc *2*π)
+    return f
+end
 const EV=1.602176487e-19
 const C=3.0e8
 const Me=9.109e-31

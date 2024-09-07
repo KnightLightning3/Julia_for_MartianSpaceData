@@ -38,12 +38,18 @@ function vspan_plot(ax,x,y::Vector{Bool};krawg...)
     vspan!(ax,segments1,segments2;krawg...)
     return ax
 end
-function sta_heatmap(ax, x, y, c, swp_ind; c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true, krawg...)
+function sta_heatmap(ax, x, y, c, swp_ind; unit = "eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true, krawg...)
     ax.ylabel = ylabel
     unique_elements = unique(swp_ind)
+    nenergy = length(y[:,1])
     for element in unique_elements
         indices = findall(x -> x == element, swp_ind)
-        heatmap!(ax, x[indices], y[:, element+1], c[indices, :], colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
+        if unit == "flux"
+            c1 = c[indices,:] ./ reshape(y[:, element+1],1,nenergy)
+        else
+            c1 = c[indices,:]
+        end
+        heatmap!(ax, x[indices], y[:, element+1], c1, colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
     end
     return ax
 end

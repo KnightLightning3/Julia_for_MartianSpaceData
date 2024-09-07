@@ -31,11 +31,17 @@ import .IGRF_carculate
 ```
 pip install -r requirements.txt
 ```
-下载时,需要先运行'download_data\初始化下载参数.py'产生初始化设置文件'download_data\MAVEN_download_config.ini'
-完成设置文件的初始化后,根据内部参数设置调整下载模式,
-'download_data\MAVEN_download_from_server.py'将会下载科大服务器上的数据文件,
-'download_data\MAVEN_download.py'将会下载MAVEN官方服务器上的数据文件,
-此外,'download_data\磁场重构.jl'和'download_data\KP重构.jl'可以将MAVEN官方的磁场和KP文件转写为Fortran二进制和JULIA二进制文件以便读取
+首次下载时,**需要先产生初始化设置文件**: 
+
+运行'download_data\初始化下载参数.py'
+
+完成设置文件的初始化后,修改'download_data\MAVEN_download_config.ini'调整下载模式,  
+
+'download_data\MAVEN_download_from_server.py'将会下载科大服务器上的数据文件,  
+
+'download_data\MAVEN_download.py'将会下载MAVEN官方服务器上的数据文件,  
+
+此外,'download_data\磁场重构.jl'和'download_data\KP重构.jl'可以将MAVEN官方的磁场和KP文件转写为Fortran二进制和JULIA二进制文件以便读取  
 
 # 火星磁场模型
 IGRF_carculate.jl
@@ -58,6 +64,7 @@ IGRF_carculate.jl
 - [X]  文件树去适配SPEDAS的结构  
 - [X]   MAVEN STATIC
 - [ ] 增加项目初始化和文件处理流程的流程图
+- [ ] STATIC的处理函数目前只能对4维数据（时间，质量，方位角，能量）起效，可能需要更新它们，但是加入额外的判断或函数可能会影响可读性，需要想更好的方法
 随缘更新
 
 # MAVEN数据Tips
