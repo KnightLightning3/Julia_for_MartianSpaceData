@@ -1,8 +1,7 @@
 module IGRF_carculate
 using FortranFiles
 using LinearAlgebra
-# using OffsetArrays
-# using DelimitedFiles
+using Statistics
 #返回nT
 # function linear_fit_mag(data,datam) #使用最小二乘法给模型三个维度加一个常数[a,b,c]来拟合模型和实际数据
 #     x = data[:,1:3]
@@ -13,14 +12,14 @@ using LinearAlgebra
 
 # end
 ########### 以下函数只能计算单个点的关系
-function pc2sphere(x,y,z)
-    r = sqrt(x^2 + y^2 + z^2)
+function pc2sphere(x::Float64,y::Float64,z::Float64)
+    r = norm([x,y,z])
     # θ = π/2 - atan(z,sqrt(x^2+y^2))
     θ = acos(z/r)
     ϕ = atan(y,x) 
     return r,θ,ϕ
 end
-function sphere2pc(r, θ, ϕ)
+function sphere2pc(r::Float64, θ::Float64, ϕ::Float64)
     sinθ = sin(θ)
     cosθ = cos(θ)
     sinϕ = sin(ϕ)
@@ -30,7 +29,7 @@ function sphere2pc(r, θ, ϕ)
     z = r * cosθ
     return x, y, z
 end
-function Bsphere2pc(r,θ,ϕ, Br, Bθ, Bϕ)
+function Bsphere2pc(r::Float64,θ::Float64,ϕ::Float64, Br::Float64, Bθ::Float64, Bϕ::Float64)
     sinθ = sin(θ)
     cosθ = cos(θ)
     sinϕ = sin(ϕ)
@@ -40,8 +39,8 @@ function Bsphere2pc(r,θ,ϕ, Br, Bθ, Bϕ)
     Bz = cosθ        * Br - sinθ        * Bθ
     return Bx,By,Bz
 end
-function Bpc2sphere(x,y,z,bx,by,bz)
-    r = sqrt(x^2 + y^2 + z^2)
+function Bpc2sphere(x::Float64,y::Float64,z::Float64,bx::Float64,by::Float64,bz::Float64)
+    r = norm([x,y,z])
     θ = acos(z / r)
     ϕ = atan(y, x)
 
@@ -81,7 +80,7 @@ function read_gh()
     HH = read(f, (Float64, NIGRF+1,NIGRF+1)) 
     return [GG,HH]
 end
-function IGRF_fortran_free(r,θ,ϕ)  #working on ,输入半径是归一化的,输入阶数
+function IGRF_fortran_free(r::Float64,θ::Float64,ϕ::Float64)  #working on ,输入半径是归一化的,输入阶数
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     DBs = Array{Float64}(undef, 3)
     path = Array{Float64}([r/3393.5,θ,ϕ])
@@ -95,7 +94,7 @@ function IGRF_fortran_free(r,θ,ϕ)  #working on ,输入半径是归一化的,�
             Br,Bθ,Bϕ,BB = B_result[1],B_result[2],B_result[3],B_result[4]
     return  Br,Bθ,Bϕ,BB
 end
-function IGRF_fortran(r,θ,ϕ)
+function IGRF_fortran(r::Float64,θ::Float64,ϕ::Float64) #fortran计算核心,输入球坐标，返回球坐标,r不需要归一化
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     path = Array{Float64}([r,θ,ϕ])
     B_compress_in = Array{Float64}(B_compress)
@@ -133,7 +132,7 @@ function RK4_Trace_fortran(r::Float64,θ::Float64,ϕ::Float64,h::Float64)
 end
 function IGRF_pc(x::Float64,y::Float64,z::Float64)
     r,θ,ϕ=pc2sphere(x,y,z)
-    Br,Bθ,Bϕ = IGRF(r,θ,ϕ)
+    Br,Bθ,Bϕ,_ = IGRF_fortran(r,θ,ϕ)
     Bx,By,Bz=Bsphere2pc(r,θ,ϕ,Br,Bθ,Bϕ)
     return Bx,By,Bz
 end
@@ -273,7 +272,7 @@ function IGRF(r::Float64,θ::Float64,ϕ::Float64) # r θ ϕ[BR,BT,BP,DBBDRR,DBBD
     # )
     return BR,BT,BP,BB
 end
-function mag_trace_rk4_fortran_ADAPTIVE_STEP(r,θ,ϕ; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
+function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Float64,θ::Float64,ϕ::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000,maxfac=30.0,minfac=0.5,tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
     B_data = Array{Float64}(undef, max_trace, 6)
     PATH = Array{Float64}([r,θ,ϕ])
 
@@ -326,7 +325,7 @@ function mag_trace_rk4(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,
     end
     return B_data[1:trace_steps,:]
 end
-function mag_trace_Euler_step(r0,θ0,ϕ0; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
+function mag_trace_Euler_step(r0::Float64,θ0::Float64,ϕ0::Float64; dir=1.0, step=0.5,r_range=[Rm,Rm*2],max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
     B_data = []
     r , θ , ϕ = r0 , θ0 , ϕ0
     trace_steps = 0
@@ -374,7 +373,7 @@ function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力
     data["B_strenth"] =  [norm(x) for x in eachrow(data["B"])]
     return data
 end
-function trace_mag_line(p1,p2,p3;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,input_frame="sphere",output_frame = "pc")
+function trace_mag_line(p1::Float64,p2::Float64,p3::Float64;  step=0.5,r_range=[Rm,Rm*2],max_trace=30000,input_frame="sphere",output_frame = "pc")
     
     # trace_function = Dict(
     #     1 => mag_trace_Euler_step,

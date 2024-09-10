@@ -122,6 +122,7 @@ function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处�
     return return_data
 end
 # UNITS计算
+# 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
 # function STA_count2eflux_full_time_4d(dat)
 #     ntime   = dat["ntime"]
 #     nbins   = dat["nbins"]
@@ -132,7 +133,7 @@ end
 #     dead = dat["dead"]
 #     bkg  = dat["bkg"]
 #     tmp  = dat["data"]
-#     tmp = (tmp./dead .- bkg ).*dead
+#     tmp = (tmp .- bkg ).*dead
 
 #     gf1 = zeros(ntime,1,nbins,nenergy)
 #     eff1= zeros(ntime,nmass,nbins,nenergy)
@@ -166,7 +167,7 @@ function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得�
     bkg = dat["bkg"]					# background array usec for STATIC
     tmp = dat["data"]
 
-    tmp = (tmp./dead .- bkg ).*dead
+    tmp = (tmp .- bkg ).*dead
     scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
     dat["df"] = scale .* tmp
     return dat
@@ -178,7 +179,7 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
     nbins   = dat["nbins"]
     nenergy = dat["nenergy"]
     energy  = dat["energy"]
-
+    dims4 = (ntime,nmass,nbins,nenergy) 
     if nbins == 1
         gf     = zeros(ntime,1,nenergy)
         eff    = zeros(ntime,nmass,nenergy)
@@ -223,9 +224,45 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
 
     gf = dat["geom_factor"].*eff.*gf
 
-    tmp = (tmp./dead .- bkg ).*dead
+    tmp = (tmp .- bkg ).*dead
     scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
     dat["df"] = scale .* tmp
+    return dat
+end
+function STA_count2eflux_all(dat) #计算df,对非时间切片数据
+    ntime   = dat["num_dists"]
+
+    nmass   = dat["nmass"]
+    nbins   = dat["nbins"]
+    nenergy = dat["nenergy"]
+    natt = dat["natt"]
+    nswp = dat["nswp"]
+    neff = dat["neff"]
+    # dims4 = (ntime,nmass,nbins,nenergy) 
+
+    gf     = zeros(ntime,1,nbins,nenergy)
+    eff    = zeros(ntime,nmass,nbins,nenergy)
+    dt   = reshape(dat["time_integ"],ntime, 1, 1, 1)
+
+    dead = reshape(dat["dead"],ntime,nmass,nbins,nenergy)
+    bkg  = reshape(dat["bkg"],ntime,nmass,nbins,nenergy)
+    tmp  = reshape(dat["data"],ntime,nmass,nbins,nenergy)
+
+    gf0  = reshape(dat["gf"], natt,1,nbins,nenergy,nswp)
+    eff0 = reshape(dat["eff"], nmass,nbins,nenergy,neff)
+    @inbounds for i in 1:ntime
+        swp_ind = dat["swp_ind"][i]
+        att_ind = dat["att_ind"][i]
+        eff_ind = dat["eff_ind"][i]
+        gf[i,:,:,:]   = gf0[att_ind+1,:,:,:,swp_ind+1]
+        eff[i,:,:,:]  = eff0[:,:,:,eff_ind+1]
+    end
+
+    gf = dat["geom_factor"].*eff.*gf
+
+    tmp = (tmp .- bkg ).*dead
+    scale = 1 ./(dt.* gf)
+    dat["eflux_from_count"] = scale .* tmp
     return dat
 end
 function STA_count2eflux(dat;m_int=m_int)
@@ -241,7 +278,7 @@ function STA_count2eflux(dat;m_int=m_int)
     bkg = dat["bkg"]							# background array usec for STATIC
     tmp = dat["data"]
 
-    tmp = (tmp./dead .- bkg ).*dead
+    tmp = (tmp .- bkg ).*dead
     scale = 1 ./(dt.* gf)
     dat["eflux"] = scale .* tmp
     return dat

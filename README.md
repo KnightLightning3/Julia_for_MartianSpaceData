@@ -72,4 +72,5 @@ IGRF_carculate.jl
 ## STATIC数据:
 - STATIC 会返回每个时刻的(方位角,能量,离子质量数)的三维矩阵数据, 对应其中的energy,phi,theta,mass_arr矩阵
 - 扫描模式: STATIC有多个不同的扫描模式,对应不同的能量范围,由swd_ind参数[0-26]决定,对应energy,phi,theta,mass_arr矩阵中的最后一个维度. 在julia这种以1开始计数的语言中,要将swd_ind参数加一
+- 衰减器 衰减器attenuator会根据具体情况对小于15eV的低能量段STA数据乘以(1., 1/10, 1/100, 1/1000)以防止过饱和，官方宣称其更换时间不会小于5min，然而某些数据似乎可以用临时的过饱和解释
 - STATIC返回的theta和phi,对应球坐标系的90-theta和phi,处于仪器参考系下. 文件中的quat_mso和quat_sc为四元数,可以用于将仪器参考系投影到mso和sc参考系.
