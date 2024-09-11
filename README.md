@@ -1,5 +1,7 @@
 # 介绍
 
+[English](README_EN.md) / 简体中文
+
 火星数据处理程序打包
 
 主要数据处理程序以Julia代码为主
@@ -10,7 +12,7 @@
 MAVEN 数据读取 MAVEN_data_load.jl,  
 
 ```
-Datas = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
 此程序需要特定的读取文件树格式,  

@@ -1,4 +1,4 @@
-#从自建服务器下载数据,校内访问不需要vpn，校外访问需要配置相应的vpn端口. 服务器不一定在运行
+# Download data from a self-built server. A VPN is not required for on-campus access. A corresponding VPN port needs to be configured for off-campus access. The server may not be running.
 import datetime
 import os
 import re
@@ -61,14 +61,14 @@ def test_server():
     try:
         response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
-            print("\033[1;32m 成功连接到服务器\033[0m:"+vpn_proxy["http"])
+            print("\033[1;32m The Server Connection Succeed\033[0m:"+vpn_proxy["http"])
         response.close()
         return True
     except requests.exceptions.RequestException as e:
-        print('\033[1;31m 服务器连接失败 \033[0m')
+        print('\033[1;31m The Server Connection Failed \033[0m')
         print(e)
     return False
-def search_url(url,filestyle):
+def search_url(url,file_style):
     global vpn_proxy
     global session
     global timeout
@@ -90,7 +90,7 @@ def search_url(url,filestyle):
             for element in file_elements:
                 file_url = element['href']
                 file_urls.append(file_url)
-            urls=[string for string in file_urls if re.match(filestyle, string)]
+            urls=[string for string in file_urls if re.match(file_style, string)]
             response.close()
             if urls == None:
                 return response.status_code,False,0
@@ -154,20 +154,21 @@ def find_downloaded_file(file_names, element):
         if element in file_name:
             return True
     return False
-def search_downloaded_files(save_path,filestyle):
+def search_downloaded_files(save_path,file_style):
     filenames =[]
     yyyy = os.listdir(save_path)
     for iy in yyyy:
         mm   = os.listdir(save_path+iy+"/")
         for im in mm:
             files = os.listdir(save_path+iy+"/"+im+"/")
-            filepaths = [iy+"/"+im+"/"+file for file in files if re.match(filestyle,file)]
+            filepaths = [iy+"/"+im+"/"+file for file in files if re.match(file_style,file)]
             for filepath in filepaths:
                 filenames.append(filepath)
     return filenames
 
 if __name__ == '__main__':
     if test_server() == False:
+        print('\033[1;31m Connection Failed, Exit Program \033[0m')
         exit(0)
     models=[]
     if single_download:
@@ -186,10 +187,10 @@ if __name__ == '__main__':
         nums_downloaded = 0
         nums_failed = 0
         
-        url_path,save_path,filestyle = download_model(model)
+        url_path,save_path,file_style = download_model(model)
         if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
             os.makedirs(save_path)
-        file_names = search_downloaded_files(save_path,filestyle)
+        file_names = search_downloaded_files(save_path,file_style)
         if not (file_names is None):
             os.makedirs(json_data["save_path"]+"lists", exist_ok=True)
             with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
@@ -200,28 +201,28 @@ if __name__ == '__main__':
             date=str(current_date.strftime("%Y%m%d"))
             
             if find_downloaded_file(file_names, date):
-                print(date,model,'\033[1;32m文件已存在\033[0m')
+                print(date,model,'\033[1;32mThe file already exists\033[0m')
                 current_date+=datetime.timedelta(days=1)
                 continue
             year      = current_date.year
             month     = current_date.month
             yyyymm    = str(current_date.strftime("%Y/%m/"))
-            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,filestyle)
+            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
             if bool_urls:
                 print(f'\033[0;32m {len(urls)} {model} files in '+yyyymm+'\033[0m')
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)[0]
-                    if date > end_date.strftime("%Y%m%d"):  #跳过超出日期的部分
+                    if start_date >date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
                         continue
                     if find_downloaded_file(file_names, date):
-                        print(date,model,'\033[1;32m文件已下载\033[0m')
+                        print(date,model,'\033[1;32mThe file already exists\033[0m')
                         current_date+=datetime.timedelta(days=1)
                         continue
                     if not os.path.exists(save_path+yyyymm):
                         os.makedirs(save_path+yyyymm)
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                    print(f'{model}_{date} 下载状态:\033[0;32m{logic}\033[0m, status = \033[0;32m{url_status_code}\033[0m 当前时间:\033[1;34m{datetime.datetime.now()}\033[0m\n')
+                    print(f'{model}_{date} Status:\033[0;32m{logic}\033[0m, Responses = \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{datetime.datetime.now()}\033[0m\n')
                     if logic:
                         nums_downloaded = nums_downloaded+1
                     else:
@@ -231,12 +232,12 @@ if __name__ == '__main__':
                 month=1
                 year+=1
             current_date = datetime.date(year, month, 1)
-        file_names = search_downloaded_files(save_path,filestyle)
+        file_names = search_downloaded_files(save_path,file_style)
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
         with open("download_data/download.log","a",encoding='utf-8') as download_log:
-            download_log.write(f'[{datetime.datetime.now()}] {model}下载完成{nums_downloaded}个文件，失败{nums_failed}个文件[USTC服务器]'+"\n")
+            download_log.write(f'[{datetime.datetime.now()}]  {nums_downloaded} Files Downloaded, {nums_failed} Files Failed [{model}] [USTC server]'+"\n")
 
     import runpy
-    runpy.run_path('download_data/get_download_files.py')  # 运行get_download_files.py文件，更新下载文件列表
+    runpy.run_path('download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt
