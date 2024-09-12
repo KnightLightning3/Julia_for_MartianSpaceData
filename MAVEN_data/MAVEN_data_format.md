@@ -59,3 +59,6 @@ data={
 需要使用`download_data\get_download_files.py`来生成一个本地的filename_lists.json的文件保存所有文件的目录以便程序查询之
 
 以后可能会考虑弃用此方法,改为直接去对于年月文件夹寻找文件
+
+## SPADES问题
+2024-7-1的闰秒导致程序出错，暂时修改代码忽略它

@@ -4,8 +4,7 @@ using ColorTypes, CairoMakie
 using DataFrames
 using LinearAlgebra
 using LaTeXStrings
-EnvironmentPath = "C:/Users/chengsw/Projects/Package_for_Julia_of_csw/"
-include(EnvironmentPath*"MAVEN_load.jl")
+include("../MAVEN_data/MAVEN_load.jl")
 import .MAVEN_load;
 MAVEN_load.change_kp_read_data(Dict(
     "Orbit Number"    =>210,

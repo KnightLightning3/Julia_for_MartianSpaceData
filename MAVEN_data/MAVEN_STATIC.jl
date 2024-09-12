@@ -30,12 +30,6 @@ function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(�
     eflux_mass   = zeros(ntime,nenergy)
     energy_mass  = zeros(nenergy,nswp)
     
-
-    # if  !isassigned(mass_range)
-    #     energy_mass[:,:] = sum(energy .* denergy, dims=1)  ./ sum(denergy, dims=1)
-    #     eflux_mass[:,:]  = sum(eflux,dims=2)
-    # else
-        # ind = findall(x->mass_range[2] >= x >= mass_range[1] , mass_arr)
     mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
     energy_mass[:,:] = sum(energy.* denergy .* mask , dims=1)  ./ sum(denergy.* mask, dims=1)
 
@@ -43,20 +37,34 @@ function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(�
     for i in 1:ntime
         mapped_mass_arr[i,:,:] = mass_arr[:,:,swp_ind[i]+1]
     end
-    # ind = findall(x->mass_range[2] >= x >= mass_range[1] , mapped_mass_arr)
+
     mask = (mapped_mass_arr .>= mass_range[1]) .& (mapped_mass_arr .<= mass_range[2])
     eflux_mass[:,:]=sum(eflux.*mask,dims=2)
     # end
 
-    return_data = Dict{String,Any}(
-        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[Ntime,Nenergy], nswp[Nswp]",
-        "apid"           => apid,
-        "epoch"          => epoch,
-        "energy"         => energy_mass,
-        "eflux"          => eflux_mass,
-        "swp_ind"        => swp_ind,
-        "data_load_flag" => true
-    )
+    if "df" in keys(data)
+        df = data["df"]
+        df_mass    = zeros(ntime,nenergy)
+        df_mass[:,:] = sum(df.*mask,dims=2)
+        return_data = Dict{String,Any}(
+            "apid"           => apid,
+            "epoch"          => epoch,
+            "energy"         => energy_mass,
+            "eflux"          => eflux_mass,
+            "df"             => df_mass,
+            "swp_ind"        => swp_ind,
+            "data_load_flag" => true
+        )
+    else
+        return_data = Dict{String,Any}(
+            "apid"           => apid,
+            "epoch"          => epoch,
+            "energy"         => energy_mass,
+            "eflux"          => eflux_mass,
+            "swp_ind"        => swp_ind,
+            "data_load_flag" => true
+        )
+    end
     return return_data
 end
 function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处理(不包括角度信息)
@@ -76,14 +84,7 @@ function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处�
 
     eflux_out   = zeros(ntime,nmass)
     mass_out    = zeros(nmass,nswp)
-    
-    # if  !isassigned(energy_range)
-    #     mass_out[:,:] = mean(mass_arr, dims=2)
-    #     eflux_out[:,:]  = sum(eflux,dims=3)
-    # else
-        # ind = findall(x->energy_range[2] >= x >= energy_range[1] , energy)
-        # mass_arr_t = mass_arr[ind]
-        # mass_out[:,:] = mean(mass_arr_t, dims=2)
+
     mask = (energy .>= energy_range[1]) .& (energy .<= energy_range[2])
     mass_out[:,:] = mean(mass_arr.*mask, dims=2)
 
@@ -91,23 +92,37 @@ function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处�
     for i in 1:ntime
         mapped_energy[i,:,:] = energy[:,:,swp_ind[i]+1]
     end
-    # ind = findall(x->energy_range[2] >= x >= energy_range[1] , mapped_energy)
+
     mask = (mapped_energy .>= energy_range[1]) .& (mapped_energy .<= energy_range[2])
     eflux_out[:,:]=sum(eflux.*mask,dims=3)
-    # end
 
-    return_data = Dict{String,Any}(
-        # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
-        "apid"           => apid,
-        "epoch"          => epoch,
-        "mass"           => mass_out,
-        "eflux"          => eflux_out,
-        "swp_ind"        => swp_ind,
-        "data_load_flag" => true
-    )
+    if "df" in keys(data)
+        df = data["df"]
+        df_out    = zeros(ntime,nmass)
+        df_out[:,:] = sum(df.*mask,dims=3)
+        return_data = Dict{String,Any}(
+            "apid"           => apid,
+            "epoch"          => epoch,
+            "mass"           => mass_out,
+            "eflux"          => eflux_out,
+            "df"             => df_out,
+            "swp_ind"        => swp_ind,
+            "data_load_flag" => true
+        )
+    else
+        return_data = Dict{String,Any}(
+            "apid"           => apid,
+            "epoch"          => epoch,
+            "mass"           => mass_out,
+            "eflux"          => eflux_out,
+            "swp_ind"        => swp_ind,
+            "data_load_flag" => true
+        )
+    end
     return return_data
 end
 # UNITS计算
+# 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
 # function STA_count2eflux_full_time_4d(dat)
 #     ntime   = dat["ntime"]
 #     nbins   = dat["nbins"]
@@ -118,7 +133,7 @@ end
 #     dead = dat["dead"]
 #     bkg  = dat["bkg"]
 #     tmp  = dat["data"]
-#     tmp = (tmp./dead .- bkg ).*dead
+#     tmp = (tmp .- bkg ).*dead
 
 #     gf1 = zeros(ntime,1,nbins,nenergy)
 #     eff1= zeros(ntime,nmass,nbins,nenergy)
@@ -138,23 +153,116 @@ end
 #     dat["eflux"] = eflux2
 #     return dat
 # end
-function STA_count2df(dat;m_int=m_int)
+function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得的切片
     nbins   = dat["nbins"]
     nenergy = dat["nenergy"]
     energy = dat["energy"]
-    # ngf = size(dat["gf"])        					# in eV     (n_e,nbins,n_m)
+
     gf = reshape(dat["gf"], 1, nbins,nenergy)
     eff = dat["eff"]
     gf = dat["geom_factor"].*eff.*gf
     dt = dat["time_integ"]
     mass = dat["mass"].*m_int
     dead = dat["dead"]						# dead time array usec for STATIC
-    bkg = dat["bkg"]							# background array usec for STATIC
+    bkg = dat["bkg"]					# background array usec for STATIC
     tmp = dat["data"]
 
-    tmp = (tmp./dead .- bkg ).*dead
+    tmp = (tmp .- bkg ).*dead
     scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
     dat["df"] = scale .* tmp
+    return dat
+end
+function STA_count2df_all(dat) #计算df,对非时间切片数据
+    ntime   = dat["num_dists"]
+
+    nmass   = dat["nmass"]
+    nbins   = dat["nbins"]
+    nenergy = dat["nenergy"]
+    energy  = dat["energy"]
+    dims4 = (ntime,nmass,nbins,nenergy) 
+    if nbins == 1
+        gf     = zeros(ntime,1,nenergy)
+        eff    = zeros(ntime,nmass,nenergy)
+        mass   = zeros(ntime,nmass,nenergy)
+        energy = zeros(ntime,nmass,nenergy)
+        dt   = reshape(dat["time_integ"],ntime, 1,  1)
+    
+        dead = dat["dead"]
+        bkg = dat["bkg"]
+        tmp = dat["data"]
+    
+        for i in 1:ntime
+            swp_ind = dat["swp_ind"][i]
+            att_ind = dat["att_ind"][i]
+            eff_ind = dat["eff_ind"][i]
+            gf[i,:,:]   = dat["gf"][att_ind+1,:,swp_ind+1]
+            eff[i,:,:]  = dat["eff"][:,:,eff_ind+1]
+            mass[i,:,:] = dat["mass"].*dat["mass_arr"][:,:,swp_ind+1]
+            energy[i,:,:] = dat["energy"][:,:,swp_ind+1]
+        end
+    else
+        gf     = zeros(ntime,1,nbins,nenergy)
+        eff    = zeros(ntime,nmass,nbins,nenergy)
+        mass   = zeros(ntime,nmass,nbins,nenergy)
+        energy = zeros(ntime,nmass,nbins,nenergy)
+        dt   = reshape(dat["time_integ"],ntime, 1, 1, 1)
+
+        dead = dat["dead"]
+        bkg = dat["bkg"]
+        tmp = dat["data"]
+
+        for i in 1:ntime
+            swp_ind = dat["swp_ind"][i]
+            att_ind = dat["att_ind"][i]
+            eff_ind = dat["eff_ind"][i]
+            gf[i,:,:,:]   = dat["gf"][att_ind+1,:,:,swp_ind+1]
+            eff[i,:,:,:]  = dat["eff"][:,:,:,eff_ind+1]
+            mass[i,:,:,:] = dat["mass"].*dat["mass_arr"][:,:,:,swp_ind+1]
+            energy[i,:,:,:] = dat["energy"][:,:,:,swp_ind+1]
+        end
+    end
+
+    gf = dat["geom_factor"].*eff.*gf
+
+    tmp = (tmp .- bkg ).*dead
+    scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
+    dat["df"] = scale .* tmp
+    return dat
+end
+function STA_count2eflux_all(dat) #计算df,对非时间切片数据
+    ntime   = dat["num_dists"]
+
+    nmass   = dat["nmass"]
+    nbins   = dat["nbins"]
+    nenergy = dat["nenergy"]
+    natt = dat["natt"]
+    nswp = dat["nswp"]
+    neff = dat["neff"]
+    # dims4 = (ntime,nmass,nbins,nenergy) 
+
+    gf     = zeros(ntime,1,nbins,nenergy)
+    eff    = zeros(ntime,nmass,nbins,nenergy)
+    dt   = reshape(dat["time_integ"],ntime, 1, 1, 1)
+
+    dead = reshape(dat["dead"],ntime,nmass,nbins,nenergy)
+    bkg  = reshape(dat["bkg"],ntime,nmass,nbins,nenergy)
+    tmp  = reshape(dat["data"],ntime,nmass,nbins,nenergy)
+
+    gf0  = reshape(dat["gf"], natt,1,nbins,nenergy,nswp)
+    eff0 = reshape(dat["eff"], nmass,nbins,nenergy,neff)
+    @inbounds for i in 1:ntime
+        swp_ind = dat["swp_ind"][i]
+        att_ind = dat["att_ind"][i]
+        eff_ind = dat["eff_ind"][i]
+        gf[i,:,:,:]   = gf0[att_ind+1,:,:,:,swp_ind+1]
+        eff[i,:,:,:]  = eff0[:,:,:,eff_ind+1]
+    end
+
+    gf = dat["geom_factor"].*eff.*gf
+
+    tmp = (tmp .- bkg ).*dead
+    scale = 1 ./(dt.* gf)
+    dat["eflux_from_count"] = scale .* tmp
     return dat
 end
 function STA_count2eflux(dat;m_int=m_int)
@@ -170,7 +278,7 @@ function STA_count2eflux(dat;m_int=m_int)
     bkg = dat["bkg"]							# background array usec for STATIC
     tmp = dat["data"]
 
-    tmp = (tmp./dead .- bkg ).*dead
+    tmp = (tmp .- bkg ).*dead
     scale = 1 ./(dt.* gf)
     dat["eflux"] = scale .* tmp
     return dat
@@ -201,10 +309,11 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip["att_ind"]  = dat["att_ind"][time_ind]
     dat_slip["eff_ind"]  = dat["eff_ind"][time_ind]
     dat_slip["sc_pot"]   = dat["sc_pot"][time_ind]
-    dat_slip["dead"]   = dat["dead"][time_ind,:,:,:]
-    dat_slip["quat_mso"]   = dat["quat_mso"][time_ind,:]
-    dat_slip["quat_sc"]   = dat["quat_sc"][time_ind,:]
-    dat_slip["magf"]   = dat["magf"][time_ind,:]
+    dat_slip["dead"]         = dat["dead"][time_ind,:,:,:]
+    dat_slip["quat_mso"]     = dat["quat_mso"][time_ind,:]
+    dat_slip["quat_sc"]      = dat["quat_sc"][time_ind,:]
+    dat_slip["magf"]         = dat["magf"][time_ind,:]
+    dat_slip["pos_sc_mso"]   = dat["pos_sc_mso"][time_ind,:]
     
     dat_slip["energy"]   = dat["energy"][:,:,:,swp_ind+1]
     dat_slip["denergy"]  = dat["denergy"][:,:,:,swp_ind+1]
@@ -376,6 +485,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
         "v"  => V_MSO,
         "mass" => m_int,
         "nbins" =>nbins,
+        "energy" =>energy_t,
         "nenergy" =>nenergy,
         "magf"  => dat["magf"],
     )
@@ -419,12 +529,26 @@ function sphere2xyz(r,θ,ϕ)
     z = r .* cosd.(θ)
     return [x,y,z]
 end
-function ion_energy2v(energy,mass) # 离子子能量对应速度(相对论)
-    E0 = 511.0 * mass * 1836.23 
-    γ=(energy * 1e-3 /E0 + 1)
+function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV
+    E0 = 938313.53 * AMU  # 质子静止能量 MeV
+    γ= energy*1e-3/E0 + 1.0
     β=sqrt(1.0 - 1.0 / γ^2)
-    v = β .* 3e8
+    v = β * 3e8
     return v
+end
+function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度
+    E0 = 938313.53 * AMU 
+    β  = v / 3e8
+    γ = 1.0 / sqrt(1.0 - β^2)
+    energy = (γ - 1.0) * E0 * 1e3
+    return energy
+end
+function ion_v2energy(v,mass) # 离子子能量对应速度(相对论)
+    E0 = 511.0 * mass * 1836.23
+    β = v / 3e8
+    γ = 1.0 / sqrt(1.0 - β^2)
+    energy = (γ - 1.0) * E0 * 1e3
+    return energy
 end
 const EV=1.602176487e-19
 const C=3.0e8
@@ -432,4 +556,9 @@ const Me=9.109e-31
 const Mp=1.672621637e-27
 const RADG=180.0/π
 
+# vv0 =9.8e3
+# ee = ion_v2energy(vv0 ,32)
+# vv = ion_energy2v(ee,32)
+# println(vv0," ",vv," ",ee)
+# vv0^2 * 0.5*32*Mp/EV
 end # module

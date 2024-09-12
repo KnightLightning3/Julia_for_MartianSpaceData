@@ -18,3 +18,10 @@ download_data/修改文件树.py
 download_data/build_kp_format.py
 # download_data/get_download_files.py
 load_data/MAVEN_data_filename_lists.json
+download_data/MAVEN_download_config.ini
+MAVEN_data/filename_lists.json
+Megnetic_Model/test_igrf.jl
+Megnetic_Model/mars_surface_mag.png
+Megnetic_Model/IGRF_DLL_old.dll
+Megnetic_Model/IGRF_DLL_old_1.dll
+Megnetic_Model/IGRF_carculate.zip

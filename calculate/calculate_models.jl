@@ -8,7 +8,21 @@ using Quaternions
 function Martrix_Rot(in_data,Rotation_Martrix)
     #使用旋转矩阵计算坐标系变换。逆变换时输入矩阵的inv()逆即可
     out_data = Rotation_Martrix * in_data
-    return pc2ss_data
+    return out_data
+end
+function rotation_matrix(θ, φ)
+    # 创建绕z轴旋转φ的旋转矩阵
+    Rz = [cos(φ) -sin(φ) 0;
+          sin(φ)  cos(φ) 0;
+          0       0      1]
+
+    # 创建绕y轴旋转θ的旋转矩阵
+    Ry = [cos(θ)  0  sin(θ);
+          0       1  0;
+         -sin(θ)  0  cos(θ)]
+
+    # 计算总旋转矩阵，先绕y轴旋转，然后绕z轴旋转
+    return Rz * Ry
 end
 function Quaternion_Rot(u::AbstractVector,q::QuaternionF64)
     #使用四元数计算坐标系变换。
@@ -44,7 +58,17 @@ function energy2v(energy;type="e",nM=1)
     γ=(energy * 1e-3 /E0 + 1)
     β=sqrt(1.0 - 1.0 / γ^2)
     v = β .* 3e8
-return v
+    return v
+end
+function escape_energy(;nM=1,planet="Mars")
+    mass = nM * Mp
+    # G = 6.67430e-11
+    if planet == "Mars"
+        v = 5.027e3
+    end
+    # v2 = 2 * G * mass / R
+    E = 0.5 * mass * v^2 /EV
+    return E
 end
 function cyclotron_radius(B,ek;nM=1,nQ=-1)
     B1=B*1e-9  # 输入nT，转T
@@ -61,6 +85,16 @@ function cyclotron_radius(B,ek;nM=1,nQ=-1)
     f = 1  / (cc *2*π)
     rc = cc * v
     return f,rc,v
+end
+function cyclotron_frequency(B;nM=1,nQ=-1)
+    B1=B*1e-9  # 输入nT，转T
+    if nQ == -1
+        cc = Me /(B1*Q)
+    else
+        cc = Mp*nM/(B1*Q*nQ)
+    end
+    f = 1  / (cc *2*π)
+    return f
 end
 const EV=1.602176487e-19
 const C=3.0e8

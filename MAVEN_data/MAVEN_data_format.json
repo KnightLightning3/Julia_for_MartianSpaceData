@@ -1,215 +1,221 @@
-{   
-    "description":"data_model: data_type:[url_path, file_name_pattern, save_path, load_function]",
+{
+    "description": "data_model: data_type:[url_path, file_name_pattern, save_path, load_function]",
     "save_path": "E:/MAVEN/",
     "data_model": {
-        "KP":[
+        "KP": [
             "kp/insitu/",
             "^mvn_kp_insitu_.+\\.tab$",
             "KP/insitu/",
             "load_kp"
         ],
-        "KP_l3":[
+        "KP_l3": [
             "None",
             "^mvn_kp_insitu_.+\\.jld2$",
             "KP/l3/",
             "load_kp_l3"
         ],
-        "MAG_ss":[
+        "MAG_ss": [
             "mag/l2/",
             "mvn_mag_l2_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
-        "MAG_ss1s":[
+        "MAG_ss1s": [
             "mag/l2/",
             "mvn_mag_l2_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
-        "MAG_pc":[
+        "MAG_pc": [
             "mag/l2/",
             "mvn_mag_l2_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
-        "MAG_pc1s":[
+        "MAG_pc1s": [
             "mag/l2/",
             "mvn_mag_l2_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
-        "MAG_ss_l3":[
+        "MAG_ss_l3": [
             "None",
             "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
-        "MAG_ss1s_l3":[
+        "MAG_ss1s_l3": [
             "None",
             "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
-        "MAG_pc_l3":[
+        "MAG_pc_l3": [
             "None",
             "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
-        "MAG_pc1s_l3":[
+        "MAG_pc1s_l3": [
             "None",
             "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
-        "SWEA_spec":[
+        "SWEA_spec": [
             "swe/l2/",
             "mvn_swe_l2_svyspec_.+\\.cdf",
             "SWEA/l2/",
             "load_cdf"
         ],
-        "LPW_mrgscpot":[
+        "LPW_mrgscpot": [
             "lpw/l2/",
             "mvn_lpw_l2_mrgscpot_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "SWEA_pad_arc":[
+        "SWEA_pad_arc": [
             "swe/l2/",
             "mvn_swe_l2_arcpad_.+\\.cdf",
             "SWEA/l2/",
             "load_swea_pad"
         ],
-        "SWEA_pad_svy":[
+        "SWEA_pad_svy": [
             "swe/l2/",
             "mvn_swe_l2_svypad_.+\\.cdf",
             "SWEA/l2/",
             "load_swea_pad"
         ],
-        "STATIC_c6":[
+        "STATIC_c6": [
             "sta/l2/",
             "mvn_sta_l2_c6-32e64m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
-        "STATIC_c8":[
+        "STATIC_c8": [
             "sta/l2/",
             "mvn_sta_l2_c8-32e16d_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
-        "STATIC_ca":[
+        "STATIC_ca": [
             "sta/l2/",
             "mvn_sta_l2_ca-16e4d16a_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
-        "STATIC_cf":[
+        "STATIC_cf": [
             "sta/l2/",
             "mvn_sta_l2_cf-16e4d16a16m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
-        "STATIC_d0":[
+        "STATIC_d0": [
             "sta/l2/",
             "mvn_sta_l2_d0-32e4d16a8m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
-        "STATIC_d1":[
+        "STATIC_d1": [
             "sta/l2/",
             "mvn_sta_l2_d1-32e4d16a8m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
-        "LPW_wave":[
+        "LPW_wave": [
             "lpw/l2/",
             "mvn_lpw_l2_wspecpas_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_wave_act":[
+        "LPW_wave_act": [
             "lpw/l2/",
             "mvn_lpw_l2_wspecact_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_lpiv":[
+        "LPW_lpiv": [
             "lpw/l2/",
             "mvn_lpw_l2_lpiv_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_lpnt":[
+        "LPW_lpnt": [
             "lpw/l2/",
             "mvn_lpw_l2_lpnt_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_wn":[
+        "LPW_wn": [
             "lpw/l2/",
             "mvn_lpw_l2_wn_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_we12":[
+        "LPW_we12": [
             "lpw/l2/",
             "mvn_lpw_l2_we12_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_bursthf":[
+        "LPW_bursthf": [
             "lpw/l2/",
             "mvn_lpw_l2_we12bursthf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_burstmf":[
+        "LPW_burstmf": [
             "lpw/l2/",
             "mvn_lpw_l2_we12burstmf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "LPW_burstlf":[
+        "LPW_burstlf": [
             "lpw/l2/",
             "mvn_lpw_l2_we12burstlf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
-        "NGIMS_den_l3":[
+        "NGIMS_den_l3": [
             "ngi/l3/",
             "mvn_ngi_l3_res-den-.+\\.csv",
             "NGIMS/l3/",
             "load_NGIMS_den_l3"
         ],
-        "NGIMS_den_l4":[
+        "NGIMS_den_l4": [
             "None",
             "mvn_ngi_l4_res-den-.+\\.csv",
             "NGIMS/l4/",
             "load_NGIMS_den_l4"
         ],
-        "SWIA_mom":[
+        "SWIA_mom": [
             "swi/l2/",
             "mvn_swi_l2_onboardsvymom_.+\\.cdf",
-            "SWIA/l3/",
+            "SWIA/l2/",
+            "load_cdf"
+        ],
+        "SWIA_svy_spec": [
+            "swi/l2/",
+            "mvn_swi_l2_onboardsvyspec_.+\\.cdf",
+            "SWIA/l2/",
             "load_cdf"
         ]
     },
     "kp_dict": {
-        "Orbit Number"    :210
+        "Orbit Number": 210
     },
-    "kp_dict_backup":{
+    "kp_dict_backup": {
         "electorn density": 2,
-        "Ne quality min"  : 3,
-        "Ne quality max"  : 4,
-        "temperature"     : 5,
-        "GEO_x"           :187,
-        "GEO_y"           :188,
-        "GEO_z"           :189,
-        "H+ flow v"       : 43,
-        "H+ T"            : 60,
-        "O+ T"            : 62,
-        "O2+ T"           : 64,
-        "H+_density_SWIA" : 41
+        "Ne quality min": 3,
+        "Ne quality max": 4,
+        "temperature": 5,
+        "GEO_x": 187,
+        "GEO_y": 188,
+        "GEO_z": 189,
+        "H+ flow v": 43,
+        "H+ T": 60,
+        "O+ T": 62,
+        "O2+ T": 64,
+        "H+_density_SWIA": 41
     }
 }
