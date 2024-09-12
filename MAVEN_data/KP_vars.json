@@ -1,950 +1,4712 @@
 {
     "19": {
-        "1": "Time (UTC/SCET)",
-        "2": "Electron Density",
-        "3": "Quality",
-        "4": "Quality",
-        "5": "Electron Temperature",
-        "6": "Quality",
-        "7": "Quality",
-        "8": "Spacecraft Potential",
-        "9": "Quality",
-        "10": "Quality",
-        "11": "E-field wave power (2 - 100 Hz)",
-        "12": "Quality",
-        "13": "E-field wave power (100 - 800 Hz)",
-        "14": "Quality",
-        "15": "E-field wave power (800 - 1000 Hz)",
-        "16": "Quality",
-        "17": "EUV irradiance (0.1 - 7.0 nm)",
-        "18": "Quality",
-        "19": "EUV irradiance (17 - 22 nm)",
-        "20": "Quality",
-        "21": "EUV irradiance (Lyman-alpha)",
-        "22": "Quality",
-        "23": "Solar wind electron density",
-        "24": "Quality",
-        "25": "Solar wind electron temperature",
-        "26": "Quality",
-        "27": "Electron parallel energy flux (5 - 100 eV)",
-        "28": "Quality",
-        "29": "Electron parallel energy flux (100 - 500 eV)",
-        "30": "Quality",
-        "31": "Electron parallel energy flux (500 - 1000 eV)",
-        "32": "Quality",
-        "33": "Electron anti-parallel energy flux (5 - 100 eV)",
-        "34": "Quality",
-        "35": "Electron anti-parallel energy flux (100 - 500 eV)",
-        "36": "Quality",
-        "37": "Electron anti-parallel energy flux (500 - 1000 eV)",
-        "38": "Quality",
-        "39": "Electron spectrum shape parameter",
-        "40": "Quality",
-        "41": "H+ density",
-        "42": "Quality",
-        "43": "H+ flow velocity MSO X",
-        "44": "Quality",
-        "45": "H+ flow velocity MSO Y",
-        "46": "Quality",
-        "47": "H+ flow velocity MSO Z",
-        "48": "Quality",
-        "49": "H+ temperature",
-        "50": "Quality",
-        "51": "Solar wind dynamic pressure",
-        "52": "Quality",
-        "53": "STATIC Quality Flag",
-        "54": "H+ density",
-        "55": "Quality",
-        "56": "O+ density",
-        "57": "Quality",
-        "58": "O2+ density",
-        "59": "Quality",
-        "60": "H+ temperature",
-        "61": "Quality",
-        "62": "O+ temperature",
-        "63": "Quality",
-        "64": "O2+ temperature",
-        "65": "Quality",
-        "66": "O2+ flow velocity MAVEN_APP X",
-        "67": "Quality",
-        "68": "O2+ flow velocity MAVEN_APP Y",
-        "69": "Quality",
-        "70": "O2+ flow velocity MAVEN_APP Z",
-        "71": "Quality",
-        "72": "O2+ flow velocity MSO X",
-        "73": "Quality",
-        "74": "O2+ flow velocity MSO Y",
-        "75": "Quality",
-        "76": "O2+ flow velocity MSO Z",
-        "77": "Quality",
-        "78": "H+ omni-directional flux",
-        "79": "H+ characteristic energy",
-        "80": "Quality",
-        "81": "He++ omni-directional flux",
-        "82": "He++ characteristic energy",
-        "83": "Quality",
-        "84": "O+ omni-directional flux",
-        "85": "O+ characteristic energy",
-        "86": "Quality",
-        "87": "O2+ omni-directional flux",
-        "88": "O2+ characteristic energy",
-        "89": "Quality",
-        "90": "H+ characteristic direction MSO X",
-        "91": "H+ characteristic direction MSO Y",
-        "92": "H+ characteristic direction MSO Z",
-        "93": "H+ characteristic angular width",
-        "94": "Quality",
-        "95": "Dominant pickup ion characteristic direction MSO X",
-        "96": "Dominant pickup ion characteristic direction MSO Y",
-        "97": "Dominant pickup ion characteristic direction MSO Z",
-        "98": "Dominant pickup ion characteristic angular width",
-        "99": "Quality",
-        "100": "Ion Flux (30-1000 keV), FOV 1-F",
-        "101": "Quality",
-        "102": "Ion Flux (30-1000 keV), FOV 1-R",
-        "103": "Quality",
-        "104": "Ion Flux (30-1000 keV), FOV 2-F",
-        "105": "Quality",
-        "106": "Ion Flux (30-1000 keV), FOV 2-R",
-        "107": "Quality",
-        "108": "Electron Flux (30 keV - 300 keV) - FOV 1-F",
-        "109": "Quality",
-        "110": "Electron Flux (30 keV - 300 keV) - FOV 1-R",
-        "111": "Quality",
-        "112": "Electron Flux (30 keV - 300 keV) - FOV 2-F",
-        "113": "Quality",
-        "114": "Electron Flux (30 keV - 300 keV) - FOV 2-R",
-        "115": "Quality",
-        "116": "Look direction 1-F MSO X",
-        "117": "Look direction 1-F MSO Y",
-        "118": "Look direction 1-F MSO Z",
-        "119": "Look direction 1-R MSO X",
-        "120": "Look direction 1-R MSO Y",
-        "121": "Look direction 1-R MSO Z",
-        "122": "Look direction 2-F MSO X",
-        "123": "Look direction 2-F MSO Y",
-        "124": "Look direction 2-F MSO Z",
-        "125": "Look direction 2-R MSO X",
-        "126": "Look direction 2-R MSO Y",
-        "127": "Look direction 2-R MSO Z",
-        "128": "Magnetic Field MSO X",
-        "129": "Quality",
-        "130": "Magnetic Field MSO Y",
-        "131": "Quality",
-        "132": "Magnetic Field MSO Z",
-        "133": "Quality",
-        "134": "Magnetic Field GEO X",
-        "135": "Quality",
-        "136": "Magnetic Field GEO Y",
-        "137": "Quality",
-        "138": "Magnetic Field GEO Z",
-        "139": "Quality",
-        "140": "Magnetic Field RMS Deviation",
-        "141": "Quality",
-        "142": "He Density",
-        "143": "Precision",
-        "144": "Quality",
-        "145": "O Density",
-        "146": "Precision",
-        "147": "Quality",
-        "148": "CO Density",
-        "149": "Precision",
-        "150": "Quality",
-        "151": "N2 Density",
-        "152": "Precision",
-        "153": "Quality",
-        "154": "NO Density",
-        "155": "Precision",
-        "156": "Quality",
-        "157": "Ar Density",
-        "158": "Precision",
-        "159": "Quality",
-        "160": "CO2 Density",
-        "161": "Precision",
-        "162": "Quality",
-        "163": "Ion Density - amu 32+",
-        "164": "Precision",
-        "165": "Quality",
-        "166": "Ion Density - amu 44+",
-        "167": "Precision",
-        "168": "Quality",
-        "169": "Ion Density - amu 30+",
-        "170": "Precision",
-        "171": "Quality",
-        "172": "Ion Density - amu 16+",
-        "173": "Precision",
-        "174": "Quality",
-        "175": "Ion Density - amu 28+",
-        "176": "Precision",
-        "177": "Quality",
-        "178": "Ion Density - amu 12+",
-        "179": "Precision",
-        "180": "Quality",
-        "181": "Ion Density - amu 17+",
-        "182": "Precision",
-        "183": "Quality",
-        "184": "Ion Density - amu 14+",
-        "185": "Precision",
-        "186": "Quality",
-        "187": "Spacecraft GEO X",
-        "188": "Spacecraft GEO Y",
-        "189": "Spacecraft GEO Z",
-        "190": "Spacecraft MSO X",
-        "191": "Spacecraft MSO Y",
-        "192": "Spacecraft MSO Z",
-        "193": "Spacecraft GEO Longitude",
-        "194": "Spacecraft GEO Latitude",
-        "195": "Spacecraft solar zenith angle",
-        "196": "Spacecraft local time",
-        "197": "Spacecraft altitude w.r.t. ellipsoid",
-        "198": "Spacecraft attitude GEO X",
-        "199": "Spacecraft attitude GEO Y",
-        "200": "Spacecraft attitude GEO Z",
-        "201": "Spacecraft attitude MSO X",
-        "202": "Spacecraft attitude MSO Y",
-        "203": "Spacecraft attitude MSO Z",
-        "204": "APP Attitude GEO X",
-        "205": "APP Attitude GEO Y",
-        "206": "APP Attitude GEO Z",
-        "207": "APP Attitude MSO X",
-        "208": "APP Attitude MSO Y",
-        "209": "APP Attitude MSO Z",
-        "210": "Orbit Number",
-        "211": "Inbound/Outbound Flag",
-        "212": "Mars Season (Ls)",
-        "213": "Mars-Sun distance",
-        "214": "Subsolar Point GEO Longitude",
-        "215": "Subsolar Point GEO Latitude",
-        "216": "Sub-Mars Point on the Sun, Longitude",
-        "217": "Sub-Mars Point on the Sun, Latitude",
-        "218": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
-        "219": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
-        "220": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
-        "221": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
-        "222": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
-        "223": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
-        "224": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
-        "225": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
-        "226": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
-        "227": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
-        "228": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
-        "229": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
-        "230": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
-        "231": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
-        "232": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
-        "233": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
-        "234": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
-        "235": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]"
+        "1": [
+            "Time (UTC/SCET)",
+            "yyyy-"
+        ],
+        "2": [
+            "Electron Density",
+            "E16.2"
+        ],
+        "3": [
+            "Quality",
+            "E16.2"
+        ],
+        "4": [
+            "Quality",
+            "E16.2"
+        ],
+        "5": [
+            "Electron Temperature",
+            "E16.2"
+        ],
+        "6": [
+            "Quality",
+            "E16.2"
+        ],
+        "7": [
+            "Quality",
+            "E16.2"
+        ],
+        "8": [
+            "Spacecraft Potential",
+            "E16.2"
+        ],
+        "9": [
+            "Quality",
+            "E16.2"
+        ],
+        "10": [
+            "Quality",
+            "E16.2"
+        ],
+        "11": [
+            "E-field wave power (2 - 100 Hz)",
+            "E16.2"
+        ],
+        "12": [
+            "Quality",
+            "E16.2"
+        ],
+        "13": [
+            "E-field wave power (100 - 800 Hz)",
+            "E16.2"
+        ],
+        "14": [
+            "Quality",
+            "E16.2"
+        ],
+        "15": [
+            "E-field wave power (800 - 1000 Hz)",
+            "E16.2"
+        ],
+        "16": [
+            "Quality",
+            "E16.2"
+        ],
+        "17": [
+            "EUV irradiance (0.1 - 7.0 nm)",
+            "E16.2"
+        ],
+        "18": [
+            "Quality",
+            "E16.2"
+        ],
+        "19": [
+            "EUV irradiance (17 - 22 nm)",
+            "E16.2"
+        ],
+        "20": [
+            "Quality",
+            "E16.2"
+        ],
+        "21": [
+            "EUV irradiance (Lyman-alpha)",
+            "E16.2"
+        ],
+        "22": [
+            "Quality",
+            "E16.2"
+        ],
+        "23": [
+            "Solar wind electron density",
+            "E16.2"
+        ],
+        "24": [
+            "Quality",
+            "E16.2"
+        ],
+        "25": [
+            "Solar wind electron temperature",
+            "E16.2"
+        ],
+        "26": [
+            "Quality",
+            "E16.2"
+        ],
+        "27": [
+            "Electron parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "28": [
+            "Quality",
+            "E16.2"
+        ],
+        "29": [
+            "Electron parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "30": [
+            "Quality",
+            "E16.2"
+        ],
+        "31": [
+            "Electron parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "32": [
+            "Quality",
+            "E16.2"
+        ],
+        "33": [
+            "Electron anti-parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "34": [
+            "Quality",
+            "E16.2"
+        ],
+        "35": [
+            "Electron anti-parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "36": [
+            "Quality",
+            "E16.2"
+        ],
+        "37": [
+            "Electron anti-parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "38": [
+            "Quality",
+            "E16.2"
+        ],
+        "39": [
+            "Electron spectrum shape parameter",
+            "F16.3"
+        ],
+        "40": [
+            "Quality",
+            "F16.3"
+        ],
+        "41": [
+            "H+ density",
+            "E16.2"
+        ],
+        "42": [
+            "Quality",
+            "E16.2"
+        ],
+        "43": [
+            "H+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "44": [
+            "Quality",
+            "E16.2"
+        ],
+        "45": [
+            "H+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "46": [
+            "Quality",
+            "E16.2"
+        ],
+        "47": [
+            "H+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "48": [
+            "Quality",
+            "E16.2"
+        ],
+        "49": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "50": [
+            "Quality",
+            "E16.2"
+        ],
+        "51": [
+            "Solar wind dynamic pressure",
+            "E16.2"
+        ],
+        "52": [
+            "Quality",
+            "E16.2"
+        ],
+        "53": [
+            "STATIC Quality Flag",
+            "F16.0"
+        ],
+        "54": [
+            "H+ density",
+            "E16.2"
+        ],
+        "55": [
+            "Quality",
+            "E16.2"
+        ],
+        "56": [
+            "O+ density",
+            "E16.2"
+        ],
+        "57": [
+            "Quality",
+            "E16.2"
+        ],
+        "58": [
+            "O2+ density",
+            "E16.2"
+        ],
+        "59": [
+            "Quality",
+            "E16.2"
+        ],
+        "60": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "61": [
+            "Quality",
+            "E16.2"
+        ],
+        "62": [
+            "O+ temperature",
+            "E16.2"
+        ],
+        "63": [
+            "Quality",
+            "E16.2"
+        ],
+        "64": [
+            "O2+ temperature",
+            "E16.2"
+        ],
+        "65": [
+            "Quality",
+            "E16.2"
+        ],
+        "66": [
+            "O2+ flow velocity MAVEN_APP X",
+            "E16.2"
+        ],
+        "67": [
+            "Quality",
+            "E16.2"
+        ],
+        "68": [
+            "O2+ flow velocity MAVEN_APP Y",
+            "E16.2"
+        ],
+        "69": [
+            "Quality",
+            "E16.2"
+        ],
+        "70": [
+            "O2+ flow velocity MAVEN_APP Z",
+            "E16.2"
+        ],
+        "71": [
+            "Quality",
+            "E16.2"
+        ],
+        "72": [
+            "O2+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "73": [
+            "Quality",
+            "E16.2"
+        ],
+        "74": [
+            "O2+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "75": [
+            "Quality",
+            "E16.2"
+        ],
+        "76": [
+            "O2+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "77": [
+            "Quality",
+            "E16.2"
+        ],
+        "78": [
+            "H+ omni-directional flux",
+            "E16.2"
+        ],
+        "79": [
+            "H+ characteristic energy",
+            "E16.2"
+        ],
+        "80": [
+            "Quality",
+            "E16.2"
+        ],
+        "81": [
+            "He++ omni-directional flux",
+            "E16.2"
+        ],
+        "82": [
+            "He++ characteristic energy",
+            "E16.2"
+        ],
+        "83": [
+            "Quality",
+            "E16.2"
+        ],
+        "84": [
+            "O+ omni-directional flux",
+            "E16.2"
+        ],
+        "85": [
+            "O+ characteristic energy",
+            "E16.2"
+        ],
+        "86": [
+            "Quality",
+            "E16.2"
+        ],
+        "87": [
+            "O2+ omni-directional flux",
+            "E16.2"
+        ],
+        "88": [
+            "O2+ characteristic energy",
+            "E16.2"
+        ],
+        "89": [
+            "Quality",
+            "E16.2"
+        ],
+        "90": [
+            "H+ characteristic direction MSO X",
+            "F16.3"
+        ],
+        "91": [
+            "H+ characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "92": [
+            "H+ characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "93": [
+            "H+ characteristic angular width",
+            "F16.3"
+        ],
+        "94": [
+            "Quality",
+            "F16.3"
+        ],
+        "95": [
+            "Dominant pickup ion characteristic direction MSO X",
+            "F16.3"
+        ],
+        "96": [
+            "Dominant pickup ion characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "97": [
+            "Dominant pickup ion characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "98": [
+            "Dominant pickup ion characteristic angular width",
+            "F16.3"
+        ],
+        "99": [
+            "Quality",
+            "F16.3"
+        ],
+        "100": [
+            "Ion Flux (30-1000 keV), FOV 1-F",
+            "E16.2"
+        ],
+        "101": [
+            "Quality",
+            "E16.2"
+        ],
+        "102": [
+            "Ion Flux (30-1000 keV), FOV 1-R",
+            "E16.2"
+        ],
+        "103": [
+            "Quality",
+            "E16.2"
+        ],
+        "104": [
+            "Ion Flux (30-1000 keV), FOV 2-F",
+            "E16.2"
+        ],
+        "105": [
+            "Quality",
+            "E16.2"
+        ],
+        "106": [
+            "Ion Flux (30-1000 keV), FOV 2-R",
+            "E16.2"
+        ],
+        "107": [
+            "Quality",
+            "E16.2"
+        ],
+        "108": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-F",
+            "E16.2"
+        ],
+        "109": [
+            "Quality",
+            "E16.2"
+        ],
+        "110": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-R",
+            "E16.2"
+        ],
+        "111": [
+            "Quality",
+            "E16.2"
+        ],
+        "112": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-F",
+            "E16.2"
+        ],
+        "113": [
+            "Quality",
+            "E16.2"
+        ],
+        "114": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-R",
+            "E16.2"
+        ],
+        "115": [
+            "Quality",
+            "E16.2"
+        ],
+        "116": [
+            "Look direction 1-F MSO X",
+            "F16.3"
+        ],
+        "117": [
+            "Look direction 1-F MSO Y",
+            "F16.3"
+        ],
+        "118": [
+            "Look direction 1-F MSO Z",
+            "F16.3"
+        ],
+        "119": [
+            "Look direction 1-R MSO X",
+            "F16.3"
+        ],
+        "120": [
+            "Look direction 1-R MSO Y",
+            "F16.3"
+        ],
+        "121": [
+            "Look direction 1-R MSO Z",
+            "F16.3"
+        ],
+        "122": [
+            "Look direction 2-F MSO X",
+            "F16.3"
+        ],
+        "123": [
+            "Look direction 2-F MSO Y",
+            "F16.3"
+        ],
+        "124": [
+            "Look direction 2-F MSO Z",
+            "F16.3"
+        ],
+        "125": [
+            "Look direction 2-R MSO X",
+            "F16.3"
+        ],
+        "126": [
+            "Look direction 2-R MSO Y",
+            "F16.3"
+        ],
+        "127": [
+            "Look direction 2-R MSO Z",
+            "F16.3"
+        ],
+        "128": [
+            "Magnetic Field MSO X",
+            "E16.2"
+        ],
+        "129": [
+            "Quality",
+            "E16.2"
+        ],
+        "130": [
+            "Magnetic Field MSO Y",
+            "E16.2"
+        ],
+        "131": [
+            "Quality",
+            "E16.2"
+        ],
+        "132": [
+            "Magnetic Field MSO Z",
+            "E16.2"
+        ],
+        "133": [
+            "Quality",
+            "E16.2"
+        ],
+        "134": [
+            "Magnetic Field GEO X",
+            "E16.2"
+        ],
+        "135": [
+            "Quality",
+            "E16.2"
+        ],
+        "136": [
+            "Magnetic Field GEO Y",
+            "E16.2"
+        ],
+        "137": [
+            "Quality",
+            "E16.2"
+        ],
+        "138": [
+            "Magnetic Field GEO Z",
+            "E16.2"
+        ],
+        "139": [
+            "Quality",
+            "E16.2"
+        ],
+        "140": [
+            "Magnetic Field RMS Deviation",
+            "E16.2"
+        ],
+        "141": [
+            "Quality",
+            "E16.2"
+        ],
+        "142": [
+            "He Density",
+            "E16.2"
+        ],
+        "143": [
+            "Precision",
+            "E16.2"
+        ],
+        "144": [
+            "Quality",
+            "A16  "
+        ],
+        "145": [
+            "O Density",
+            "E16.2"
+        ],
+        "146": [
+            "Precision",
+            "E16.2"
+        ],
+        "147": [
+            "Quality",
+            "A16  "
+        ],
+        "148": [
+            "CO Density",
+            "E16.2"
+        ],
+        "149": [
+            "Precision",
+            "E16.2"
+        ],
+        "150": [
+            "Quality",
+            "A16  "
+        ],
+        "151": [
+            "N2 Density",
+            "E16.2"
+        ],
+        "152": [
+            "Precision",
+            "E16.2"
+        ],
+        "153": [
+            "Quality",
+            "A16  "
+        ],
+        "154": [
+            "NO Density",
+            "E16.2"
+        ],
+        "155": [
+            "Precision",
+            "E16.2"
+        ],
+        "156": [
+            "Quality",
+            "A16  "
+        ],
+        "157": [
+            "Ar Density",
+            "E16.2"
+        ],
+        "158": [
+            "Precision",
+            "E16.2"
+        ],
+        "159": [
+            "Quality",
+            "A16  "
+        ],
+        "160": [
+            "CO2 Density",
+            "E16.2"
+        ],
+        "161": [
+            "Precision",
+            "E16.2"
+        ],
+        "162": [
+            "Quality",
+            "A16  "
+        ],
+        "163": [
+            "Ion Density - amu 32+",
+            "E16.2"
+        ],
+        "164": [
+            "Precision",
+            "E16.2"
+        ],
+        "165": [
+            "Quality",
+            "A16  "
+        ],
+        "166": [
+            "Ion Density - amu 44+",
+            "E16.2"
+        ],
+        "167": [
+            "Precision",
+            "E16.2"
+        ],
+        "168": [
+            "Quality",
+            "A16  "
+        ],
+        "169": [
+            "Ion Density - amu 30+",
+            "E16.2"
+        ],
+        "170": [
+            "Precision",
+            "E16.2"
+        ],
+        "171": [
+            "Quality",
+            "A16  "
+        ],
+        "172": [
+            "Ion Density - amu 16+",
+            "E16.2"
+        ],
+        "173": [
+            "Precision",
+            "E16.2"
+        ],
+        "174": [
+            "Quality",
+            "A16  "
+        ],
+        "175": [
+            "Ion Density - amu 28+",
+            "E16.2"
+        ],
+        "176": [
+            "Precision",
+            "E16.2"
+        ],
+        "177": [
+            "Quality",
+            "A16  "
+        ],
+        "178": [
+            "Ion Density - amu 12+",
+            "E16.2"
+        ],
+        "179": [
+            "Precision",
+            "E16.2"
+        ],
+        "180": [
+            "Quality",
+            "A16  "
+        ],
+        "181": [
+            "Ion Density - amu 17+",
+            "E16.2"
+        ],
+        "182": [
+            "Precision",
+            "E16.2"
+        ],
+        "183": [
+            "Quality",
+            "A16  "
+        ],
+        "184": [
+            "Ion Density - amu 14+",
+            "E16.2"
+        ],
+        "185": [
+            "Precision",
+            "E16.2"
+        ],
+        "186": [
+            "Quality",
+            "A16  "
+        ],
+        "187": [
+            "Spacecraft GEO X",
+            "E16.2"
+        ],
+        "188": [
+            "Spacecraft GEO Y",
+            "E16.2"
+        ],
+        "189": [
+            "Spacecraft GEO Z",
+            "E16.2"
+        ],
+        "190": [
+            "Spacecraft MSO X",
+            "E16.2"
+        ],
+        "191": [
+            "Spacecraft MSO Y",
+            "E16.2"
+        ],
+        "192": [
+            "Spacecraft MSO Z",
+            "E16.2"
+        ],
+        "193": [
+            "Spacecraft GEO Longitude",
+            "F16.2"
+        ],
+        "194": [
+            "Spacecraft GEO Latitude",
+            "F16.2"
+        ],
+        "195": [
+            "Spacecraft solar zenith angle",
+            "F16.2"
+        ],
+        "196": [
+            "Spacecraft local time",
+            "F16.2"
+        ],
+        "197": [
+            "Spacecraft altitude w.r.t. ellipsoid",
+            "F16.2"
+        ],
+        "198": [
+            "Spacecraft attitude GEO X",
+            "F16.3"
+        ],
+        "199": [
+            "Spacecraft attitude GEO Y",
+            "F16.3"
+        ],
+        "200": [
+            "Spacecraft attitude GEO Z",
+            "F16.3"
+        ],
+        "201": [
+            "Spacecraft attitude MSO X",
+            "F16.3"
+        ],
+        "202": [
+            "Spacecraft attitude MSO Y",
+            "F16.3"
+        ],
+        "203": [
+            "Spacecraft attitude MSO Z",
+            "F16.3"
+        ],
+        "204": [
+            "APP Attitude GEO X",
+            "F16.3"
+        ],
+        "205": [
+            "APP Attitude GEO Y",
+            "F16.3"
+        ],
+        "206": [
+            "APP Attitude GEO Z",
+            "F16.3"
+        ],
+        "207": [
+            "APP Attitude MSO X",
+            "F16.3"
+        ],
+        "208": [
+            "APP Attitude MSO Y",
+            "F16.3"
+        ],
+        "209": [
+            "APP Attitude MSO Z",
+            "F16.3"
+        ],
+        "210": [
+            "Orbit Number",
+            "I16  "
+        ],
+        "211": [
+            "Inbound/Outbound Flag",
+            "A16  "
+        ],
+        "212": [
+            "Mars Season (Ls)",
+            "F16.2"
+        ],
+        "213": [
+            "Mars-Sun distance",
+            "F16.4"
+        ],
+        "214": [
+            "Subsolar Point GEO Longitude",
+            "F16.2"
+        ],
+        "215": [
+            "Subsolar Point GEO Latitude",
+            "F16.2"
+        ],
+        "216": [
+            "Sub-Mars Point on the Sun, Longitude",
+            "F16.2"
+        ],
+        "217": [
+            "Sub-Mars Point on the Sun, Latitude",
+            "F16.2"
+        ],
+        "218": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "219": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "220": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "221": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "222": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "223": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "224": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "225": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "226": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ],
+        "227": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "228": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "229": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "230": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "231": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "232": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "233": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "234": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "235": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ]
     },
     "17": {
-        "1": "Time (UTC/SCET)",
-        "2": "Electron Density",
-        "3": "Quality",
-        "4": "Quality",
-        "5": "Electron Temperature",
-        "6": "Quality",
-        "7": "Quality",
-        "8": "Spacecraft Potential",
-        "9": "Quality",
-        "10": "Quality",
-        "11": "E-field wave power (2 - 100 Hz)",
-        "12": "Quality",
-        "13": "E-field wave power (100 - 800 Hz)",
-        "14": "Quality",
-        "15": "E-field wave power (800 - 1000 Hz)",
-        "16": "Quality",
-        "17": "EUV irradiance (0.1 - 7.0 nm)",
-        "18": "Quality",
-        "19": "EUV irradiance (17 - 22 nm)",
-        "20": "Quality",
-        "21": "EUV irradiance (Lyman-alpha)",
-        "22": "Quality",
-        "23": "Solar wind electron density",
-        "24": "Quality",
-        "25": "Solar wind electron temperature",
-        "26": "Quality",
-        "27": "Electron parallel energy flux (5 - 100 eV)",
-        "28": "Quality",
-        "29": "Electron parallel energy flux (100 - 500 eV)",
-        "30": "Quality",
-        "31": "Electron parallel energy flux (500 - 1000 eV)",
-        "32": "Quality",
-        "33": "Electron anti-parallel energy flux (5 - 100 eV)",
-        "34": "Quality",
-        "35": "Electron anti-parallel energy flux (100 - 500 eV)",
-        "36": "Quality",
-        "37": "Electron anti-parallel energy flux (500 - 1000 eV)",
-        "38": "Quality",
-        "39": "Electron spectrum shape parameter",
-        "40": "Quality",
-        "41": "H+ density",
-        "42": "Quality",
-        "43": "H+ flow velocity MSO X",
-        "44": "Quality",
-        "45": "H+ flow velocity MSO Y",
-        "46": "Quality",
-        "47": "H+ flow velocity MSO Z",
-        "48": "Quality",
-        "49": "H+ temperature",
-        "50": "Quality",
-        "51": "Solar wind dynamic pressure",
-        "52": "Quality",
-        "53": "STATIC Quality Flag",
-        "54": "H+ density",
-        "55": "Quality",
-        "56": "O+ density",
-        "57": "Quality",
-        "58": "O2+ density",
-        "59": "Quality",
-        "60": "H+ temperature",
-        "61": "Quality",
-        "62": "O+ temperature",
-        "63": "Quality",
-        "64": "O2+ temperature",
-        "65": "Quality",
-        "66": "O2+ flow velocity MAVEN_APP X",
-        "67": "Quality",
-        "68": "O2+ flow velocity MAVEN_APP Y",
-        "69": "Quality",
-        "70": "O2+ flow velocity MAVEN_APP Z",
-        "71": "Quality",
-        "72": "O2+ flow velocity MSO X",
-        "73": "Quality",
-        "74": "O2+ flow velocity MSO Y",
-        "75": "Quality",
-        "76": "O2+ flow velocity MSO Z",
-        "77": "Quality",
-        "78": "H+ omni-directional flux",
-        "79": "H+ characteristic energy",
-        "80": "Quality",
-        "81": "He++ omni-directional flux",
-        "82": "He++ characteristic energy",
-        "83": "Quality",
-        "84": "O+ omni-directional flux",
-        "85": "O+ characteristic energy",
-        "86": "Quality",
-        "87": "O2+ omni-directional flux",
-        "88": "O2+ characteristic energy",
-        "89": "Quality",
-        "90": "H+ characteristic direction MSO X",
-        "91": "H+ characteristic direction MSO Y",
-        "92": "H+ characteristic direction MSO Z",
-        "93": "H+ characteristic angular width",
-        "94": "Quality",
-        "95": "Dominant pickup ion characteristic direction MSO X",
-        "96": "Dominant pickup ion characteristic direction MSO Y",
-        "97": "Dominant pickup ion characteristic direction MSO Z",
-        "98": "Dominant pickup ion characteristic angular width",
-        "99": "Quality",
-        "100": "Ion Flux (30-1000 keV), FOV 1-F",
-        "101": "Quality",
-        "102": "Ion Flux (30-1000 keV), FOV 1-R",
-        "103": "Quality",
-        "104": "Ion Flux (30-1000 keV), FOV 2-F",
-        "105": "Quality",
-        "106": "Ion Flux (30-1000 keV), FOV 2-R",
-        "107": "Quality",
-        "108": "Electron Flux (30 keV - 300 keV) - FOV 1-F",
-        "109": "Quality",
-        "110": "Electron Flux (30 keV - 300 keV) - FOV 1-R",
-        "111": "Quality",
-        "112": "Electron Flux (30 keV - 300 keV) - FOV 2-F",
-        "113": "Quality",
-        "114": "Electron Flux (30 keV - 300 keV) - FOV 2-R",
-        "115": "Quality",
-        "116": "Look direction 1-F MSO X",
-        "117": "Look direction 1-F MSO Y",
-        "118": "Look direction 1-F MSO Z",
-        "119": "Look direction 1-R MSO X",
-        "120": "Look direction 1-R MSO Y",
-        "121": "Look direction 1-R MSO Z",
-        "122": "Look direction 2-F MSO X",
-        "123": "Look direction 2-F MSO Y",
-        "124": "Look direction 2-F MSO Z",
-        "125": "Look direction 2-R MSO X",
-        "126": "Look direction 2-R MSO Y",
-        "127": "Look direction 2-R MSO Z",
-        "128": "Magnetic Field MSO X",
-        "129": "Quality",
-        "130": "Magnetic Field MSO Y",
-        "131": "Quality",
-        "132": "Magnetic Field MSO Z",
-        "133": "Quality",
-        "134": "Magnetic Field GEO X",
-        "135": "Quality",
-        "136": "Magnetic Field GEO Y",
-        "137": "Quality",
-        "138": "Magnetic Field GEO Z",
-        "139": "Quality",
-        "140": "Magnetic Field RMS Deviation",
-        "141": "Quality",
-        "142": "He Density",
-        "143": "Precision",
-        "144": "Quality",
-        "145": "O Density",
-        "146": "Precision",
-        "147": "Quality",
-        "148": "CO Density",
-        "149": "Precision",
-        "150": "Quality",
-        "151": "N2 Density",
-        "152": "Precision",
-        "153": "Quality",
-        "154": "NO Density",
-        "155": "Precision",
-        "156": "Quality",
-        "157": "Ar Density",
-        "158": "Precision",
-        "159": "Quality",
-        "160": "CO2 Density",
-        "161": "Precision",
-        "162": "Quality",
-        "163": "Ion Density - amu 32+",
-        "164": "Precision",
-        "165": "Quality",
-        "166": "Ion Density - amu 44+",
-        "167": "Precision",
-        "168": "Quality",
-        "169": "Ion Density - amu 30+",
-        "170": "Precision",
-        "171": "Quality",
-        "172": "Ion Density - amu 16+",
-        "173": "Precision",
-        "174": "Quality",
-        "175": "Ion Density - amu 28+",
-        "176": "Precision",
-        "177": "Quality",
-        "178": "Ion Density - amu 12+",
-        "179": "Precision",
-        "180": "Quality",
-        "181": "Ion Density - amu 17+",
-        "182": "Precision",
-        "183": "Quality",
-        "184": "Ion Density - amu 14+",
-        "185": "Precision",
-        "186": "Quality",
-        "187": "Spacecraft GEO X",
-        "188": "Spacecraft GEO Y",
-        "189": "Spacecraft GEO Z",
-        "190": "Spacecraft MSO X",
-        "191": "Spacecraft MSO Y",
-        "192": "Spacecraft MSO Z",
-        "193": "Spacecraft GEO Longitude",
-        "194": "Spacecraft GEO Latitude",
-        "195": "Spacecraft solar zenith angle",
-        "196": "Spacecraft local time",
-        "197": "Spacecraft altitude w.r.t. ellipsoid",
-        "198": "Spacecraft attitude GEO X",
-        "199": "Spacecraft attitude GEO Y",
-        "200": "Spacecraft attitude GEO Z",
-        "201": "Spacecraft attitude MSO X",
-        "202": "Spacecraft attitude MSO Y",
-        "203": "Spacecraft attitude MSO Z",
-        "204": "APP Attitude GEO X",
-        "205": "APP Attitude GEO Y",
-        "206": "APP Attitude GEO Z",
-        "207": "APP Attitude MSO X",
-        "208": "APP Attitude MSO Y",
-        "209": "APP Attitude MSO Z",
-        "210": "Orbit Number",
-        "211": "Inbound/Outbound Flag",
-        "212": "Mars Season (Ls)",
-        "213": "Mars-Sun distance",
-        "214": "Subsolar Point GEO Longitude",
-        "215": "Subsolar Point GEO Latitude",
-        "216": "Sub-Mars Point on the Sun, Longitude",
-        "217": "Sub-Mars Point on the Sun, Latitude",
-        "218": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
-        "219": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
-        "220": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
-        "221": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
-        "222": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
-        "223": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
-        "224": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
-        "225": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
-        "226": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
-        "227": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
-        "228": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
-        "229": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
-        "230": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
-        "231": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
-        "232": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
-        "233": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
-        "234": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
-        "235": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]"
+        "1": [
+            "Time (UTC/SCET)",
+            "yyyy-"
+        ],
+        "2": [
+            "Electron Density",
+            "E16.2"
+        ],
+        "3": [
+            "Quality",
+            "E16.2"
+        ],
+        "4": [
+            "Quality",
+            "E16.2"
+        ],
+        "5": [
+            "Electron Temperature",
+            "E16.2"
+        ],
+        "6": [
+            "Quality",
+            "E16.2"
+        ],
+        "7": [
+            "Quality",
+            "E16.2"
+        ],
+        "8": [
+            "Spacecraft Potential",
+            "E16.2"
+        ],
+        "9": [
+            "Quality",
+            "E16.2"
+        ],
+        "10": [
+            "Quality",
+            "E16.2"
+        ],
+        "11": [
+            "E-field wave power (2 - 100 Hz)",
+            "E16.2"
+        ],
+        "12": [
+            "Quality",
+            "E16.2"
+        ],
+        "13": [
+            "E-field wave power (100 - 800 Hz)",
+            "E16.2"
+        ],
+        "14": [
+            "Quality",
+            "E16.2"
+        ],
+        "15": [
+            "E-field wave power (800 - 1000 Hz)",
+            "E16.2"
+        ],
+        "16": [
+            "Quality",
+            "E16.2"
+        ],
+        "17": [
+            "EUV irradiance (0.1 - 7.0 nm)",
+            "E16.2"
+        ],
+        "18": [
+            "Quality",
+            "E16.2"
+        ],
+        "19": [
+            "EUV irradiance (17 - 22 nm)",
+            "E16.2"
+        ],
+        "20": [
+            "Quality",
+            "E16.2"
+        ],
+        "21": [
+            "EUV irradiance (Lyman-alpha)",
+            "E16.2"
+        ],
+        "22": [
+            "Quality",
+            "E16.2"
+        ],
+        "23": [
+            "Solar wind electron density",
+            "E16.2"
+        ],
+        "24": [
+            "Quality",
+            "E16.2"
+        ],
+        "25": [
+            "Solar wind electron temperature",
+            "E16.2"
+        ],
+        "26": [
+            "Quality",
+            "E16.2"
+        ],
+        "27": [
+            "Electron parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "28": [
+            "Quality",
+            "E16.2"
+        ],
+        "29": [
+            "Electron parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "30": [
+            "Quality",
+            "E16.2"
+        ],
+        "31": [
+            "Electron parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "32": [
+            "Quality",
+            "E16.2"
+        ],
+        "33": [
+            "Electron anti-parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "34": [
+            "Quality",
+            "E16.2"
+        ],
+        "35": [
+            "Electron anti-parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "36": [
+            "Quality",
+            "E16.2"
+        ],
+        "37": [
+            "Electron anti-parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "38": [
+            "Quality",
+            "E16.2"
+        ],
+        "39": [
+            "Electron spectrum shape parameter",
+            "F16.3"
+        ],
+        "40": [
+            "Quality",
+            "F16.3"
+        ],
+        "41": [
+            "H+ density",
+            "E16.2"
+        ],
+        "42": [
+            "Quality",
+            "E16.2"
+        ],
+        "43": [
+            "H+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "44": [
+            "Quality",
+            "E16.2"
+        ],
+        "45": [
+            "H+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "46": [
+            "Quality",
+            "E16.2"
+        ],
+        "47": [
+            "H+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "48": [
+            "Quality",
+            "E16.2"
+        ],
+        "49": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "50": [
+            "Quality",
+            "E16.2"
+        ],
+        "51": [
+            "Solar wind dynamic pressure",
+            "E16.2"
+        ],
+        "52": [
+            "Quality",
+            "E16.2"
+        ],
+        "53": [
+            "STATIC Quality Flag",
+            "F16.0"
+        ],
+        "54": [
+            "H+ density",
+            "E16.2"
+        ],
+        "55": [
+            "Quality",
+            "E16.2"
+        ],
+        "56": [
+            "O+ density",
+            "E16.2"
+        ],
+        "57": [
+            "Quality",
+            "E16.2"
+        ],
+        "58": [
+            "O2+ density",
+            "E16.2"
+        ],
+        "59": [
+            "Quality",
+            "E16.2"
+        ],
+        "60": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "61": [
+            "Quality",
+            "E16.2"
+        ],
+        "62": [
+            "O+ temperature",
+            "E16.2"
+        ],
+        "63": [
+            "Quality",
+            "E16.2"
+        ],
+        "64": [
+            "O2+ temperature",
+            "E16.2"
+        ],
+        "65": [
+            "Quality",
+            "E16.2"
+        ],
+        "66": [
+            "O2+ flow velocity MAVEN_APP X",
+            "E16.2"
+        ],
+        "67": [
+            "Quality",
+            "E16.2"
+        ],
+        "68": [
+            "O2+ flow velocity MAVEN_APP Y",
+            "E16.2"
+        ],
+        "69": [
+            "Quality",
+            "E16.2"
+        ],
+        "70": [
+            "O2+ flow velocity MAVEN_APP Z",
+            "E16.2"
+        ],
+        "71": [
+            "Quality",
+            "E16.2"
+        ],
+        "72": [
+            "O2+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "73": [
+            "Quality",
+            "E16.2"
+        ],
+        "74": [
+            "O2+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "75": [
+            "Quality",
+            "E16.2"
+        ],
+        "76": [
+            "O2+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "77": [
+            "Quality",
+            "E16.2"
+        ],
+        "78": [
+            "H+ omni-directional flux",
+            "E16.2"
+        ],
+        "79": [
+            "H+ characteristic energy",
+            "E16.2"
+        ],
+        "80": [
+            "Quality",
+            "E16.2"
+        ],
+        "81": [
+            "He++ omni-directional flux",
+            "E16.2"
+        ],
+        "82": [
+            "He++ characteristic energy",
+            "E16.2"
+        ],
+        "83": [
+            "Quality",
+            "E16.2"
+        ],
+        "84": [
+            "O+ omni-directional flux",
+            "E16.2"
+        ],
+        "85": [
+            "O+ characteristic energy",
+            "E16.2"
+        ],
+        "86": [
+            "Quality",
+            "E16.2"
+        ],
+        "87": [
+            "O2+ omni-directional flux",
+            "E16.2"
+        ],
+        "88": [
+            "O2+ characteristic energy",
+            "E16.2"
+        ],
+        "89": [
+            "Quality",
+            "E16.2"
+        ],
+        "90": [
+            "H+ characteristic direction MSO X",
+            "F16.3"
+        ],
+        "91": [
+            "H+ characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "92": [
+            "H+ characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "93": [
+            "H+ characteristic angular width",
+            "F16.3"
+        ],
+        "94": [
+            "Quality",
+            "F16.3"
+        ],
+        "95": [
+            "Dominant pickup ion characteristic direction MSO X",
+            "F16.3"
+        ],
+        "96": [
+            "Dominant pickup ion characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "97": [
+            "Dominant pickup ion characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "98": [
+            "Dominant pickup ion characteristic angular width",
+            "F16.3"
+        ],
+        "99": [
+            "Quality",
+            "F16.3"
+        ],
+        "100": [
+            "Ion Flux (30-1000 keV), FOV 1-F",
+            "E16.2"
+        ],
+        "101": [
+            "Quality",
+            "E16.2"
+        ],
+        "102": [
+            "Ion Flux (30-1000 keV), FOV 1-R",
+            "E16.2"
+        ],
+        "103": [
+            "Quality",
+            "E16.2"
+        ],
+        "104": [
+            "Ion Flux (30-1000 keV), FOV 2-F",
+            "E16.2"
+        ],
+        "105": [
+            "Quality",
+            "E16.2"
+        ],
+        "106": [
+            "Ion Flux (30-1000 keV), FOV 2-R",
+            "E16.2"
+        ],
+        "107": [
+            "Quality",
+            "E16.2"
+        ],
+        "108": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-F",
+            "E16.2"
+        ],
+        "109": [
+            "Quality",
+            "E16.2"
+        ],
+        "110": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-R",
+            "E16.2"
+        ],
+        "111": [
+            "Quality",
+            "E16.2"
+        ],
+        "112": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-F",
+            "E16.2"
+        ],
+        "113": [
+            "Quality",
+            "E16.2"
+        ],
+        "114": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-R",
+            "E16.2"
+        ],
+        "115": [
+            "Quality",
+            "E16.2"
+        ],
+        "116": [
+            "Look direction 1-F MSO X",
+            "F16.3"
+        ],
+        "117": [
+            "Look direction 1-F MSO Y",
+            "F16.3"
+        ],
+        "118": [
+            "Look direction 1-F MSO Z",
+            "F16.3"
+        ],
+        "119": [
+            "Look direction 1-R MSO X",
+            "F16.3"
+        ],
+        "120": [
+            "Look direction 1-R MSO Y",
+            "F16.3"
+        ],
+        "121": [
+            "Look direction 1-R MSO Z",
+            "F16.3"
+        ],
+        "122": [
+            "Look direction 2-F MSO X",
+            "F16.3"
+        ],
+        "123": [
+            "Look direction 2-F MSO Y",
+            "F16.3"
+        ],
+        "124": [
+            "Look direction 2-F MSO Z",
+            "F16.3"
+        ],
+        "125": [
+            "Look direction 2-R MSO X",
+            "F16.3"
+        ],
+        "126": [
+            "Look direction 2-R MSO Y",
+            "F16.3"
+        ],
+        "127": [
+            "Look direction 2-R MSO Z",
+            "F16.3"
+        ],
+        "128": [
+            "Magnetic Field MSO X",
+            "E16.2"
+        ],
+        "129": [
+            "Quality",
+            "E16.2"
+        ],
+        "130": [
+            "Magnetic Field MSO Y",
+            "E16.2"
+        ],
+        "131": [
+            "Quality",
+            "E16.2"
+        ],
+        "132": [
+            "Magnetic Field MSO Z",
+            "E16.2"
+        ],
+        "133": [
+            "Quality",
+            "E16.2"
+        ],
+        "134": [
+            "Magnetic Field GEO X",
+            "E16.2"
+        ],
+        "135": [
+            "Quality",
+            "E16.2"
+        ],
+        "136": [
+            "Magnetic Field GEO Y",
+            "E16.2"
+        ],
+        "137": [
+            "Quality",
+            "E16.2"
+        ],
+        "138": [
+            "Magnetic Field GEO Z",
+            "E16.2"
+        ],
+        "139": [
+            "Quality",
+            "E16.2"
+        ],
+        "140": [
+            "Magnetic Field RMS Deviation",
+            "E16.2"
+        ],
+        "141": [
+            "Quality",
+            "E16.2"
+        ],
+        "142": [
+            "He Density",
+            "E16.2"
+        ],
+        "143": [
+            "Precision",
+            "E16.2"
+        ],
+        "144": [
+            "Quality",
+            "A16  "
+        ],
+        "145": [
+            "O Density",
+            "E16.2"
+        ],
+        "146": [
+            "Precision",
+            "E16.2"
+        ],
+        "147": [
+            "Quality",
+            "A16  "
+        ],
+        "148": [
+            "CO Density",
+            "E16.2"
+        ],
+        "149": [
+            "Precision",
+            "E16.2"
+        ],
+        "150": [
+            "Quality",
+            "A16  "
+        ],
+        "151": [
+            "N2 Density",
+            "E16.2"
+        ],
+        "152": [
+            "Precision",
+            "E16.2"
+        ],
+        "153": [
+            "Quality",
+            "A16  "
+        ],
+        "154": [
+            "NO Density",
+            "E16.2"
+        ],
+        "155": [
+            "Precision",
+            "E16.2"
+        ],
+        "156": [
+            "Quality",
+            "A16  "
+        ],
+        "157": [
+            "Ar Density",
+            "E16.2"
+        ],
+        "158": [
+            "Precision",
+            "E16.2"
+        ],
+        "159": [
+            "Quality",
+            "A16  "
+        ],
+        "160": [
+            "CO2 Density",
+            "E16.2"
+        ],
+        "161": [
+            "Precision",
+            "E16.2"
+        ],
+        "162": [
+            "Quality",
+            "A16  "
+        ],
+        "163": [
+            "Ion Density - amu 32+",
+            "E16.2"
+        ],
+        "164": [
+            "Precision",
+            "E16.2"
+        ],
+        "165": [
+            "Quality",
+            "A16  "
+        ],
+        "166": [
+            "Ion Density - amu 44+",
+            "E16.2"
+        ],
+        "167": [
+            "Precision",
+            "E16.2"
+        ],
+        "168": [
+            "Quality",
+            "A16  "
+        ],
+        "169": [
+            "Ion Density - amu 30+",
+            "E16.2"
+        ],
+        "170": [
+            "Precision",
+            "E16.2"
+        ],
+        "171": [
+            "Quality",
+            "A16  "
+        ],
+        "172": [
+            "Ion Density - amu 16+",
+            "E16.2"
+        ],
+        "173": [
+            "Precision",
+            "E16.2"
+        ],
+        "174": [
+            "Quality",
+            "A16  "
+        ],
+        "175": [
+            "Ion Density - amu 28+",
+            "E16.2"
+        ],
+        "176": [
+            "Precision",
+            "E16.2"
+        ],
+        "177": [
+            "Quality",
+            "A16  "
+        ],
+        "178": [
+            "Ion Density - amu 12+",
+            "E16.2"
+        ],
+        "179": [
+            "Precision",
+            "E16.2"
+        ],
+        "180": [
+            "Quality",
+            "A16  "
+        ],
+        "181": [
+            "Ion Density - amu 17+",
+            "E16.2"
+        ],
+        "182": [
+            "Precision",
+            "E16.2"
+        ],
+        "183": [
+            "Quality",
+            "A16  "
+        ],
+        "184": [
+            "Ion Density - amu 14+",
+            "E16.2"
+        ],
+        "185": [
+            "Precision",
+            "E16.2"
+        ],
+        "186": [
+            "Quality",
+            "A16  "
+        ],
+        "187": [
+            "Spacecraft GEO X",
+            "E16.2"
+        ],
+        "188": [
+            "Spacecraft GEO Y",
+            "E16.2"
+        ],
+        "189": [
+            "Spacecraft GEO Z",
+            "E16.2"
+        ],
+        "190": [
+            "Spacecraft MSO X",
+            "E16.2"
+        ],
+        "191": [
+            "Spacecraft MSO Y",
+            "E16.2"
+        ],
+        "192": [
+            "Spacecraft MSO Z",
+            "E16.2"
+        ],
+        "193": [
+            "Spacecraft GEO Longitude",
+            "F16.2"
+        ],
+        "194": [
+            "Spacecraft GEO Latitude",
+            "F16.2"
+        ],
+        "195": [
+            "Spacecraft solar zenith angle",
+            "F16.2"
+        ],
+        "196": [
+            "Spacecraft local time",
+            "F16.2"
+        ],
+        "197": [
+            "Spacecraft altitude w.r.t. ellipsoid",
+            "F16.2"
+        ],
+        "198": [
+            "Spacecraft attitude GEO X",
+            "F16.3"
+        ],
+        "199": [
+            "Spacecraft attitude GEO Y",
+            "F16.3"
+        ],
+        "200": [
+            "Spacecraft attitude GEO Z",
+            "F16.3"
+        ],
+        "201": [
+            "Spacecraft attitude MSO X",
+            "F16.3"
+        ],
+        "202": [
+            "Spacecraft attitude MSO Y",
+            "F16.3"
+        ],
+        "203": [
+            "Spacecraft attitude MSO Z",
+            "F16.3"
+        ],
+        "204": [
+            "APP Attitude GEO X",
+            "F16.3"
+        ],
+        "205": [
+            "APP Attitude GEO Y",
+            "F16.3"
+        ],
+        "206": [
+            "APP Attitude GEO Z",
+            "F16.3"
+        ],
+        "207": [
+            "APP Attitude MSO X",
+            "F16.3"
+        ],
+        "208": [
+            "APP Attitude MSO Y",
+            "F16.3"
+        ],
+        "209": [
+            "APP Attitude MSO Z",
+            "F16.3"
+        ],
+        "210": [
+            "Orbit Number",
+            "I16  "
+        ],
+        "211": [
+            "Inbound/Outbound Flag",
+            "A16  "
+        ],
+        "212": [
+            "Mars Season (Ls)",
+            "F16.2"
+        ],
+        "213": [
+            "Mars-Sun distance",
+            "F16.4"
+        ],
+        "214": [
+            "Subsolar Point GEO Longitude",
+            "F16.2"
+        ],
+        "215": [
+            "Subsolar Point GEO Latitude",
+            "F16.2"
+        ],
+        "216": [
+            "Sub-Mars Point on the Sun, Longitude",
+            "F16.2"
+        ],
+        "217": [
+            "Sub-Mars Point on the Sun, Latitude",
+            "F16.2"
+        ],
+        "218": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "219": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "220": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "221": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "222": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "223": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "224": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "225": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "226": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ],
+        "227": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "228": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "229": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "230": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "231": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "232": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "233": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "234": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "235": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ]
     },
     "15": {
-        "1": "Time (UTC/SCET)",
-        "2": "Electron Density",
-        "3": "Quality",
-        "4": "Quality",
-        "5": "Electron Temperature",
-        "6": "Quality",
-        "7": "Quality",
-        "8": "Spacecraft Potential",
-        "9": "Quality",
-        "10": "Quality",
-        "11": "E-field wave power (2 - 100 Hz)",
-        "12": "Quality",
-        "13": "E-field wave power (100 - 800 Hz)",
-        "14": "Quality",
-        "15": "E-field wave power (800 - 1000 Hz)",
-        "16": "Quality",
-        "17": "EUV irradiance (0.1 - 7.0 nm)",
-        "18": "Quality",
-        "19": "EUV irradiance (17 - 22 nm)",
-        "20": "Quality",
-        "21": "EUV irradiance (Lyman-alpha)",
-        "22": "Quality",
-        "23": "Solar wind electron density",
-        "24": "Quality",
-        "25": "Solar wind electron temperature",
-        "26": "Quality",
-        "27": "Electron parallel energy flux (5 - 100 eV)",
-        "28": "Quality",
-        "29": "Electron parallel energy flux (100 - 500 eV)",
-        "30": "Quality",
-        "31": "Electron parallel energy flux (500 - 1000 eV)",
-        "32": "Quality",
-        "33": "Electron anti-parallel energy flux (5 - 100 eV)",
-        "34": "Quality",
-        "35": "Electron anti-parallel energy flux (100 - 500 eV)",
-        "36": "Quality",
-        "37": "Electron anti-parallel energy flux (500 - 1000 eV)",
-        "38": "Quality",
-        "39": "Electron spectrum shape parameter",
-        "40": "Quality",
-        "41": "H+ density",
-        "42": "Quality",
-        "43": "H+ flow velocity MSO X",
-        "44": "Quality",
-        "45": "H+ flow velocity MSO Y",
-        "46": "Quality",
-        "47": "H+ flow velocity MSO Z",
-        "48": "Quality",
-        "49": "H+ temperature",
-        "50": "Quality",
-        "51": "Solar wind dynamic pressure",
-        "52": "Quality",
-        "53": "STATIC Quality Flag",
-        "54": "H+ density",
-        "55": "Quality",
-        "56": "O+ density",
-        "57": "Quality",
-        "58": "O2+ density",
-        "59": "Quality",
-        "60": "H+ temperature",
-        "61": "Quality",
-        "62": "O+ temperature",
-        "63": "Quality",
-        "64": "O2+ temperature",
-        "65": "Quality",
-        "66": "O2+ flow velocity MAVEN_APP X",
-        "67": "Quality",
-        "68": "O2+ flow velocity MAVEN_APP Y",
-        "69": "Quality",
-        "70": "O2+ flow velocity MAVEN_APP Z",
-        "71": "Quality",
-        "72": "O2+ flow velocity MSO X",
-        "73": "Quality",
-        "74": "O2+ flow velocity MSO Y",
-        "75": "Quality",
-        "76": "O2+ flow velocity MSO Z",
-        "77": "Quality",
-        "78": "H+ omni-directional flux",
-        "79": "H+ characteristic energy",
-        "80": "Quality",
-        "81": "He++ omni-directional flux",
-        "82": "He++ characteristic energy",
-        "83": "Quality",
-        "84": "O+ omni-directional flux",
-        "85": "O+ characteristic energy",
-        "86": "Quality",
-        "87": "O2+ omni-directional flux",
-        "88": "O2+ characteristic energy",
-        "89": "Quality",
-        "90": "H+ characteristic direction MSO X",
-        "91": "H+ characteristic direction MSO Y",
-        "92": "H+ characteristic direction MSO Z",
-        "93": "H+ characteristic angular width",
-        "94": "Quality",
-        "95": "Dominant pickup ion characteristic direction MSO X",
-        "96": "Dominant pickup ion characteristic direction MSO Y",
-        "97": "Dominant pickup ion characteristic direction MSO Z",
-        "98": "Dominant pickup ion characteristic angular width",
-        "99": "Quality",
-        "100": "Ion Flux (30-1000 keV), FOV 1-F",
-        "101": "Quality",
-        "102": "Ion Flux (30-1000 keV), FOV 1-R",
-        "103": "Quality",
-        "104": "Ion Flux (30-1000 keV), FOV 2-F",
-        "105": "Quality",
-        "106": "Ion Flux (30-1000 keV), FOV 2-R",
-        "107": "Quality",
-        "108": "Electron Flux (30 keV - 300 keV) - FOV 1-F",
-        "109": "Quality",
-        "110": "Electron Flux (30 keV - 300 keV) - FOV 1-R",
-        "111": "Quality",
-        "112": "Electron Flux (30 keV - 300 keV) - FOV 2-F",
-        "113": "Quality",
-        "114": "Electron Flux (30 keV - 300 keV) - FOV 2-R",
-        "115": "Quality",
-        "116": "Look direction 1-F MSO X",
-        "117": "Look direction 1-F MSO Y",
-        "118": "Look direction 1-F MSO Z",
-        "119": "Look direction 1-R MSO X",
-        "120": "Look direction 1-R MSO Y",
-        "121": "Look direction 1-R MSO Z",
-        "122": "Look direction 2-F MSO X",
-        "123": "Look direction 2-F MSO Y",
-        "124": "Look direction 2-F MSO Z",
-        "125": "Look direction 2-R MSO X",
-        "126": "Look direction 2-R MSO Y",
-        "127": "Look direction 2-R MSO Z",
-        "128": "Magnetic Field MSO X",
-        "129": "Quality",
-        "130": "Magnetic Field MSO Y",
-        "131": "Quality",
-        "132": "Magnetic Field MSO Z",
-        "133": "Quality",
-        "134": "Magnetic Field GEO X",
-        "135": "Quality",
-        "136": "Magnetic Field GEO Y",
-        "137": "Quality",
-        "138": "Magnetic Field GEO Z",
-        "139": "Quality",
-        "140": "Magnetic Field RMS Deviation",
-        "141": "Quality",
-        "142": "He Density",
-        "143": "Precision",
-        "144": "Quality",
-        "145": "O Density",
-        "146": "Precision",
-        "147": "Quality",
-        "148": "CO Density",
-        "149": "Precision",
-        "150": "Quality",
-        "151": "N2 Density",
-        "152": "Precision",
-        "153": "Quality",
-        "154": "NO Density",
-        "155": "Precision",
-        "156": "Quality",
-        "157": "Ar Density",
-        "158": "Precision",
-        "159": "Quality",
-        "160": "CO2 Density",
-        "161": "Precision",
-        "162": "Quality",
-        "163": "Ion Density - amu 32+",
-        "164": "Precision",
-        "165": "Quality",
-        "166": "Ion Density - amu 44+",
-        "167": "Precision",
-        "168": "Quality",
-        "169": "Ion Density - amu 30+",
-        "170": "Precision",
-        "171": "Quality",
-        "172": "Ion Density - amu 16+",
-        "173": "Precision",
-        "174": "Quality",
-        "175": "Ion Density - amu 28+",
-        "176": "Precision",
-        "177": "Quality",
-        "178": "Ion Density - amu 12+",
-        "179": "Precision",
-        "180": "Quality",
-        "181": "Ion Density - amu 17+",
-        "182": "Precision",
-        "183": "Quality",
-        "184": "Ion Density - amu 14+",
-        "185": "Precision",
-        "186": "Quality",
-        "187": "Spacecraft GEO X",
-        "188": "Spacecraft GEO Y",
-        "189": "Spacecraft GEO Z",
-        "190": "Spacecraft MSO X",
-        "191": "Spacecraft MSO Y",
-        "192": "Spacecraft MSO Z",
-        "193": "Spacecraft GEO Longitude",
-        "194": "Spacecraft GEO Latitude",
-        "195": "Spacecraft solar zenith angle",
-        "196": "Spacecraft local time",
-        "197": "Spacecraft altitude w.r.t. ellipsoid",
-        "198": "Spacecraft attitude GEO X",
-        "199": "Spacecraft attitude GEO Y",
-        "200": "Spacecraft attitude GEO Z",
-        "201": "Spacecraft attitude MSO X",
-        "202": "Spacecraft attitude MSO Y",
-        "203": "Spacecraft attitude MSO Z",
-        "204": "APP Attitude GEO X",
-        "205": "APP Attitude GEO Y",
-        "206": "APP Attitude GEO Z",
-        "207": "APP Attitude MSO X",
-        "208": "APP Attitude MSO Y",
-        "209": "APP Attitude MSO Z",
-        "210": "Orbit Number",
-        "211": "Inbound/Outbound Flag",
-        "212": "Mars Season (Ls)",
-        "213": "Mars-Sun distance",
-        "214": "Subsolar Point GEO Longitude",
-        "215": "Subsolar Point GEO Latitude",
-        "216": "Sub-Mars Point on the Sun, Longitude",
-        "217": "Sub-Mars Point on the Sun, Latitude",
-        "218": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
-        "219": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
-        "220": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
-        "221": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
-        "222": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
-        "223": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
-        "224": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
-        "225": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
-        "226": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
-        "227": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
-        "228": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
-        "229": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
-        "230": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
-        "231": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
-        "232": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
-        "233": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
-        "234": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
-        "235": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]"
+        "1": [
+            "Time (UTC/SCET)",
+            "yyyy-"
+        ],
+        "2": [
+            "Electron Density",
+            "E16.2"
+        ],
+        "3": [
+            "Quality",
+            "E16.2"
+        ],
+        "4": [
+            "Quality",
+            "E16.2"
+        ],
+        "5": [
+            "Electron Temperature",
+            "E16.2"
+        ],
+        "6": [
+            "Quality",
+            "E16.2"
+        ],
+        "7": [
+            "Quality",
+            "E16.2"
+        ],
+        "8": [
+            "Spacecraft Potential",
+            "E16.2"
+        ],
+        "9": [
+            "Quality",
+            "E16.2"
+        ],
+        "10": [
+            "Quality",
+            "E16.2"
+        ],
+        "11": [
+            "E-field wave power (2 - 100 Hz)",
+            "E16.2"
+        ],
+        "12": [
+            "Quality",
+            "E16.2"
+        ],
+        "13": [
+            "E-field wave power (100 - 800 Hz)",
+            "E16.2"
+        ],
+        "14": [
+            "Quality",
+            "E16.2"
+        ],
+        "15": [
+            "E-field wave power (800 - 1000 Hz)",
+            "E16.2"
+        ],
+        "16": [
+            "Quality",
+            "E16.2"
+        ],
+        "17": [
+            "EUV irradiance (0.1 - 7.0 nm)",
+            "E16.2"
+        ],
+        "18": [
+            "Quality",
+            "E16.2"
+        ],
+        "19": [
+            "EUV irradiance (17 - 22 nm)",
+            "E16.2"
+        ],
+        "20": [
+            "Quality",
+            "E16.2"
+        ],
+        "21": [
+            "EUV irradiance (Lyman-alpha)",
+            "E16.2"
+        ],
+        "22": [
+            "Quality",
+            "E16.2"
+        ],
+        "23": [
+            "Solar wind electron density",
+            "E16.2"
+        ],
+        "24": [
+            "Quality",
+            "E16.2"
+        ],
+        "25": [
+            "Solar wind electron temperature",
+            "E16.2"
+        ],
+        "26": [
+            "Quality",
+            "E16.2"
+        ],
+        "27": [
+            "Electron parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "28": [
+            "Quality",
+            "E16.2"
+        ],
+        "29": [
+            "Electron parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "30": [
+            "Quality",
+            "E16.2"
+        ],
+        "31": [
+            "Electron parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "32": [
+            "Quality",
+            "E16.2"
+        ],
+        "33": [
+            "Electron anti-parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "34": [
+            "Quality",
+            "E16.2"
+        ],
+        "35": [
+            "Electron anti-parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "36": [
+            "Quality",
+            "E16.2"
+        ],
+        "37": [
+            "Electron anti-parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "38": [
+            "Quality",
+            "E16.2"
+        ],
+        "39": [
+            "Electron spectrum shape parameter",
+            "F16.3"
+        ],
+        "40": [
+            "Quality",
+            "F16.3"
+        ],
+        "41": [
+            "H+ density",
+            "E16.2"
+        ],
+        "42": [
+            "Quality",
+            "E16.2"
+        ],
+        "43": [
+            "H+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "44": [
+            "Quality",
+            "E16.2"
+        ],
+        "45": [
+            "H+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "46": [
+            "Quality",
+            "E16.2"
+        ],
+        "47": [
+            "H+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "48": [
+            "Quality",
+            "E16.2"
+        ],
+        "49": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "50": [
+            "Quality",
+            "E16.2"
+        ],
+        "51": [
+            "Solar wind dynamic pressure",
+            "E16.2"
+        ],
+        "52": [
+            "Quality",
+            "E16.2"
+        ],
+        "53": [
+            "STATIC Quality Flag",
+            "F16.0"
+        ],
+        "54": [
+            "H+ density",
+            "E16.2"
+        ],
+        "55": [
+            "Quality",
+            "E16.2"
+        ],
+        "56": [
+            "O+ density",
+            "E16.2"
+        ],
+        "57": [
+            "Quality",
+            "E16.2"
+        ],
+        "58": [
+            "O2+ density",
+            "E16.2"
+        ],
+        "59": [
+            "Quality",
+            "E16.2"
+        ],
+        "60": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "61": [
+            "Quality",
+            "E16.2"
+        ],
+        "62": [
+            "O+ temperature",
+            "E16.2"
+        ],
+        "63": [
+            "Quality",
+            "E16.2"
+        ],
+        "64": [
+            "O2+ temperature",
+            "E16.2"
+        ],
+        "65": [
+            "Quality",
+            "E16.2"
+        ],
+        "66": [
+            "O2+ flow velocity MAVEN_APP X",
+            "E16.2"
+        ],
+        "67": [
+            "Quality",
+            "E16.2"
+        ],
+        "68": [
+            "O2+ flow velocity MAVEN_APP Y",
+            "E16.2"
+        ],
+        "69": [
+            "Quality",
+            "E16.2"
+        ],
+        "70": [
+            "O2+ flow velocity MAVEN_APP Z",
+            "E16.2"
+        ],
+        "71": [
+            "Quality",
+            "E16.2"
+        ],
+        "72": [
+            "O2+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "73": [
+            "Quality",
+            "E16.2"
+        ],
+        "74": [
+            "O2+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "75": [
+            "Quality",
+            "E16.2"
+        ],
+        "76": [
+            "O2+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "77": [
+            "Quality",
+            "E16.2"
+        ],
+        "78": [
+            "H+ omni-directional flux",
+            "E16.2"
+        ],
+        "79": [
+            "H+ characteristic energy",
+            "E16.2"
+        ],
+        "80": [
+            "Quality",
+            "E16.2"
+        ],
+        "81": [
+            "He++ omni-directional flux",
+            "E16.2"
+        ],
+        "82": [
+            "He++ characteristic energy",
+            "E16.2"
+        ],
+        "83": [
+            "Quality",
+            "E16.2"
+        ],
+        "84": [
+            "O+ omni-directional flux",
+            "E16.2"
+        ],
+        "85": [
+            "O+ characteristic energy",
+            "E16.2"
+        ],
+        "86": [
+            "Quality",
+            "E16.2"
+        ],
+        "87": [
+            "O2+ omni-directional flux",
+            "E16.2"
+        ],
+        "88": [
+            "O2+ characteristic energy",
+            "E16.2"
+        ],
+        "89": [
+            "Quality",
+            "E16.2"
+        ],
+        "90": [
+            "H+ characteristic direction MSO X",
+            "F16.3"
+        ],
+        "91": [
+            "H+ characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "92": [
+            "H+ characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "93": [
+            "H+ characteristic angular width",
+            "F16.3"
+        ],
+        "94": [
+            "Quality",
+            "F16.3"
+        ],
+        "95": [
+            "Dominant pickup ion characteristic direction MSO X",
+            "F16.3"
+        ],
+        "96": [
+            "Dominant pickup ion characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "97": [
+            "Dominant pickup ion characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "98": [
+            "Dominant pickup ion characteristic angular width",
+            "F16.3"
+        ],
+        "99": [
+            "Quality",
+            "F16.3"
+        ],
+        "100": [
+            "Ion Flux (30-1000 keV), FOV 1-F",
+            "E16.2"
+        ],
+        "101": [
+            "Quality",
+            "E16.2"
+        ],
+        "102": [
+            "Ion Flux (30-1000 keV), FOV 1-R",
+            "E16.2"
+        ],
+        "103": [
+            "Quality",
+            "E16.2"
+        ],
+        "104": [
+            "Ion Flux (30-1000 keV), FOV 2-F",
+            "E16.2"
+        ],
+        "105": [
+            "Quality",
+            "E16.2"
+        ],
+        "106": [
+            "Ion Flux (30-1000 keV), FOV 2-R",
+            "E16.2"
+        ],
+        "107": [
+            "Quality",
+            "E16.2"
+        ],
+        "108": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-F",
+            "E16.2"
+        ],
+        "109": [
+            "Quality",
+            "E16.2"
+        ],
+        "110": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-R",
+            "E16.2"
+        ],
+        "111": [
+            "Quality",
+            "E16.2"
+        ],
+        "112": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-F",
+            "E16.2"
+        ],
+        "113": [
+            "Quality",
+            "E16.2"
+        ],
+        "114": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-R",
+            "E16.2"
+        ],
+        "115": [
+            "Quality",
+            "E16.2"
+        ],
+        "116": [
+            "Look direction 1-F MSO X",
+            "F16.3"
+        ],
+        "117": [
+            "Look direction 1-F MSO Y",
+            "F16.3"
+        ],
+        "118": [
+            "Look direction 1-F MSO Z",
+            "F16.3"
+        ],
+        "119": [
+            "Look direction 1-R MSO X",
+            "F16.3"
+        ],
+        "120": [
+            "Look direction 1-R MSO Y",
+            "F16.3"
+        ],
+        "121": [
+            "Look direction 1-R MSO Z",
+            "F16.3"
+        ],
+        "122": [
+            "Look direction 2-F MSO X",
+            "F16.3"
+        ],
+        "123": [
+            "Look direction 2-F MSO Y",
+            "F16.3"
+        ],
+        "124": [
+            "Look direction 2-F MSO Z",
+            "F16.3"
+        ],
+        "125": [
+            "Look direction 2-R MSO X",
+            "F16.3"
+        ],
+        "126": [
+            "Look direction 2-R MSO Y",
+            "F16.3"
+        ],
+        "127": [
+            "Look direction 2-R MSO Z",
+            "F16.3"
+        ],
+        "128": [
+            "Magnetic Field MSO X",
+            "E16.2"
+        ],
+        "129": [
+            "Quality",
+            "E16.2"
+        ],
+        "130": [
+            "Magnetic Field MSO Y",
+            "E16.2"
+        ],
+        "131": [
+            "Quality",
+            "E16.2"
+        ],
+        "132": [
+            "Magnetic Field MSO Z",
+            "E16.2"
+        ],
+        "133": [
+            "Quality",
+            "E16.2"
+        ],
+        "134": [
+            "Magnetic Field GEO X",
+            "E16.2"
+        ],
+        "135": [
+            "Quality",
+            "E16.2"
+        ],
+        "136": [
+            "Magnetic Field GEO Y",
+            "E16.2"
+        ],
+        "137": [
+            "Quality",
+            "E16.2"
+        ],
+        "138": [
+            "Magnetic Field GEO Z",
+            "E16.2"
+        ],
+        "139": [
+            "Quality",
+            "E16.2"
+        ],
+        "140": [
+            "Magnetic Field RMS Deviation",
+            "E16.2"
+        ],
+        "141": [
+            "Quality",
+            "E16.2"
+        ],
+        "142": [
+            "He Density",
+            "E16.2"
+        ],
+        "143": [
+            "Precision",
+            "E16.2"
+        ],
+        "144": [
+            "Quality",
+            "A16  "
+        ],
+        "145": [
+            "O Density",
+            "E16.2"
+        ],
+        "146": [
+            "Precision",
+            "E16.2"
+        ],
+        "147": [
+            "Quality",
+            "A16  "
+        ],
+        "148": [
+            "CO Density",
+            "E16.2"
+        ],
+        "149": [
+            "Precision",
+            "E16.2"
+        ],
+        "150": [
+            "Quality",
+            "A16  "
+        ],
+        "151": [
+            "N2 Density",
+            "E16.2"
+        ],
+        "152": [
+            "Precision",
+            "E16.2"
+        ],
+        "153": [
+            "Quality",
+            "A16  "
+        ],
+        "154": [
+            "NO Density",
+            "E16.2"
+        ],
+        "155": [
+            "Precision",
+            "E16.2"
+        ],
+        "156": [
+            "Quality",
+            "A16  "
+        ],
+        "157": [
+            "Ar Density",
+            "E16.2"
+        ],
+        "158": [
+            "Precision",
+            "E16.2"
+        ],
+        "159": [
+            "Quality",
+            "A16  "
+        ],
+        "160": [
+            "CO2 Density",
+            "E16.2"
+        ],
+        "161": [
+            "Precision",
+            "E16.2"
+        ],
+        "162": [
+            "Quality",
+            "A16  "
+        ],
+        "163": [
+            "Ion Density - amu 32+",
+            "E16.2"
+        ],
+        "164": [
+            "Precision",
+            "E16.2"
+        ],
+        "165": [
+            "Quality",
+            "A16  "
+        ],
+        "166": [
+            "Ion Density - amu 44+",
+            "E16.2"
+        ],
+        "167": [
+            "Precision",
+            "E16.2"
+        ],
+        "168": [
+            "Quality",
+            "A16  "
+        ],
+        "169": [
+            "Ion Density - amu 30+",
+            "E16.2"
+        ],
+        "170": [
+            "Precision",
+            "E16.2"
+        ],
+        "171": [
+            "Quality",
+            "A16  "
+        ],
+        "172": [
+            "Ion Density - amu 16+",
+            "E16.2"
+        ],
+        "173": [
+            "Precision",
+            "E16.2"
+        ],
+        "174": [
+            "Quality",
+            "A16  "
+        ],
+        "175": [
+            "Ion Density - amu 28+",
+            "E16.2"
+        ],
+        "176": [
+            "Precision",
+            "E16.2"
+        ],
+        "177": [
+            "Quality",
+            "A16  "
+        ],
+        "178": [
+            "Ion Density - amu 12+",
+            "E16.2"
+        ],
+        "179": [
+            "Precision",
+            "E16.2"
+        ],
+        "180": [
+            "Quality",
+            "A16  "
+        ],
+        "181": [
+            "Ion Density - amu 17+",
+            "E16.2"
+        ],
+        "182": [
+            "Precision",
+            "E16.2"
+        ],
+        "183": [
+            "Quality",
+            "A16  "
+        ],
+        "184": [
+            "Ion Density - amu 14+",
+            "E16.2"
+        ],
+        "185": [
+            "Precision",
+            "E16.2"
+        ],
+        "186": [
+            "Quality",
+            "A16  "
+        ],
+        "187": [
+            "Spacecraft GEO X",
+            "E16.2"
+        ],
+        "188": [
+            "Spacecraft GEO Y",
+            "E16.2"
+        ],
+        "189": [
+            "Spacecraft GEO Z",
+            "E16.2"
+        ],
+        "190": [
+            "Spacecraft MSO X",
+            "E16.2"
+        ],
+        "191": [
+            "Spacecraft MSO Y",
+            "E16.2"
+        ],
+        "192": [
+            "Spacecraft MSO Z",
+            "E16.2"
+        ],
+        "193": [
+            "Spacecraft GEO Longitude",
+            "F16.2"
+        ],
+        "194": [
+            "Spacecraft GEO Latitude",
+            "F16.2"
+        ],
+        "195": [
+            "Spacecraft solar zenith angle",
+            "F16.2"
+        ],
+        "196": [
+            "Spacecraft local time",
+            "F16.2"
+        ],
+        "197": [
+            "Spacecraft altitude w.r.t. ellipsoid",
+            "F16.2"
+        ],
+        "198": [
+            "Spacecraft attitude GEO X",
+            "F16.3"
+        ],
+        "199": [
+            "Spacecraft attitude GEO Y",
+            "F16.3"
+        ],
+        "200": [
+            "Spacecraft attitude GEO Z",
+            "F16.3"
+        ],
+        "201": [
+            "Spacecraft attitude MSO X",
+            "F16.3"
+        ],
+        "202": [
+            "Spacecraft attitude MSO Y",
+            "F16.3"
+        ],
+        "203": [
+            "Spacecraft attitude MSO Z",
+            "F16.3"
+        ],
+        "204": [
+            "APP Attitude GEO X",
+            "F16.3"
+        ],
+        "205": [
+            "APP Attitude GEO Y",
+            "F16.3"
+        ],
+        "206": [
+            "APP Attitude GEO Z",
+            "F16.3"
+        ],
+        "207": [
+            "APP Attitude MSO X",
+            "F16.3"
+        ],
+        "208": [
+            "APP Attitude MSO Y",
+            "F16.3"
+        ],
+        "209": [
+            "APP Attitude MSO Z",
+            "F16.3"
+        ],
+        "210": [
+            "Orbit Number",
+            "I16  "
+        ],
+        "211": [
+            "Inbound/Outbound Flag",
+            "A16  "
+        ],
+        "212": [
+            "Mars Season (Ls)",
+            "F16.2"
+        ],
+        "213": [
+            "Mars-Sun distance",
+            "F16.4"
+        ],
+        "214": [
+            "Subsolar Point GEO Longitude",
+            "F16.2"
+        ],
+        "215": [
+            "Subsolar Point GEO Latitude",
+            "F16.2"
+        ],
+        "216": [
+            "Sub-Mars Point on the Sun, Longitude",
+            "F16.2"
+        ],
+        "217": [
+            "Sub-Mars Point on the Sun, Latitude",
+            "F16.2"
+        ],
+        "218": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "219": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "220": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "221": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "222": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "223": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "224": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "225": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "226": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ],
+        "227": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "228": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "229": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "230": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "231": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "232": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "233": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "234": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "235": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ]
     },
     "13": {
-        "1": "Time (UTC/SCET)",
-        "2": "Electron Density",
-        "3": "Quality",
-        "4": "Quality",
-        "5": "Electron Temperature",
-        "6": "Quality",
-        "7": "Quality",
-        "8": "Spacecraft Potential",
-        "9": "Quality",
-        "10": "Quality",
-        "11": "E-field wave power (2 - 100 Hz)",
-        "12": "Quality",
-        "13": "E-field wave power (100 - 800 Hz)",
-        "14": "Quality",
-        "15": "E-field wave power (800 - 1000 Hz)",
-        "16": "Quality",
-        "17": "EUV irradiance (0.1 - 7.0 nm)",
-        "18": "Quality",
-        "19": "EUV irradiance (17 - 22 nm)",
-        "20": "Quality",
-        "21": "EUV irradiance (Lyman-alpha)",
-        "22": "Quality",
-        "23": "Solar wind electron density",
-        "24": "Quality",
-        "25": "Solar wind electron temperature",
-        "26": "Quality",
-        "27": "Electron parallel energy flux (5 - 100 eV)",
-        "28": "Quality",
-        "29": "Electron parallel energy flux (100 - 500 eV)",
-        "30": "Quality",
-        "31": "Electron parallel energy flux (500 - 1000 eV)",
-        "32": "Quality",
-        "33": "Electron anti-parallel energy flux (5 - 100 eV)",
-        "34": "Quality",
-        "35": "Electron anti-parallel energy flux (100 - 500 eV)",
-        "36": "Quality",
-        "37": "Electron anti-parallel energy flux (500 - 1000 eV)",
-        "38": "Quality",
-        "39": "Electron spectrum shape parameter",
-        "40": "Quality",
-        "41": "H+ density",
-        "42": "Quality",
-        "43": "H+ flow velocity MSO X",
-        "44": "Quality",
-        "45": "H+ flow velocity MSO Y",
-        "46": "Quality",
-        "47": "H+ flow velocity MSO Z",
-        "48": "Quality",
-        "49": "H+ temperature",
-        "50": "Quality",
-        "51": "Solar wind dynamic pressure",
-        "52": "Quality",
-        "53": "STATIC Quality Flag",
-        "54": "H+ density",
-        "55": "Quality",
-        "56": "O+ density",
-        "57": "Quality",
-        "58": "O2+ density",
-        "59": "Quality",
-        "60": "H+ temperature",
-        "61": "Quality",
-        "62": "O+ temperature",
-        "63": "Quality",
-        "64": "O2+ temperature",
-        "65": "Quality",
-        "66": "O2+ flow velocity MAVEN_APP X",
-        "67": "Quality",
-        "68": "O2+ flow velocity MAVEN_APP Y",
-        "69": "Quality",
-        "70": "O2+ flow velocity MAVEN_APP Z",
-        "71": "Quality",
-        "72": "O2+ flow velocity MSO X",
-        "73": "Quality",
-        "74": "O2+ flow velocity MSO Y",
-        "75": "Quality",
-        "76": "O2+ flow velocity MSO Z",
-        "77": "Quality",
-        "78": "H+ omni-directional flux",
-        "79": "H+ characteristic energy",
-        "80": "Quality",
-        "81": "He++ omni-directional flux",
-        "82": "He++ characteristic energy",
-        "83": "Quality",
-        "84": "O+ omni-directional flux",
-        "85": "O+ characteristic energy",
-        "86": "Quality",
-        "87": "O2+ omni-directional flux",
-        "88": "O2+ characteristic energy",
-        "89": "Quality",
-        "90": "H+ characteristic direction MSO X",
-        "91": "H+ characteristic direction MSO Y",
-        "92": "H+ characteristic direction MSO Z",
-        "93": "H+ characteristic angular width",
-        "94": "Quality",
-        "95": "Dominant pickup ion characteristic direction MSO X",
-        "96": "Dominant pickup ion characteristic direction MSO Y",
-        "97": "Dominant pickup ion characteristic direction MSO Z",
-        "98": "Dominant pickup ion characteristic angular width",
-        "99": "Quality",
-        "100": "Ion Flux (30-1000 keV), FOV 1-F",
-        "101": "Quality",
-        "102": "Ion Flux (30-1000 keV), FOV 1-R",
-        "103": "Quality",
-        "104": "Ion Flux (30-1000 keV), FOV 2-F",
-        "105": "Quality",
-        "106": "Ion Flux (30-1000 keV), FOV 2-R",
-        "107": "Quality",
-        "108": "Electron Flux (30 keV - 300 keV) - FOV 1-F",
-        "109": "Quality",
-        "110": "Electron Flux (30 keV - 300 keV) - FOV 1-R",
-        "111": "Quality",
-        "112": "Electron Flux (30 keV - 300 keV) - FOV 2-F",
-        "113": "Quality",
-        "114": "Electron Flux (30 keV - 300 keV) - FOV 2-R",
-        "115": "Quality",
-        "116": "Look direction 1-F MSO X",
-        "117": "Look direction 1-F MSO Y",
-        "118": "Look direction 1-F MSO Z",
-        "119": "Look direction 1-R MSO X",
-        "120": "Look direction 1-R MSO Y",
-        "121": "Look direction 1-R MSO Z",
-        "122": "Look direction 2-F MSO X",
-        "123": "Look direction 2-F MSO Y",
-        "124": "Look direction 2-F MSO Z",
-        "125": "Look direction 2-R MSO X",
-        "126": "Look direction 2-R MSO Y",
-        "127": "Look direction 2-R MSO Z",
-        "128": "Magnetic Field MSO X",
-        "129": "Quality",
-        "130": "Magnetic Field MSO Y",
-        "131": "Quality",
-        "132": "Magnetic Field MSO Z",
-        "133": "Quality",
-        "134": "Magnetic Field GEO X",
-        "135": "Quality",
-        "136": "Magnetic Field GEO Y",
-        "137": "Quality",
-        "138": "Magnetic Field GEO Z",
-        "139": "Quality",
-        "140": "Magnetic Field RMS Deviation",
-        "141": "Quality",
-        "142": "He Density",
-        "143": "Precision",
-        "144": "Quality",
-        "145": "O Density",
-        "146": "Precision",
-        "147": "Quality",
-        "148": "CO Density",
-        "149": "Precision",
-        "150": "Quality",
-        "151": "N2 Density",
-        "152": "Precision",
-        "153": "Quality",
-        "154": "NO Density",
-        "155": "Precision",
-        "156": "Quality",
-        "157": "Ar Density",
-        "158": "Precision",
-        "159": "Quality",
-        "160": "CO2 Density",
-        "161": "Precision",
-        "162": "Quality",
-        "163": "Ion Density - amu 32+",
-        "164": "Precision",
-        "165": "Quality",
-        "166": "Ion Density - amu 44+",
-        "167": "Precision",
-        "168": "Quality",
-        "169": "Ion Density - amu 30+",
-        "170": "Precision",
-        "171": "Quality",
-        "172": "Ion Density - amu 16+",
-        "173": "Precision",
-        "174": "Quality",
-        "175": "Ion Density - amu 28+",
-        "176": "Precision",
-        "177": "Quality",
-        "178": "Ion Density - amu 12+",
-        "179": "Precision",
-        "180": "Quality",
-        "181": "Ion Density - amu 17+",
-        "182": "Precision",
-        "183": "Quality",
-        "184": "Ion Density - amu 14+",
-        "185": "Precision",
-        "186": "Quality",
-        "187": "Spacecraft J2000 X",
-        "188": "Spacecraft J2000 Y",
-        "189": "Spacecraft J2000 Z",
-        "190": "Spacecraft SSO X",
-        "191": "Spacecraft SSO Y",
-        "192": "Spacecraft SSO Z",
-        "193": "Spacecraft GEO Longitude",
-        "194": "Spacecraft GEO Latitude",
-        "195": "Spacecraft solar zenith angle",
-        "196": "Spacecraft local time",
-        "197": "Spacecraft radial distance from Sun",
-        "198": "Spacecraft attitude GEO X",
-        "199": "Spacecraft attitude GEO Y",
-        "200": "Spacecraft attitude GEO Z",
-        "201": "Spacecraft attitude MSO X",
-        "202": "Spacecraft attitude MSO Y",
-        "203": "Spacecraft attitude MSO Z",
-        "204": "APP Attitude GEO X",
-        "205": "APP Attitude GEO Y",
-        "206": "APP Attitude GEO Z",
-        "207": "APP Attitude MSO X",
-        "208": "APP Attitude MSO Y",
-        "209": "APP Attitude MSO Z",
-        "210": "Orbit Number",
-        "211": "Inbound/Outbound Flag",
-        "212": "Mars Season (Ls)",
-        "213": "Mars-Sun distance",
-        "214": "Subsolar Point GEO Longitude",
-        "215": "Subsolar Point GEO Latitude",
-        "216": "Sub-spacecraft Point on the Sun, Longitude",
-        "217": "Sub-spaceraft Point on the Sun, Latitude",
-        "218": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
-        "219": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
-        "220": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
-        "221": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
-        "222": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
-        "223": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
-        "224": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
-        "225": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
-        "226": "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
-        "227": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
-        "228": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
-        "229": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
-        "230": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
-        "231": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
-        "232": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
-        "233": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
-        "234": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
-        "235": "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]"
+        "1": [
+            "Time (UTC/SCET)",
+            "yyyy-"
+        ],
+        "2": [
+            "Electron Density",
+            "E16.2"
+        ],
+        "3": [
+            "Quality",
+            "E16.2"
+        ],
+        "4": [
+            "Quality",
+            "E16.2"
+        ],
+        "5": [
+            "Electron Temperature",
+            "E16.2"
+        ],
+        "6": [
+            "Quality",
+            "E16.2"
+        ],
+        "7": [
+            "Quality",
+            "E16.2"
+        ],
+        "8": [
+            "Spacecraft Potential",
+            "E16.2"
+        ],
+        "9": [
+            "Quality",
+            "E16.2"
+        ],
+        "10": [
+            "Quality",
+            "E16.2"
+        ],
+        "11": [
+            "E-field wave power (2 - 100 Hz)",
+            "E16.2"
+        ],
+        "12": [
+            "Quality",
+            "E16.2"
+        ],
+        "13": [
+            "E-field wave power (100 - 800 Hz)",
+            "E16.2"
+        ],
+        "14": [
+            "Quality",
+            "E16.2"
+        ],
+        "15": [
+            "E-field wave power (800 - 1000 Hz)",
+            "E16.2"
+        ],
+        "16": [
+            "Quality",
+            "E16.2"
+        ],
+        "17": [
+            "EUV irradiance (0.1 - 7.0 nm)",
+            "E16.2"
+        ],
+        "18": [
+            "Quality",
+            "E16.2"
+        ],
+        "19": [
+            "EUV irradiance (17 - 22 nm)",
+            "E16.2"
+        ],
+        "20": [
+            "Quality",
+            "E16.2"
+        ],
+        "21": [
+            "EUV irradiance (Lyman-alpha)",
+            "E16.2"
+        ],
+        "22": [
+            "Quality",
+            "E16.2"
+        ],
+        "23": [
+            "Solar wind electron density",
+            "E16.2"
+        ],
+        "24": [
+            "Quality",
+            "E16.2"
+        ],
+        "25": [
+            "Solar wind electron temperature",
+            "E16.2"
+        ],
+        "26": [
+            "Quality",
+            "E16.2"
+        ],
+        "27": [
+            "Electron parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "28": [
+            "Quality",
+            "E16.2"
+        ],
+        "29": [
+            "Electron parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "30": [
+            "Quality",
+            "E16.2"
+        ],
+        "31": [
+            "Electron parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "32": [
+            "Quality",
+            "E16.2"
+        ],
+        "33": [
+            "Electron anti-parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "34": [
+            "Quality",
+            "E16.2"
+        ],
+        "35": [
+            "Electron anti-parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "36": [
+            "Quality",
+            "E16.2"
+        ],
+        "37": [
+            "Electron anti-parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "38": [
+            "Quality",
+            "E16.2"
+        ],
+        "39": [
+            "Electron spectrum shape parameter",
+            "F16.3"
+        ],
+        "40": [
+            "Quality",
+            "F16.3"
+        ],
+        "41": [
+            "H+ density",
+            "E16.2"
+        ],
+        "42": [
+            "Quality",
+            "E16.2"
+        ],
+        "43": [
+            "H+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "44": [
+            "Quality",
+            "E16.2"
+        ],
+        "45": [
+            "H+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "46": [
+            "Quality",
+            "E16.2"
+        ],
+        "47": [
+            "H+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "48": [
+            "Quality",
+            "E16.2"
+        ],
+        "49": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "50": [
+            "Quality",
+            "E16.2"
+        ],
+        "51": [
+            "Solar wind dynamic pressure",
+            "E16.2"
+        ],
+        "52": [
+            "Quality",
+            "E16.2"
+        ],
+        "53": [
+            "STATIC Quality Flag",
+            "F16.0"
+        ],
+        "54": [
+            "H+ density",
+            "E16.2"
+        ],
+        "55": [
+            "Quality",
+            "E16.2"
+        ],
+        "56": [
+            "O+ density",
+            "E16.2"
+        ],
+        "57": [
+            "Quality",
+            "E16.2"
+        ],
+        "58": [
+            "O2+ density",
+            "E16.2"
+        ],
+        "59": [
+            "Quality",
+            "E16.2"
+        ],
+        "60": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "61": [
+            "Quality",
+            "E16.2"
+        ],
+        "62": [
+            "O+ temperature",
+            "E16.2"
+        ],
+        "63": [
+            "Quality",
+            "E16.2"
+        ],
+        "64": [
+            "O2+ temperature",
+            "E16.2"
+        ],
+        "65": [
+            "Quality",
+            "E16.2"
+        ],
+        "66": [
+            "O2+ flow velocity MAVEN_APP X",
+            "E16.2"
+        ],
+        "67": [
+            "Quality",
+            "E16.2"
+        ],
+        "68": [
+            "O2+ flow velocity MAVEN_APP Y",
+            "E16.2"
+        ],
+        "69": [
+            "Quality",
+            "E16.2"
+        ],
+        "70": [
+            "O2+ flow velocity MAVEN_APP Z",
+            "E16.2"
+        ],
+        "71": [
+            "Quality",
+            "E16.2"
+        ],
+        "72": [
+            "O2+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "73": [
+            "Quality",
+            "E16.2"
+        ],
+        "74": [
+            "O2+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "75": [
+            "Quality",
+            "E16.2"
+        ],
+        "76": [
+            "O2+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "77": [
+            "Quality",
+            "E16.2"
+        ],
+        "78": [
+            "H+ omni-directional flux",
+            "E16.2"
+        ],
+        "79": [
+            "H+ characteristic energy",
+            "E16.2"
+        ],
+        "80": [
+            "Quality",
+            "E16.2"
+        ],
+        "81": [
+            "He++ omni-directional flux",
+            "E16.2"
+        ],
+        "82": [
+            "He++ characteristic energy",
+            "E16.2"
+        ],
+        "83": [
+            "Quality",
+            "E16.2"
+        ],
+        "84": [
+            "O+ omni-directional flux",
+            "E16.2"
+        ],
+        "85": [
+            "O+ characteristic energy",
+            "E16.2"
+        ],
+        "86": [
+            "Quality",
+            "E16.2"
+        ],
+        "87": [
+            "O2+ omni-directional flux",
+            "E16.2"
+        ],
+        "88": [
+            "O2+ characteristic energy",
+            "E16.2"
+        ],
+        "89": [
+            "Quality",
+            "E16.2"
+        ],
+        "90": [
+            "H+ characteristic direction MSO X",
+            "F16.3"
+        ],
+        "91": [
+            "H+ characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "92": [
+            "H+ characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "93": [
+            "H+ characteristic angular width",
+            "F16.3"
+        ],
+        "94": [
+            "Quality",
+            "F16.3"
+        ],
+        "95": [
+            "Dominant pickup ion characteristic direction MSO X",
+            "F16.3"
+        ],
+        "96": [
+            "Dominant pickup ion characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "97": [
+            "Dominant pickup ion characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "98": [
+            "Dominant pickup ion characteristic angular width",
+            "F16.3"
+        ],
+        "99": [
+            "Quality",
+            "F16.3"
+        ],
+        "100": [
+            "Ion Flux (30-1000 keV), FOV 1-F",
+            "E16.2"
+        ],
+        "101": [
+            "Quality",
+            "E16.2"
+        ],
+        "102": [
+            "Ion Flux (30-1000 keV), FOV 1-R",
+            "E16.2"
+        ],
+        "103": [
+            "Quality",
+            "E16.2"
+        ],
+        "104": [
+            "Ion Flux (30-1000 keV), FOV 2-F",
+            "E16.2"
+        ],
+        "105": [
+            "Quality",
+            "E16.2"
+        ],
+        "106": [
+            "Ion Flux (30-1000 keV), FOV 2-R",
+            "E16.2"
+        ],
+        "107": [
+            "Quality",
+            "E16.2"
+        ],
+        "108": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-F",
+            "E16.2"
+        ],
+        "109": [
+            "Quality",
+            "E16.2"
+        ],
+        "110": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-R",
+            "E16.2"
+        ],
+        "111": [
+            "Quality",
+            "E16.2"
+        ],
+        "112": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-F",
+            "E16.2"
+        ],
+        "113": [
+            "Quality",
+            "E16.2"
+        ],
+        "114": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-R",
+            "E16.2"
+        ],
+        "115": [
+            "Quality",
+            "E16.2"
+        ],
+        "116": [
+            "Look direction 1-F MSO X",
+            "F16.3"
+        ],
+        "117": [
+            "Look direction 1-F MSO Y",
+            "F16.3"
+        ],
+        "118": [
+            "Look direction 1-F MSO Z",
+            "F16.3"
+        ],
+        "119": [
+            "Look direction 1-R MSO X",
+            "F16.3"
+        ],
+        "120": [
+            "Look direction 1-R MSO Y",
+            "F16.3"
+        ],
+        "121": [
+            "Look direction 1-R MSO Z",
+            "F16.3"
+        ],
+        "122": [
+            "Look direction 2-F MSO X",
+            "F16.3"
+        ],
+        "123": [
+            "Look direction 2-F MSO Y",
+            "F16.3"
+        ],
+        "124": [
+            "Look direction 2-F MSO Z",
+            "F16.3"
+        ],
+        "125": [
+            "Look direction 2-R MSO X",
+            "F16.3"
+        ],
+        "126": [
+            "Look direction 2-R MSO Y",
+            "F16.3"
+        ],
+        "127": [
+            "Look direction 2-R MSO Z",
+            "F16.3"
+        ],
+        "128": [
+            "Magnetic Field MSO X",
+            "E16.2"
+        ],
+        "129": [
+            "Quality",
+            "E16.2"
+        ],
+        "130": [
+            "Magnetic Field MSO Y",
+            "E16.2"
+        ],
+        "131": [
+            "Quality",
+            "E16.2"
+        ],
+        "132": [
+            "Magnetic Field MSO Z",
+            "E16.2"
+        ],
+        "133": [
+            "Quality",
+            "E16.2"
+        ],
+        "134": [
+            "Magnetic Field GEO X",
+            "E16.2"
+        ],
+        "135": [
+            "Quality",
+            "E16.2"
+        ],
+        "136": [
+            "Magnetic Field GEO Y",
+            "E16.2"
+        ],
+        "137": [
+            "Quality",
+            "E16.2"
+        ],
+        "138": [
+            "Magnetic Field GEO Z",
+            "E16.2"
+        ],
+        "139": [
+            "Quality",
+            "E16.2"
+        ],
+        "140": [
+            "Magnetic Field RMS Deviation",
+            "E16.2"
+        ],
+        "141": [
+            "Quality",
+            "E16.2"
+        ],
+        "142": [
+            "He Density",
+            "E16.2"
+        ],
+        "143": [
+            "Precision",
+            "E16.2"
+        ],
+        "144": [
+            "Quality",
+            "A16  "
+        ],
+        "145": [
+            "O Density",
+            "E16.2"
+        ],
+        "146": [
+            "Precision",
+            "E16.2"
+        ],
+        "147": [
+            "Quality",
+            "A16  "
+        ],
+        "148": [
+            "CO Density",
+            "E16.2"
+        ],
+        "149": [
+            "Precision",
+            "E16.2"
+        ],
+        "150": [
+            "Quality",
+            "A16  "
+        ],
+        "151": [
+            "N2 Density",
+            "E16.2"
+        ],
+        "152": [
+            "Precision",
+            "E16.2"
+        ],
+        "153": [
+            "Quality",
+            "A16  "
+        ],
+        "154": [
+            "NO Density",
+            "E16.2"
+        ],
+        "155": [
+            "Precision",
+            "E16.2"
+        ],
+        "156": [
+            "Quality",
+            "A16  "
+        ],
+        "157": [
+            "Ar Density",
+            "E16.2"
+        ],
+        "158": [
+            "Precision",
+            "E16.2"
+        ],
+        "159": [
+            "Quality",
+            "A16  "
+        ],
+        "160": [
+            "CO2 Density",
+            "E16.2"
+        ],
+        "161": [
+            "Precision",
+            "E16.2"
+        ],
+        "162": [
+            "Quality",
+            "A16  "
+        ],
+        "163": [
+            "Ion Density - amu 32+",
+            "E16.2"
+        ],
+        "164": [
+            "Precision",
+            "E16.2"
+        ],
+        "165": [
+            "Quality",
+            "A16  "
+        ],
+        "166": [
+            "Ion Density - amu 44+",
+            "E16.2"
+        ],
+        "167": [
+            "Precision",
+            "E16.2"
+        ],
+        "168": [
+            "Quality",
+            "A16  "
+        ],
+        "169": [
+            "Ion Density - amu 30+",
+            "E16.2"
+        ],
+        "170": [
+            "Precision",
+            "E16.2"
+        ],
+        "171": [
+            "Quality",
+            "A16  "
+        ],
+        "172": [
+            "Ion Density - amu 16+",
+            "E16.2"
+        ],
+        "173": [
+            "Precision",
+            "E16.2"
+        ],
+        "174": [
+            "Quality",
+            "A16  "
+        ],
+        "175": [
+            "Ion Density - amu 28+",
+            "E16.2"
+        ],
+        "176": [
+            "Precision",
+            "E16.2"
+        ],
+        "177": [
+            "Quality",
+            "A16  "
+        ],
+        "178": [
+            "Ion Density - amu 12+",
+            "E16.2"
+        ],
+        "179": [
+            "Precision",
+            "E16.2"
+        ],
+        "180": [
+            "Quality",
+            "A16  "
+        ],
+        "181": [
+            "Ion Density - amu 17+",
+            "E16.2"
+        ],
+        "182": [
+            "Precision",
+            "E16.2"
+        ],
+        "183": [
+            "Quality",
+            "A16  "
+        ],
+        "184": [
+            "Ion Density - amu 14+",
+            "E16.2"
+        ],
+        "185": [
+            "Precision",
+            "E16.2"
+        ],
+        "186": [
+            "Quality",
+            "A16  "
+        ],
+        "187": [
+            "Spacecraft J2000 X",
+            "E16.2"
+        ],
+        "188": [
+            "Spacecraft J2000 Y",
+            "E16.2"
+        ],
+        "189": [
+            "Spacecraft J2000 Z",
+            "E16.2"
+        ],
+        "190": [
+            "Spacecraft SSO X",
+            "E16.2"
+        ],
+        "191": [
+            "Spacecraft SSO Y",
+            "E16.2"
+        ],
+        "192": [
+            "Spacecraft SSO Z",
+            "E16.2"
+        ],
+        "193": [
+            "Spacecraft GEO Longitude",
+            "F16.2"
+        ],
+        "194": [
+            "Spacecraft GEO Latitude",
+            "F16.2"
+        ],
+        "195": [
+            "Spacecraft solar zenith angle",
+            "F16.2"
+        ],
+        "196": [
+            "Spacecraft local time",
+            "F16.2"
+        ],
+        "197": [
+            "Spacecraft radial distance from Sun",
+            "F16.2"
+        ],
+        "198": [
+            "Spacecraft attitude GEO X",
+            "F16.3"
+        ],
+        "199": [
+            "Spacecraft attitude GEO Y",
+            "F16.3"
+        ],
+        "200": [
+            "Spacecraft attitude GEO Z",
+            "F16.3"
+        ],
+        "201": [
+            "Spacecraft attitude MSO X",
+            "F16.3"
+        ],
+        "202": [
+            "Spacecraft attitude MSO Y",
+            "F16.3"
+        ],
+        "203": [
+            "Spacecraft attitude MSO Z",
+            "F16.3"
+        ],
+        "204": [
+            "APP Attitude GEO X",
+            "F16.3"
+        ],
+        "205": [
+            "APP Attitude GEO Y",
+            "F16.3"
+        ],
+        "206": [
+            "APP Attitude GEO Z",
+            "F16.3"
+        ],
+        "207": [
+            "APP Attitude MSO X",
+            "F16.3"
+        ],
+        "208": [
+            "APP Attitude MSO Y",
+            "F16.3"
+        ],
+        "209": [
+            "APP Attitude MSO Z",
+            "F16.3"
+        ],
+        "210": [
+            "Orbit Number",
+            "I16  "
+        ],
+        "211": [
+            "Inbound/Outbound Flag",
+            "A16  "
+        ],
+        "212": [
+            "Mars Season (Ls)",
+            "F16.2"
+        ],
+        "213": [
+            "Mars-Sun distance",
+            "F16.4"
+        ],
+        "214": [
+            "Subsolar Point GEO Longitude",
+            "F16.2"
+        ],
+        "215": [
+            "Subsolar Point GEO Latitude",
+            "F16.2"
+        ],
+        "216": [
+            "Sub-spacecraft Point on the Sun, Longitude",
+            "F16.2"
+        ],
+        "217": [
+            "Sub-spaceraft Point on the Sun, Latitude",
+            "F16.2"
+        ],
+        "218": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "219": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "220": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "221": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "222": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "223": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "224": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "225": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "226": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ],
+        "227": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "228": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "229": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "230": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "231": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "232": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "233": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "234": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "235": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ]
+    },
+    "20": {
+        "1": [
+            "Time (UTC/SCET)",
+            "yyyy-"
+        ],
+        "2": [
+            "Electron Density",
+            "E16.2"
+        ],
+        "3": [
+            "Quality",
+            "E16.2"
+        ],
+        "4": [
+            "Quality",
+            "E16.2"
+        ],
+        "5": [
+            "Electron Temperature",
+            "E16.2"
+        ],
+        "6": [
+            "Quality",
+            "E16.2"
+        ],
+        "7": [
+            "Quality",
+            "E16.2"
+        ],
+        "8": [
+            "Spacecraft Potential",
+            "E16.2"
+        ],
+        "9": [
+            "Quality",
+            "E16.2"
+        ],
+        "10": [
+            "Quality",
+            "E16.2"
+        ],
+        "11": [
+            "E-field wave power (2 - 100 Hz)",
+            "E16.2"
+        ],
+        "12": [
+            "Quality",
+            "E16.2"
+        ],
+        "13": [
+            "E-field wave power (100 - 800 Hz)",
+            "E16.2"
+        ],
+        "14": [
+            "Quality",
+            "E16.2"
+        ],
+        "15": [
+            "E-field wave power (800 - 1000 Hz)",
+            "E16.2"
+        ],
+        "16": [
+            "Quality",
+            "E16.2"
+        ],
+        "17": [
+            "EUV irradiance (0.1 - 7.0 nm)",
+            "E16.2"
+        ],
+        "18": [
+            "Quality",
+            "E16.2"
+        ],
+        "19": [
+            "EUV irradiance (17 - 22 nm)",
+            "E16.2"
+        ],
+        "20": [
+            "Quality",
+            "E16.2"
+        ],
+        "21": [
+            "EUV irradiance (Lyman-alpha)",
+            "E16.2"
+        ],
+        "22": [
+            "Quality",
+            "E16.2"
+        ],
+        "23": [
+            "Solar wind electron density",
+            "E16.2"
+        ],
+        "24": [
+            "Quality",
+            "E16.2"
+        ],
+        "25": [
+            "Solar wind electron temperature",
+            "E16.2"
+        ],
+        "26": [
+            "Quality",
+            "E16.2"
+        ],
+        "27": [
+            "Electron parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "28": [
+            "Quality",
+            "E16.2"
+        ],
+        "29": [
+            "Electron parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "30": [
+            "Quality",
+            "E16.2"
+        ],
+        "31": [
+            "Electron parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "32": [
+            "Quality",
+            "E16.2"
+        ],
+        "33": [
+            "Electron anti-parallel energy flux (5 - 100 eV)",
+            "E16.2"
+        ],
+        "34": [
+            "Quality",
+            "E16.2"
+        ],
+        "35": [
+            "Electron anti-parallel energy flux (100 - 500 eV)",
+            "E16.2"
+        ],
+        "36": [
+            "Quality",
+            "E16.2"
+        ],
+        "37": [
+            "Electron anti-parallel energy flux (500 - 1000 eV)",
+            "E16.2"
+        ],
+        "38": [
+            "Quality",
+            "E16.2"
+        ],
+        "39": [
+            "Electron spectrum shape parameter",
+            "F16.3"
+        ],
+        "40": [
+            "Quality",
+            "F16.3"
+        ],
+        "41": [
+            "H+ density",
+            "E16.2"
+        ],
+        "42": [
+            "Quality",
+            "E16.2"
+        ],
+        "43": [
+            "H+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "44": [
+            "Quality",
+            "E16.2"
+        ],
+        "45": [
+            "H+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "46": [
+            "Quality",
+            "E16.2"
+        ],
+        "47": [
+            "H+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "48": [
+            "Quality",
+            "E16.2"
+        ],
+        "49": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "50": [
+            "Quality",
+            "E16.2"
+        ],
+        "51": [
+            "Solar wind dynamic pressure",
+            "E16.2"
+        ],
+        "52": [
+            "Quality",
+            "E16.2"
+        ],
+        "53": [
+            "STATIC Quality Flag",
+            "F16.0"
+        ],
+        "54": [
+            "H+ density",
+            "E16.2"
+        ],
+        "55": [
+            "Quality",
+            "E16.2"
+        ],
+        "56": [
+            "O+ density",
+            "E16.2"
+        ],
+        "57": [
+            "Quality",
+            "E16.2"
+        ],
+        "58": [
+            "O2+ density",
+            "E16.2"
+        ],
+        "59": [
+            "Quality",
+            "E16.2"
+        ],
+        "60": [
+            "H+ temperature",
+            "E16.2"
+        ],
+        "61": [
+            "Quality",
+            "E16.2"
+        ],
+        "62": [
+            "O+ temperature",
+            "E16.2"
+        ],
+        "63": [
+            "Quality",
+            "E16.2"
+        ],
+        "64": [
+            "O2+ temperature",
+            "E16.2"
+        ],
+        "65": [
+            "Quality",
+            "E16.2"
+        ],
+        "66": [
+            "O2+ flow velocity MAVEN_APP X",
+            "E16.2"
+        ],
+        "67": [
+            "Quality",
+            "E16.2"
+        ],
+        "68": [
+            "O2+ flow velocity MAVEN_APP Y",
+            "E16.2"
+        ],
+        "69": [
+            "Quality",
+            "E16.2"
+        ],
+        "70": [
+            "O2+ flow velocity MAVEN_APP Z",
+            "E16.2"
+        ],
+        "71": [
+            "Quality",
+            "E16.2"
+        ],
+        "72": [
+            "O2+ flow velocity MSO X",
+            "E16.2"
+        ],
+        "73": [
+            "Quality",
+            "E16.2"
+        ],
+        "74": [
+            "O2+ flow velocity MSO Y",
+            "E16.2"
+        ],
+        "75": [
+            "Quality",
+            "E16.2"
+        ],
+        "76": [
+            "O2+ flow velocity MSO Z",
+            "E16.2"
+        ],
+        "77": [
+            "Quality",
+            "E16.2"
+        ],
+        "78": [
+            "H+ omni-directional flux",
+            "E16.2"
+        ],
+        "79": [
+            "H+ characteristic energy",
+            "E16.2"
+        ],
+        "80": [
+            "Quality",
+            "E16.2"
+        ],
+        "81": [
+            "He++ omni-directional flux",
+            "E16.2"
+        ],
+        "82": [
+            "He++ characteristic energy",
+            "E16.2"
+        ],
+        "83": [
+            "Quality",
+            "E16.2"
+        ],
+        "84": [
+            "O+ omni-directional flux",
+            "E16.2"
+        ],
+        "85": [
+            "O+ characteristic energy",
+            "E16.2"
+        ],
+        "86": [
+            "Quality",
+            "E16.2"
+        ],
+        "87": [
+            "O2+ omni-directional flux",
+            "E16.2"
+        ],
+        "88": [
+            "O2+ characteristic energy",
+            "E16.2"
+        ],
+        "89": [
+            "Quality",
+            "E16.2"
+        ],
+        "90": [
+            "H+ characteristic direction MSO X",
+            "F16.3"
+        ],
+        "91": [
+            "H+ characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "92": [
+            "H+ characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "93": [
+            "H+ characteristic angular width",
+            "F16.3"
+        ],
+        "94": [
+            "Quality",
+            "F16.3"
+        ],
+        "95": [
+            "Dominant pickup ion characteristic direction MSO X",
+            "F16.3"
+        ],
+        "96": [
+            "Dominant pickup ion characteristic direction MSO Y",
+            "F16.3"
+        ],
+        "97": [
+            "Dominant pickup ion characteristic direction MSO Z",
+            "F16.3"
+        ],
+        "98": [
+            "Dominant pickup ion characteristic angular width",
+            "F16.3"
+        ],
+        "99": [
+            "Quality",
+            "F16.3"
+        ],
+        "100": [
+            "Ion Flux (30-1000 keV), FOV 1-F",
+            "E16.2"
+        ],
+        "101": [
+            "Quality",
+            "E16.2"
+        ],
+        "102": [
+            "Ion Flux (30-1000 keV), FOV 1-R",
+            "E16.2"
+        ],
+        "103": [
+            "Quality",
+            "E16.2"
+        ],
+        "104": [
+            "Ion Flux (30-1000 keV), FOV 2-F",
+            "E16.2"
+        ],
+        "105": [
+            "Quality",
+            "E16.2"
+        ],
+        "106": [
+            "Ion Flux (30-1000 keV), FOV 2-R",
+            "E16.2"
+        ],
+        "107": [
+            "Quality",
+            "E16.2"
+        ],
+        "108": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-F",
+            "E16.2"
+        ],
+        "109": [
+            "Quality",
+            "E16.2"
+        ],
+        "110": [
+            "Electron Flux (30 keV - 300 keV) - FOV 1-R",
+            "E16.2"
+        ],
+        "111": [
+            "Quality",
+            "E16.2"
+        ],
+        "112": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-F",
+            "E16.2"
+        ],
+        "113": [
+            "Quality",
+            "E16.2"
+        ],
+        "114": [
+            "Electron Flux (30 keV - 300 keV) - FOV 2-R",
+            "E16.2"
+        ],
+        "115": [
+            "Quality",
+            "E16.2"
+        ],
+        "116": [
+            "Look direction 1-F MSO X",
+            "F16.3"
+        ],
+        "117": [
+            "Look direction 1-F MSO Y",
+            "F16.3"
+        ],
+        "118": [
+            "Look direction 1-F MSO Z",
+            "F16.3"
+        ],
+        "119": [
+            "Look direction 1-R MSO X",
+            "F16.3"
+        ],
+        "120": [
+            "Look direction 1-R MSO Y",
+            "F16.3"
+        ],
+        "121": [
+            "Look direction 1-R MSO Z",
+            "F16.3"
+        ],
+        "122": [
+            "Look direction 2-F MSO X",
+            "F16.3"
+        ],
+        "123": [
+            "Look direction 2-F MSO Y",
+            "F16.3"
+        ],
+        "124": [
+            "Look direction 2-F MSO Z",
+            "F16.3"
+        ],
+        "125": [
+            "Look direction 2-R MSO X",
+            "F16.3"
+        ],
+        "126": [
+            "Look direction 2-R MSO Y",
+            "F16.3"
+        ],
+        "127": [
+            "Look direction 2-R MSO Z",
+            "F16.3"
+        ],
+        "128": [
+            "Magnetic Field MSO X",
+            "E16.2"
+        ],
+        "129": [
+            "Quality",
+            "E16.2"
+        ],
+        "130": [
+            "Magnetic Field MSO Y",
+            "E16.2"
+        ],
+        "131": [
+            "Quality",
+            "E16.2"
+        ],
+        "132": [
+            "Magnetic Field MSO Z",
+            "E16.2"
+        ],
+        "133": [
+            "Quality",
+            "E16.2"
+        ],
+        "134": [
+            "Magnetic Field GEO X",
+            "E16.2"
+        ],
+        "135": [
+            "Quality",
+            "E16.2"
+        ],
+        "136": [
+            "Magnetic Field GEO Y",
+            "E16.2"
+        ],
+        "137": [
+            "Quality",
+            "E16.2"
+        ],
+        "138": [
+            "Magnetic Field GEO Z",
+            "E16.2"
+        ],
+        "139": [
+            "Quality",
+            "E16.2"
+        ],
+        "140": [
+            "Magnetic Field RMS Deviation",
+            "E16.2"
+        ],
+        "141": [
+            "Quality",
+            "E16.2"
+        ],
+        "142": [
+            "He Density",
+            "E16.2"
+        ],
+        "143": [
+            "Precision",
+            "E16.2"
+        ],
+        "144": [
+            "Quality",
+            "A16  "
+        ],
+        "145": [
+            "O Density",
+            "E16.2"
+        ],
+        "146": [
+            "Precision",
+            "E16.2"
+        ],
+        "147": [
+            "Quality",
+            "A16  "
+        ],
+        "148": [
+            "CO Density",
+            "E16.2"
+        ],
+        "149": [
+            "Precision",
+            "E16.2"
+        ],
+        "150": [
+            "Quality",
+            "A16  "
+        ],
+        "151": [
+            "N2 Density",
+            "E16.2"
+        ],
+        "152": [
+            "Precision",
+            "E16.2"
+        ],
+        "153": [
+            "Quality",
+            "A16  "
+        ],
+        "154": [
+            "NO Density",
+            "E16.2"
+        ],
+        "155": [
+            "Precision",
+            "E16.2"
+        ],
+        "156": [
+            "Quality",
+            "A16  "
+        ],
+        "157": [
+            "Ar Density",
+            "E16.2"
+        ],
+        "158": [
+            "Precision",
+            "E16.2"
+        ],
+        "159": [
+            "Quality",
+            "A16  "
+        ],
+        "160": [
+            "CO2 Density",
+            "E16.2"
+        ],
+        "161": [
+            "Precision",
+            "E16.2"
+        ],
+        "162": [
+            "Quality",
+            "A16  "
+        ],
+        "163": [
+            "Ion Density - amu 32+",
+            "E16.2"
+        ],
+        "164": [
+            "Precision",
+            "E16.2"
+        ],
+        "165": [
+            "Quality",
+            "A16  "
+        ],
+        "166": [
+            "Ion Density - amu 44+",
+            "E16.2"
+        ],
+        "167": [
+            "Precision",
+            "E16.2"
+        ],
+        "168": [
+            "Quality",
+            "A16  "
+        ],
+        "169": [
+            "Ion Density - amu 30+",
+            "E16.2"
+        ],
+        "170": [
+            "Precision",
+            "E16.2"
+        ],
+        "171": [
+            "Quality",
+            "A16  "
+        ],
+        "172": [
+            "Ion Density - amu 16+",
+            "E16.2"
+        ],
+        "173": [
+            "Precision",
+            "E16.2"
+        ],
+        "174": [
+            "Quality",
+            "A16  "
+        ],
+        "175": [
+            "Ion Density - amu 28+",
+            "E16.2"
+        ],
+        "176": [
+            "Precision",
+            "E16.2"
+        ],
+        "177": [
+            "Quality",
+            "A16  "
+        ],
+        "178": [
+            "Ion Density - amu 12+",
+            "E16.2"
+        ],
+        "179": [
+            "Precision",
+            "E16.2"
+        ],
+        "180": [
+            "Quality",
+            "A16  "
+        ],
+        "181": [
+            "Ion Density - amu 17+",
+            "E16.2"
+        ],
+        "182": [
+            "Precision",
+            "E16.2"
+        ],
+        "183": [
+            "Quality",
+            "A16  "
+        ],
+        "184": [
+            "Ion Density - amu 14+",
+            "E16.2"
+        ],
+        "185": [
+            "Precision",
+            "E16.2"
+        ],
+        "186": [
+            "Quality",
+            "A16  "
+        ],
+        "187": [
+            "Spacecraft GEO X",
+            "E16.2"
+        ],
+        "188": [
+            "Spacecraft GEO Y",
+            "E16.2"
+        ],
+        "189": [
+            "Spacecraft GEO Z",
+            "E16.2"
+        ],
+        "190": [
+            "Spacecraft MSO X",
+            "E16.2"
+        ],
+        "191": [
+            "Spacecraft MSO Y",
+            "E16.2"
+        ],
+        "192": [
+            "Spacecraft MSO Z",
+            "E16.2"
+        ],
+        "193": [
+            "Spacecraft GEO Longitude",
+            "F16.2"
+        ],
+        "194": [
+            "Spacecraft GEO Latitude",
+            "F16.2"
+        ],
+        "195": [
+            "Spacecraft solar zenith angle",
+            "F16.2"
+        ],
+        "196": [
+            "Spacecraft local time",
+            "F16.2"
+        ],
+        "197": [
+            "Spacecraft altitude w.r.t. ellipsoid",
+            "F16.2"
+        ],
+        "198": [
+            "Spacecraft attitude GEO X",
+            "F16.3"
+        ],
+        "199": [
+            "Spacecraft attitude GEO Y",
+            "F16.3"
+        ],
+        "200": [
+            "Spacecraft attitude GEO Z",
+            "F16.3"
+        ],
+        "201": [
+            "Spacecraft attitude MSO X",
+            "F16.3"
+        ],
+        "202": [
+            "Spacecraft attitude MSO Y",
+            "F16.3"
+        ],
+        "203": [
+            "Spacecraft attitude MSO Z",
+            "F16.3"
+        ],
+        "204": [
+            "APP Attitude GEO X",
+            "F16.3"
+        ],
+        "205": [
+            "APP Attitude GEO Y",
+            "F16.3"
+        ],
+        "206": [
+            "APP Attitude GEO Z",
+            "F16.3"
+        ],
+        "207": [
+            "APP Attitude MSO X",
+            "F16.3"
+        ],
+        "208": [
+            "APP Attitude MSO Y",
+            "F16.3"
+        ],
+        "209": [
+            "APP Attitude MSO Z",
+            "F16.3"
+        ],
+        "210": [
+            "Orbit Number",
+            "I16  "
+        ],
+        "211": [
+            "Inbound/Outbound Flag",
+            "A16  "
+        ],
+        "212": [
+            "Mars Season (Ls)",
+            "F16.2"
+        ],
+        "213": [
+            "Mars-Sun distance",
+            "F16.4"
+        ],
+        "214": [
+            "Subsolar Point GEO Longitude",
+            "F16.2"
+        ],
+        "215": [
+            "Subsolar Point GEO Latitude",
+            "F16.2"
+        ],
+        "216": [
+            "Sub-Mars Point on the Sun, Longitude",
+            "F16.2"
+        ],
+        "217": [
+            "Sub-Mars Point on the Sun, Latitude",
+            "F16.2"
+        ],
+        "218": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "219": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "220": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "221": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "222": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "223": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "224": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "225": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "226": [
+            "Rotation matrix (IAU_MARS -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ],
+        "227": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,1]",
+            "F16.8"
+        ],
+        "228": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,2]",
+            "F16.8"
+        ],
+        "229": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [1,3]",
+            "F16.8"
+        ],
+        "230": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,1]",
+            "F16.8"
+        ],
+        "231": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,2]",
+            "F16.8"
+        ],
+        "232": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [2,3]",
+            "F16.8"
+        ],
+        "233": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,1]",
+            "F16.8"
+        ],
+        "234": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,2]",
+            "F16.8"
+        ],
+        "235": [
+            "Rotation matrix (MAVEN_SPACECRAFT -> MAVEN_MSO), [3,3]",
+            "F16.8"
+        ]
     }
 }

@@ -8,7 +8,6 @@ using JLD2
 using JSON
 # 将MAVEN 的KP 数据转为JLD2二进制格式
 function KP_rebuild(file_in,file_out,KP_vars)
-
     KP_vars_local = KP_vars[file_in[end-9:end-8]]
     varsion = parse(Int32, file_in[end-9:end-8])
 
@@ -68,14 +67,42 @@ f = open(raw"C:\Users\chengsw\Projects\Package_for_Julia_of_csw\MAVEN_data\KP_va
 KP_vars = JSON.parse(f)
 close(f)
 
+f = open(raw"C:\Users\chengsw\Projects\Package_for_Julia_of_csw\MAVEN_data\MAVEN_data_format.json","r")
+MAVEN_format = JSON.parse(f)
+close(f)
+
+
 files = MAVEN_load.file_list("KP")
+new_list = []
 @showprogress 1 "Computing..." for file in files
     new_path = file[1:12]*"l3"*file[19:end-4]*".jld2"
+    push!(new_list,new_path)
     dir = dirname(new_path)
     if !isdir(dir)
         mkpath(dir)
     end
     if !isfile(new_path)
-    dummy = KP_rebuild(file,new_path,KP_vars)
+        dummy = KP_rebuild(file,new_path,KP_vars)
     end
 end;
+
+f=MAVEN_format["save_path"]*"lists/KP_l3_list.txt"
+open(f,"w") do io
+    for ff in new_list
+    println(io,ff[16:end])
+    end
+end
+println("done")
+# build_KP_list_files
+
+# def search_downloaded_files(save_path,filestyle):
+#     filenames =[]
+#     yyyy = os.listdir(save_path)
+#     for iy in yyyy:
+#         mm   = os.listdir(save_path+iy+"/")
+#         for im in mm:
+#             files = os.listdir(save_path+iy+"/"+im+"/")
+#             filepaths = [iy+"/"+im+"/"+file for file in files if re.match(filestyle,file)]
+#             for filepath in filepaths:
+#                 filenames.append(filepath)
+#     return filenames
