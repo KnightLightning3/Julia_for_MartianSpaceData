@@ -289,7 +289,7 @@ if __name__ == '__main__':
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)[0]
-                    if start_date > date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
+                    if start_date.strftime("%Y%m%d") > date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
                         continue
                     if find_downloaded_file(file_names, date):
                         print(date,model,'\033[1;32mThe file already exists\033[0m')
