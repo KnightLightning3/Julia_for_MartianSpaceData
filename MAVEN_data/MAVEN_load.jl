@@ -1,7 +1,7 @@
 # 读取和计算MAVEN数据
 # data_get_from_date 返回字典dates_dict["数据类型"]["数据内容"]
 # dates_dict["数据类型"]["data_load_flag"]表示读取是否成功
-# 所有的CDF文件统一读取为cdf对应的字典，并去除PyObjects
+# 所有的CDF文件统一读取为cdf对应的字典,并去除PyObjects
 # STATIC中的theta值在球坐标系下,应当为90-Theta.
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
 # 默认能量单位: EV. 默认粒子质量单位:AMU
@@ -119,32 +119,6 @@ function load_cdf(file::String)  # 将CDF文件读为字典
     data_dict["filename"] = file
     return data_dict
 end
-# function load_sta(file)
-#     data   = cdflib.cdfread.CDF(file);
-#     data_out_dict=Dict{String, Any}()
-#     data_out_dict["apid"]= get(data,apid)
-#     var_lists = [
-#         "energy",
-#         "denergy",
-#         "eflux",
-#         "sc_pot",
-#         "swp_ind",
-#         "mass_arr",
-#         "theta",
-#         "phi",
-#         "dtheta",
-#         "dphi",
-#         "num_dists",
-#         "nmass",
-#         "nswp",
-#         "nenergy",   
-#     ]
-#     for var_name in var_lists
-#         var = get(data,var_name)
-#         data_out_dict[var_name] = var
-#     end
-#     return data
-# end
 function load_mag_l2(file::String)
     function get_data_from_line_for_mag_read(line::String)
         # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
@@ -350,7 +324,7 @@ function caculate_mag(position; models=["alt"])
         data[model] = funcs[model](position)
     end
 end
-function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典，将其角度做平均. pad数据返回360°的16个方向的数据,可以做平均,使其变为180°的8个数据点
+function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典,将其角度做平均. pad数据返回360°的16个方向的数据,可以做平均,使其变为180°的8个数据点
     flux = data_dict["diff_en_fluxes"]
     pitch_angle = data_dict["pa"]
     g_pa = data_dict["g_pa"]
@@ -574,6 +548,27 @@ function energy2v(energy) # 电子能量对应速度(相对论)
     β = sqrt(1.0 - 1.0 / γ^2)
     v = β .* 3e8
     return v
+end
+function find_segments(x::Vector{T}, y::BitVector) where {T}
+    segments1 = []
+    segments2 = []
+    start_idx = nothing
+    for i in eachindex(y)
+        if y[i] == 1
+            if start_idx === nothing
+                start_idx = i
+            end
+        elseif start_idx !== nothing
+            push!(segments1, x[start_idx])
+            push!(segments2, x[i-1])
+            start_idx = nothing
+        end
+    end
+    if start_idx !== nothing
+        push!(segments1, x[start_idx])
+        push!(segments2, x[end])
+    end
+    return segments1, segments2
 end
 function ion_energy2v(energy, mass) # 离子子能量对应速度(相对论)
     E0 = 511.0 * mass * 1836.23

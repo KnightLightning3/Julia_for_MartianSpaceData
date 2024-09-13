@@ -12,14 +12,14 @@ using Statistics
 
 # end
 ########### 以下函数只能计算单个点的关系
-function pc2sphere(x::Float64, y::Float64, z::Float64)
+function pc2sphere(x::Real, y::Real, z::Real)
     r = norm([x, y, z])
     # θ = π/2 - atan(z,sqrt(x^2+y^2))
     θ = acos(z / r)
     ϕ = atan(y, x)
     return r, θ, ϕ
 end
-function sphere2pc(r::Float64, θ::Float64, ϕ::Float64)
+function sphere2pc(r::Real, θ::Real, ϕ::Real)
     sinθ = sin(θ)
     cosθ = cos(θ)
     sinϕ = sin(ϕ)
@@ -29,7 +29,7 @@ function sphere2pc(r::Float64, θ::Float64, ϕ::Float64)
     z = r * cosθ
     return x, y, z
 end
-function Bsphere2pc(r::Float64, θ::Float64, ϕ::Float64, Br::Float64, Bθ::Float64, Bϕ::Float64)
+function Bsphere2pc(r::Real, θ::Real, ϕ::Real, Br::Real, Bθ::Real, Bϕ::Real)
     sinθ = sin(θ)
     cosθ = cos(θ)
     sinϕ = sin(ϕ)
@@ -39,7 +39,7 @@ function Bsphere2pc(r::Float64, θ::Float64, ϕ::Float64, Br::Float64, Bθ::Floa
     Bz = cosθ * Br - sinθ * Bθ
     return Bx, By, Bz
 end
-function Bpc2sphere(x::Float64, y::Float64, z::Float64, bx::Float64, by::Float64, bz::Float64)
+function Bpc2sphere(x::Real, y::Real, z::Real, bx::Real, by::Real, bz::Real)
     r = norm([x, y, z])
     θ = acos(z / r)
     ϕ = atan(y, x)
@@ -80,7 +80,7 @@ function read_gh()
     HH = read(f, (Float64, NIGRF + 1, NIGRF + 1))
     return [GG, HH]
 end
-function IGRF_fortran_free(r::Float64, θ::Float64, ϕ::Float64)  #working on ,输入半径是归一化的,输入阶数
+function IGRF_fortran_free(r::Real, θ::Real, ϕ::Real)  #working on ,输入半径是归一化的,输入阶数
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     DBs = Array{Float64}(undef, 3)
     path = Array{Float64}([r / 3393.5, θ, ϕ])
@@ -94,7 +94,7 @@ function IGRF_fortran_free(r::Float64, θ::Float64, ϕ::Float64)  #working on ,�
     Br, Bθ, Bϕ, BB = B_result[1], B_result[2], B_result[3], B_result[4]
     return Br, Bθ, Bϕ, BB
 end
-function IGRF_fortran(r::Float64, θ::Float64, ϕ::Float64) #fortran计算核心,输入球坐标，返回球坐标,r不需要归一化
+function IGRF_fortran(r::Real, θ::Real, ϕ::Real) #fortran计算核心,输入球坐标，返回球坐标,r不需要归一化
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     path = Array{Float64}([r, θ, ϕ])
     B_compress_in = Array{Float64}(B_compress)
@@ -106,7 +106,7 @@ function IGRF_fortran(r::Float64, θ::Float64, ϕ::Float64) #fortran计算核心
     Br, Bθ, Bϕ, BB = B_result[1], B_result[2], B_result[3], B_result[4]
     return Br, Bθ, Bϕ, BB
 end
-function RK4_Trace_fortran(r::Float64, θ::Float64, ϕ::Float64, h::Float64)
+function RK4_Trace_fortran(r::Real, θ::Real, ϕ::Real, h::Real)
     # DYs = Array{Float64}(undef, 9)
 
     path = Array{Float64}([r, θ, ϕ])
@@ -130,13 +130,13 @@ function RK4_Trace_fortran(r::Float64, θ::Float64, ϕ::Float64, h::Float64)
         h_in)
     return B_result, dB.x, path_next
 end
-function IGRF_pc(x::Float64, y::Float64, z::Float64)
+function IGRF_pc(x::Real, y::Real, z::Real)
     r, θ, ϕ = pc2sphere(x, y, z)
     Br, Bθ, Bϕ, _ = IGRF_fortran(r, θ, ϕ)
     Bx, By, Bz = Bsphere2pc(r, θ, ϕ, Br, Bθ, Bϕ)
     return Bx, By, Bz
 end
-function IGRF(r::Float64, θ::Float64, ϕ::Float64) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBDPH] # 效率远远不及fortran内核,弃用
+function IGRF(r::Real, θ::Real, ϕ::Real) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBDPH] # 效率远远不及fortran内核,弃用
     AA = Rm
     AARR = zeros(NIGRF + 3)
     COSMPH = zeros(NIGRF + 1)
@@ -277,7 +277,7 @@ function IGRF(r::Float64, θ::Float64, ϕ::Float64) # r θ ϕ[BR,BT,BP,DBBDRR,DB
     # )
     return BR, BT, BP, BB
 end
-function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Float64, θ::Float64, ϕ::Float64; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
+function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Real, θ::Real, ϕ::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
     B_data = Array{Float64}(undef, max_trace, 6)
     PATH = Array{Float64}([r, θ, ϕ])
 
@@ -307,7 +307,7 @@ function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Float64, θ::Float64, ϕ::Float6
     trace_conts = trace_conts.x
     return B_data[1:trace_conts, :]
 end
-function mag_trace_rk4(r0::Float64, θ0::Float64, ϕ0::Float64; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
+function mag_trace_rk4(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
     B_data = []
     r, θ, ϕ = r0, θ0, ϕ0
     r_state = 500 + Rm
@@ -330,7 +330,7 @@ function mag_trace_rk4(r0::Float64, θ0::Float64, ϕ0::Float64; dir=1.0, step=0.
     end
     return B_data[1:trace_steps, :]
 end
-function mag_trace_Euler_step(r0::Float64, θ0::Float64, ϕ0::Float64; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
+function mag_trace_Euler_step(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
     B_data = []
     r, θ, ϕ = r0, θ0, ϕ0
     trace_steps = 0
@@ -378,7 +378,7 @@ function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力
     data["B_strenth"] = [norm(x) for x in eachrow(data["B"])]
     return data
 end
-function trace_mag_line(p1::Float64, p2::Float64, p3::Float64; step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, input_frame="sphere", output_frame="pc")
+function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, input_frame="pc", output_frame="pc") #追踪磁力线
 
     # trace_function = Dict(
     #     1 => mag_trace_Euler_step,

@@ -8,8 +8,8 @@ using Interpolations
 using LinearAlgebra
 using Statistics
 using DelaunayTriangulation
-using PyCall
-griddata = pyimport("scipy.interpolate").griddata
+# using PyCall
+# griddata = pyimport("scipy.interpolate").griddata
 const EV = 1.602176487e-19
 const C = 3.0e8
 const me = 9.109e-31
@@ -99,7 +99,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
         new_c = convert(Array{Float64}, new_c)
         return new_x, new_y, new_c
     end
-    function filter_points_optimized(x, y, c, r)  # 当无效点附近存在有效点，去除无效点
+    function filter_points_optimized(x, y, c, r)  # 当无效点附近存在有效点,去除无效点
         valid = c .!= 1e-20
         # 遍历所有无效点
         for i in 1:length(c)
@@ -115,7 +115,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
                         end
                     end
                 end
-                # 如果附近没有有效点，则将此无效点标记为有效点
+                # 如果附近没有有效点,则将此无效点标记为有效点
                 if !nearby_valid
                     valid[i] = true
                 end
@@ -230,7 +230,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
     scatter!(ax, new_vbluk[1], new_vbluk[2], color=:white, marker='X', markersize=20)
     v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
-    #遮盖超过v_max的部分  可以改成闭包？
+    #遮盖超过v_max的部分  可以改成闭包?
     poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=:white)
     if return_rot_matrix
         return ax, rot
@@ -308,7 +308,7 @@ function Orbit(ax, position_ss; xlimit=(-5, 4), ylimit=(0, 3), obs_position=[-0.
     theta = LinRange(pi, 2pi, 100)
     x = sin.(theta)
     y = cos.(theta)
-    half_circle = [Point2f(x[i], y[i]) for i in 1:length(x)]
+    half_circle = [Point2f(x[i], y[i]) for i in eachindex(x)]
     poly!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
     poly!(ax, half_circle, color=:black)
 
@@ -490,13 +490,7 @@ function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS") # 取�
     xtimes = (x_i, Dates.format.(xd, format))
     return xtimes, x_i
 end
-function x_ticks(ax, x, var, x_i; xticklabelpad=3, range=x_range_julian)
-    # ax = Axis(fig[np,1],limits = (range, nothing) ,xlabel=xlabel
-
-    #     ,xlabelpadding=3,xticklabelpad=xticklabelpad)
-
-    # hidespines!(ax); hideydecorations!(ax) 
-    ax.limits = (range, nothing)
+function x_ticks(ax, x, var, x_i; xticklabelpad=3)
     ax.xticklabelpad = xticklabelpad
     hidespines!(ax)
     hideydecorations!(ax)

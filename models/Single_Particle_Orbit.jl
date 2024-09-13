@@ -129,15 +129,15 @@ end
 # using .Single_Particle_Orbit
 # using GLMakie
 # EnvironmentPath = "D:/CODE/Package_for_Julia/"
-# include(EnvironmentPath*"Megnetic_Model/IGRF_carculate.jl")
-# import .IGRF_carculate;
+# include(EnvironmentPath*"Megnetic_Model/IGRF_calculate.jl")
+# import .IGRF_calculate;
 
 # v0 = [18.00650385330508,-12.447101833421216,-12.513798039815253] .* 1e3 .*(-1)
 # x0 = [-2278.430908203125,-126.21499633789062,-2851.4990234375] .*1e3
 # dt = 0.1
 # t = 0:dt:10
 # function B_field(x) 
-#     BB = IGRF_carculate.IGRF_pc(x[1]/1e3,x[2]/1e3,x[3]/1e3).*1e-9
+#     BB = IGRF_calculate.IGRF_pc(x[1]/1e3,x[2]/1e3,x[3]/1e3).*1e-9
 #     return [BB[1],BB[2],BB[3]] # 返回磁场值，单位nT
 # end
 # _,_,x = Single_Particle_Orbit.solve_orbit(v0, x0, Single_Particle_Orbit.E, B_field, t, dt,mq=Single_Particle_Orbit.q2mp/16.0)
