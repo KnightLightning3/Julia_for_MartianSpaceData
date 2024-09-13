@@ -423,7 +423,6 @@ Rm = 3393.5
 root_dir = dirname(@__FILE__)
 gh_filename = root_dir * "/gh_gao"
 IGRF_DLL_PATH = root_dir * "/IGRF_DLL.dll"
-# IGRF_DLL_PATH = raw"D:\CODE\Code_Library\Fortran\IGRF_DLL\x64\Release\IGRF_DLL.dll"
 GG, HH = read_gh()
 SS, REALK = CALCULATE_SCHMIDT_COEFFICIENTS()
 B_compress = [0.0, 0.0, 0.0]

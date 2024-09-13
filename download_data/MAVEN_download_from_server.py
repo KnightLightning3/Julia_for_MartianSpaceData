@@ -234,10 +234,11 @@ if __name__ == '__main__':
                     if not os.path.exists(save_path+yyyymm):
                         os.makedirs(save_path+yyyymm)
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                    print(f'{model}_{date} Status:\033[0;32m{logic}\033[0m, Responses = \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{datetime.datetime.now()}\033[0m\n')
                     if logic:
+                        print(f'{model}_{date} Status:\033[0;32m{logic}\033[0m, Responses = \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{datetime.datetime.now()}\033[0m\n')
                         nums_downloaded = nums_downloaded+1
                     else:
+                        print(f'{model}_{date} Status:\033[0;31m{logic}\033[0m, Responses = \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{datetime.datetime.now()}\033[0m\n')
                         nums_failed = nums_failed+1
             month+=1
             if month == 13:

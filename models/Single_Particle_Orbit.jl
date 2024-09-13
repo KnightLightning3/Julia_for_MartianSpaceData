@@ -10,9 +10,9 @@ function TimeFormat(time1, time2)
     return "$(lpad(minutes, 2, '0')):$(lpad(seconds, 2, '0')).$(lpad(milliseconds, 3, '0'))"
 end
 
-const e = 1.6e-19
-const me = 9.1093837e-31
-const mp = 1.67262192e-27
+const e    = 1.6e-19
+const me   = 9.1093837e-31
+const mp   = 1.67262192e-27
 const q2me = -e / me
 const q2mp = e / mp
 
@@ -22,7 +22,11 @@ function dvdt(v::Vector{Float64}, E_in::Vector{Float64}, B_in::Vector{Float64}, 
     return ans
 end
 function cross3(a::Vector{Float64}, b::Vector{Float64})
-    ans = [a[2] * b[3] - a[3] * b[2], a[3] * b[1] - a[1] * b[3], a[1] * b[2] - a[2] * b[1]]
+    ans = [
+        a[2] *  b[3] - a[3] * b[2], 
+         a[3] * b[1] - a[1] * b[3], 
+         a[1] * b[2] - a[2] * b[1]
+         ]
     return ans
 end
 function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=1, hidde_progress=false, r_range=[0.0, 1e10], particle="ion") # mq: 反比荷
