@@ -46,6 +46,7 @@ single_model = config_data['Settings'].get('single_model', [])
 muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
 models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
 single_download = config_data['Settings'].getboolean('single_download')
+check_download_file = config_data['Settings'].getboolean('check_download_file')
 
 with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
     json_data = json.load(file)
@@ -167,6 +168,17 @@ def search_downloaded_files(save_path,file_style):
     return filenames
 
 if __name__ == '__main__':
+    if check_download_file:
+        for model in json_data["data_model"].keys():
+            url_path,save_path,file_style = download_model(model)
+            file_names = search_downloaded_files(save_path,file_style)
+            if file_names is None:
+                continue
+            with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
+                for item in file_names:
+                    file.write(str(item) + '\n')
+        import runpy
+        runpy.run_path('download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
     if test_server() == False:
         print('\033[1;31m Connection Failed, Exit Program \033[0m')
         exit(0)
