@@ -55,6 +55,11 @@ step_time= 5 #每个请求之间间隔的时间，以防被ban
 
 models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,LASP服务器上不存在
 
+def sleep_local(sleep_time_range):
+    for i in range(sleep_time_range):
+        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds",end="\r")
+        sleep(1)
+    return None
 def test_proxies():
     global vpn_proxy
     global url_path_0
@@ -81,16 +86,12 @@ def test_proxies():
 def search_url(url,file_style):
     global vpn_proxy
     global timeout
-    for i in range(step_time):
-        print(f"Waiting {i+1} / {step_time} Seconds",end="\r")
-        sleep(1)
+    sleep_local(step_time)
     try:
         response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
-            for i in range(sleep_time):
-                print(f"超出网站请求上限,休眠{sleep_time}秒")
-                print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
-                sleep(1)
+            print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
+            sleep_local(sleep_time)
             response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
@@ -109,25 +110,19 @@ def search_url(url,file_style):
                 return response.status_code,False,0
             return response.status_code,True,urls
     except requests.exceptions.RequestException as e:
-        for i in range(sleep_time):
-            print(f"url error: {e},sleep {sleep_time}s")
-            print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
-            sleep(1)
+        print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0m s")
+        sleep_local(sleep_time)
         return response.status_code,False,0
     return response.status_code,False,0
 def requests_download(url,save_path):
     global vpn_proxy
     global timeout
-    for i in range(step_time):
-        print(f"Waiting {i+1} / {step_time} Seconds",end="\r")
-        sleep(1)
+    sleep_local(step_time)
     try:
         response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
-            for i in range(sleep_time):
-                print(f"超出网站请求上限,休眠{sleep_time}秒")
-                print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
-                sleep(1)
+            print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
+            sleep_local(sleep_time)
             response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
@@ -142,17 +137,15 @@ def requests_download(url,save_path):
             # 如果路径不存在,创建路径
             if not os.path.exists(os.path.dirname(save_path)):
                 os.makedirs(save_path)
-                print(f"创建路径:{save_path}")
+                # print(f"创建路径:{save_path}")
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
                 file.write(buffer)
             return response.status_code,True
         response.close()
     except requests.exceptions.RequestException as e:
-        for i in range(sleep_time):
-            print(f"url error: {e},sleep {sleep_time}s")
-            print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
-            sleep(1)
+        print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0ms")
+        sleep_local(sleep_time)
         return response.status_code,False
     return response.status_code,False
 def download_model(model):
@@ -287,7 +280,7 @@ if __name__ == '__main__':
             date=str(current_date.strftime("%Y%m%d"))
             
             if find_downloaded_file(file_names, date):
-                print(date,model,'\033[1;32mThe File Already Exists\033[0m')
+                print(f'\033[1;32m{model} File at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
                 current_date+=datetime.timedelta(days=1)
                 continue
             year      = current_date.year
@@ -295,14 +288,14 @@ if __name__ == '__main__':
             yyyymm    = str(current_date.strftime("%Y/%m/"))
             urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
             if bool_urls:
-                print(f'\033[0;32m {len(urls)} {model} files in '+yyyymm+'\033[0m')
+                print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m')
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)[0]
                     if start_date.strftime("%Y%m%d") > date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
                         continue
                     if find_downloaded_file(file_names, date):
-                        print(date,model,'\033[1;32mThe File Already Exists\033[0m')
+                        print(f'\033[1;32m{model} File at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
                         current_date += datetime.timedelta(days=1)
                         continue
                     if not os.path.exists(save_path+yyyymm):
@@ -310,10 +303,10 @@ if __name__ == '__main__':
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
                     if logic:
-                        print(f'{model}_{date} Status: \033[0;32m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
+                        print(f'\033[1;34m{model}\033[0m_{date} Status: \033[0;32m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
                         nums_downloaded = nums_downloaded+1
                     else:
-                        print(f'{model}_{date} Status: \033[0;31m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
+                        print(f'\033[1;34m{model}\033[0m_{date} Status: \033[0;31m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
                         nums_failed = nums_failed+1
             month+=1
             if month == 13:
