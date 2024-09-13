@@ -1,4 +1,4 @@
-# Download data from the lasp server. It is recommended to configure vpn to the US node. If not configured, you need to set vpn_proxy=None.
+# Download data from the LASP server. It is recommended to configure vpn to the US node. If not configured, you need to set vpn_proxy=None.
 import datetime
 import os
 import re
@@ -53,7 +53,7 @@ data_model = json_data["data_model"]
 timeout = None
 step_time= 5 #每个请求之间间隔的时间，以防被ban
 
-models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,lasp服务器上不存在
+models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块，这些模块为本地自制模块,LASP服务器上不存在
 
 def test_proxies():
     global vpn_proxy
@@ -82,14 +82,14 @@ def search_url(url,file_style):
     global vpn_proxy
     global timeout
     for i in range(step_time):
-        print(f"Waiting {i} / {step_time}",end="\r")
+        print(f"Waiting {i+1} / {step_time} Seconds",end="\r")
         sleep(1)
     try:
         response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             for i in range(sleep_time):
                 print(f"超出网站请求上限,休眠{sleep_time}秒")
-                print(f"Waiting {i} / {sleep_time} Seconds",end="\r")
+                print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
                 sleep(1)
             response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
@@ -111,7 +111,7 @@ def search_url(url,file_style):
     except requests.exceptions.RequestException as e:
         for i in range(sleep_time):
             print(f"url error: {e},sleep {sleep_time}s")
-            print(f"Waiting {i} / {sleep_time} Seconds",end="\r")
+            print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
             sleep(1)
         return response.status_code,False,0
     return response.status_code,False,0
@@ -119,14 +119,14 @@ def requests_download(url,save_path):
     global vpn_proxy
     global timeout
     for i in range(step_time):
-        print(f"Waiting {i} / {step_time} Seconds",end="\r")
+        print(f"Waiting {i+1} / {step_time} Seconds",end="\r")
         sleep(1)
     try:
         response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             for i in range(sleep_time):
                 print(f"超出网站请求上限,休眠{sleep_time}秒")
-                print(f"Waiting {i} / {sleep_time} Seconds",end="\r")
+                print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
                 sleep(1)
             response = requests.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
@@ -151,7 +151,7 @@ def requests_download(url,save_path):
     except requests.exceptions.RequestException as e:
         for i in range(sleep_time):
             print(f"url error: {e},sleep {sleep_time}s")
-            print(f"Waiting {i} / {sleep_time} Seconds",end="\r")
+            print(f"Waiting {i+1} / {sleep_time} Seconds",end="\r")
             sleep(1)
         return response.status_code,False
     return response.status_code,False
@@ -310,10 +310,10 @@ if __name__ == '__main__':
                     url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     time_now = datetime.datetime.now()
                     if logic:
-                        print(f'{model}_{date} Status:\033[0;32m{logic}\033[0m, Responses = \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{datetime.datetime.now()}\033[0m\n')
+                        print(f'{model}_{date} Status: \033[0;32m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
                         nums_downloaded = nums_downloaded+1
                     else:
-                        print(f'{model}_{date} Status:\033[0;31m{logic}\033[0m, Responses = \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{datetime.datetime.now()}\033[0m\n')
+                        print(f'{model}_{date} Status: \033[0;31m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
                         nums_failed = nums_failed+1
             month+=1
             if month == 13:
