@@ -73,12 +73,16 @@ def search_url(url,file_style):
     global vpn_proxy
     global session
     global timeout
-    sleep(step_time)
+    for i in range(step_time):
+        print(f"Waiting {i} / {step_time} Seconds",end="\r")
+        sleep(1)
     try:
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
-            print(f"超出网站请求上限,休眠{sleep_time}秒")
-            sleep(sleep_time)
+            for i in range(sleep_time):
+                print(f"超出网站请求上限,休眠{sleep_time}秒")
+                print(f"Waiting {i} / {sleep_time} Seconds",end="\r")
+                sleep(1)
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
@@ -105,12 +109,16 @@ def requests_download(url,save_path):
     global vpn_proxy
     global session
     global timeout
-    sleep(step_time)
+    for i in range(step_time):
+        print(f"Waiting {i} / {step_time} Seconds",end="\r")
+        sleep(1)
     try:
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
-            print(f"超出网站请求上限,休眠{sleep_time}秒")
-            sleep(sleep_time)
+            for i in range(sleep_time):
+                print(f"超出网站请求上限,休眠{sleep_time}秒")
+                print(f"Waiting {i} / {sleep_time} Seconds",end="\r")
+                sleep(1)
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
@@ -213,7 +221,7 @@ if __name__ == '__main__':
             date=str(current_date.strftime("%Y%m%d"))
             
             if find_downloaded_file(file_names, date):
-                print(date,model,'\033[1;32mThe file already exists\033[0m')
+                print(date,model,'\033[1;32mThe File Already Exists\033[0m')
                 current_date+=datetime.timedelta(days=1)
                 continue
             year      = current_date.year
@@ -228,7 +236,7 @@ if __name__ == '__main__':
                     if start_date.strftime("%Y%m%d") >date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
                         continue
                     if find_downloaded_file(file_names, date):
-                        print(date,model,'\033[1;32mThe file already exists\033[0m')
+                        print(date,model,'\033[1;32mThe File Already Exists\033[0m')
                         current_date+=datetime.timedelta(days=1)
                         continue
                     if not os.path.exists(save_path+yyyymm):
