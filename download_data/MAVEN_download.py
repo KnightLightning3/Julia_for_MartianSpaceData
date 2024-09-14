@@ -127,7 +127,7 @@ def requests_download(url,save_path):
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True)
+            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False)
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
@@ -280,7 +280,7 @@ if __name__ == '__main__':
             date=str(current_date.strftime("%Y%m%d"))
             
             if find_downloaded_file(file_names, date):
-                print(f'\033[1;32m{model} File at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
+                print(f'\033[1;32m{model} at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
                 current_date+=datetime.timedelta(days=1)
                 continue
             year      = current_date.year
@@ -295,7 +295,7 @@ if __name__ == '__main__':
                     if start_date.strftime("%Y%m%d") > date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
                         continue
                     if find_downloaded_file(file_names, date):
-                        print(f'\033[1;32m{model} File at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
+                        print(f'\033[1;32m{model} at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
                         current_date += datetime.timedelta(days=1)
                         continue
                     if not os.path.exists(save_path+yyyymm):
