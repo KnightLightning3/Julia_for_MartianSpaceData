@@ -19,8 +19,8 @@ def get_list_from_ini(input_string):
     items = stripped_string.split(',')
     return items
 
-data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-config_file_path = os.path.join(data_format_path, "download_data", "MAVEN_download_config.ini")
+project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
 config_data = configparser.ConfigParser()
 config_data.optionxform = str
 config_data.read(config_file_path,encoding='utf-8')
@@ -46,7 +46,7 @@ models_pass = get_list_from_ini(config_data['Settings']['models_pass_MAVEN_serve
 single_download = config_data['Settings'].getboolean('single_download')
 check_download_file = config_data['Settings'].getboolean('check_download_file')
 
-with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
+with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
@@ -127,13 +127,13 @@ def requests_download(url,save_path):
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True)
+            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False)
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
                 buffer.extend(data)  # 将下载的数据添加到缓冲区
             progress_bar.close()
-            
+            progress_bar_data = progress_bar.format_dict
             # 如果路径不存在,创建路径
             if not os.path.exists(os.path.dirname(save_path)):
                 os.makedirs(save_path)
@@ -141,13 +141,13 @@ def requests_download(url,save_path):
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
                 file.write(buffer)
-            return response.status_code,True
+            return response.status_code,True,progress_bar_data
         response.close()
     except requests.exceptions.RequestException as e:
         print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0ms")
         sleep_local(sleep_time)
-        return response.status_code,False
-    return response.status_code,False
+        return response.status_code,False,None
+    return response.status_code,False,None
 def download_model(model):
     global url_path_0
     save_dir = json_data["save_path"]
@@ -300,13 +300,25 @@ if __name__ == '__main__':
                         continue
                     if not os.path.exists(save_path+yyyymm):
                         os.makedirs(save_path+yyyymm)
-                    url_status_code,logic = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
+                    url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
+                    download_speed = str(round(progress_data["rate"]/1024/1024,2))
+                    download_time = str(round(progress_data["elapsed"],2))
                     time_now = datetime.datetime.now()
                     if logic:
-                        print(f'\033[1;34m{model}\033[0m_{date} Status: \033[0;32m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
+                        print(f'\033[1;34m{model}\033[0m_{date} 
+                              Status: \033[0;32m{logic}\033[0m 
+                              Responses: \033[0;32m{url_status_code}\033[0m 
+                              Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m 
+                              Time spend: \033[1;34m{download_time}\033[0m s 
+                              Speed: \033[1;34m{download_speed}\033[0m Mb/s')
                         nums_downloaded = nums_downloaded+1
                     else:
-                        print(f'\033[1;34m{model}\033[0m_{date} Status: \033[0;31m{logic}\033[0m, Responses: \033[0;32m{url_status_code}\033[0m Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m\n')
+                        print(f'\033[1;34m{model}\033[0m_{date} 
+                              Status: \033[0;32m{logic}\033[0m 
+                              Responses: \033[0;32m{url_status_code}\033[0m 
+                              Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m 
+                              Time spend: \033[1;34m{download_time}\033[0m s 
+                              Speed: \033[1;34m{download_speed}\033[0m Mb/s')
                         nums_failed = nums_failed+1
             month+=1
             if month == 13:
@@ -317,11 +329,11 @@ if __name__ == '__main__':
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        with open("download_data/download.log","a", encoding='utf-8') as download_log:
+        with open(f"{project_path}/download_data/download.log","a", encoding='utf-8') as download_log:
             download_log.write(f'[{datetime.datetime.now()}]  {nums_downloaded} Files Downloaded, {nums_failed} Files Failed [{model}] [MAVEN server]'+"\n")
     
     import runpy
-    runpy.run_path('download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt
+    runpy.run_path(f"{project_path}/download_data/get_download_files.py")  # run get_download_files.py, update filename_list.txt
     exit(0)
 #文件检查
     # for model in models:
