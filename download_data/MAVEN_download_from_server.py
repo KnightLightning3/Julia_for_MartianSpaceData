@@ -198,14 +198,15 @@ if __name__ == '__main__':
                 continue
             models.append(item)
     else:
-        models=muti_models
+        models= muti_models
 
     for model in models:
         current_date = start_date
 
         nums_downloaded = 0
         nums_failed = 0
-        
+        bool_skip = False
+        skip_data_start = ''
         url_path,save_path,file_style = download_model(model)
         if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
             os.makedirs(save_path)
@@ -220,9 +221,15 @@ if __name__ == '__main__':
             date=str(current_date.strftime("%Y%m%d"))
             
             if find_downloaded_file(file_names, date):
-                print(f'\033[1;32m{model} at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
+                if bool_skip == False:
+                    skip_data_start = current_date.strftime("%Y-%m-%d")
+                bool_skip = True
                 current_date+=datetime.timedelta(days=1)
                 continue
+            else:
+                if bool_skip:
+                    print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                    bool_skip = False
             year      = current_date.year
             month     = current_date.month
             yyyymm    = str(current_date.strftime("%Y/%m/"))
@@ -235,32 +242,36 @@ if __name__ == '__main__':
                     if start_date.strftime("%Y%m%d") >date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
                         continue
                     if find_downloaded_file(file_names, date):
-                        print(f'\033[1;32m{model} at {current_date.strftime("%Y-%m-%d")} Already Exists.\033[0m')
+                        if bool_skip == False:
+                            skip_data_start = current_date.strftime("%Y-%m-%d")
+                        bool_skip = True
                         current_date+=datetime.timedelta(days=1)
                         continue
+                    else:
+                        if bool_skip:
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            bool_skip = False
                     if not os.path.exists(save_path+yyyymm):
                         os.makedirs(save_path+yyyymm)
                     url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                     download_speed = str(round(progress_data["rate"]/1024/1024,2))
                     download_time = str(round(progress_data["elapsed"],2))
                     time_now = datetime.datetime.now()
-                    download_speed = progress_data["rate"]/1024/1024
-                    download_time = str(round(progress_data["elapsed"]))
                     if logic:
-                        print(f'\033[1;34m{model}\033[0m_{date} 
-                              Status: \033[0;32m{logic}\033[0m 
-                              Responses: \033[0;32m{url_status_code}\033[0m 
-                              Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m 
-                              Time spend: \033[1;34m{download_time}\033[0m s 
-                              Speed: \033[1;34m{download_speed}\033[0m Mb/s')
+                        print(f'\033[1;34m{model}\033[0m_{date}' 
+                              f'Status: \033[0;32m{logic}\033[0m' +
+                              f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                              f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
+                              f'Time spend: \033[1;34m{download_time}\033[0m s '+
+                              f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
                         nums_downloaded = nums_downloaded+1
                     else:
-                        print(f'\033[1;34m{model}\033[0m_{date} 
-                              Status: \033[0;32m{logic}\033[0m 
-                              Responses: \033[0;32m{url_status_code}\033[0m 
-                              Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m 
-                              Time spend: \033[1;34m{download_time}\033[0m s 
-                              Speed: \033[1;34m{download_speed}\033[0m Mb/s')
+                        print(f'\033[1;34m{model}\033[0m_{date}' 
+                              f'Status: \033[0;31m{logic}\033[0m' +
+                              f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                              f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
+                              f'Time spend: \033[1;34m{download_time}\033[0m s '+
+                              f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
                         nums_failed = nums_failed+1
             month+=1
             if month == 13:
