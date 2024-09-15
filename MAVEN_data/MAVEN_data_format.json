@@ -3,7 +3,7 @@
     "save_path": "E:/MAVEN/",
     "data_model": {
         "KP": [
-            "kp/insitu/",
+            "maven-insitu-calibrated/data/",
             "^mvn_kp_insitu_.+\\.tab$",
             "KP/insitu/",
             "load_kp"
@@ -15,25 +15,25 @@
             "load_kp_l3"
         ],
         "MAG_ss": [
-            "mag/l2/",
+            "maven-mag-calibrated/data/ss/highres/",
             "mvn_mag_l2_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_ss1s": [
-            "mag/l2/",
+            "maven-mag-calibrated/data/ss/1sec/",
             "mvn_mag_l2_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_pc": [
-            "mag/l2/",
+            "maven-mag-calibrated/data/pc/highres/",
             "mvn_mag_l2_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_pc1s": [
-            "mag/l2/",
+            "maven-mag-calibrated/data/pc/1sec/",
             "mvn_mag_l2_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
@@ -63,115 +63,115 @@
             "load_mag_l3"
         ],
         "SWEA_spec": [
-            "swe/l2/",
+            "maven-swea-calibrated/data/svy_spec/",
             "mvn_swe_l2_svyspec_.+\\.cdf",
             "SWEA/l2/",
             "load_cdf"
         ],
-        "LPW_mrgscpot": [
-            "lpw/l2/",
-            "mvn_lpw_l2_mrgscpot_.+\\.cdf",
-            "LPW/l2/",
-            "load_cdf"
-        ],
         "SWEA_pad_arc": [
-            "swe/l2/",
+            "maven-swea-calibrated/data/arc_pad/",
             "mvn_swe_l2_arcpad_.+\\.cdf",
             "SWEA/l2/",
             "load_swea_pad"
         ],
         "SWEA_pad_svy": [
-            "swe/l2/",
+            "maven-swea-calibrated/data/svy_pad/",
             "mvn_swe_l2_svypad_.+\\.cdf",
             "SWEA/l2/",
             "load_swea_pad"
         ],
         "STATIC_c6": [
-            "sta/l2/",
+            "maven-static-c/data/c6_32e64m/",
             "mvn_sta_l2_c6-32e64m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_c8": [
-            "sta/l2/",
+            "maven-static-c/data/c8_32e16d/",
             "mvn_sta_l2_c8-32e16d_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_ca": [
-            "sta/l2/",
+            "maven-static-c/data/ca_16e4d16a/",
             "mvn_sta_l2_ca-16e4d16a_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_cf": [
-            "sta/l2/",
+            "maven-static-c/data/cf_16e4d16a16m/",
             "mvn_sta_l2_cf-16e4d16a16m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_d0": [
-            "sta/l2/",
+            "maven-static-c/data/d0_32e4d16a8m/",
             "mvn_sta_l2_d0-32e4d16a8m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_d1": [
-            "sta/l2/",
+            "maven-static-c/data/d1_32e4d16a8m/",
             "mvn_sta_l2_d1-32e4d16a8m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "LPW_wave": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-specpas/",
             "mvn_lpw_l2_wspecpas_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_wave_act": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-specact/",
             "mvn_lpw_l2_wspecact_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
+        "LPW_mrgscpot": [
+            "maven-lpw-derived/data/mrg-scpot/",
+            "mvn_lpw_l2_mrgscpot_.+\\.cdf",
+            "LPW/l2/",
+            "load_cdf"
+        ],
         "LPW_lpiv": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/lp-iv/",
             "mvn_lpw_l2_lpiv_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_lpnt": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/lp-nt/",
             "mvn_lpw_l2_lpnt_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_wn": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-n/",
             "mvn_lpw_l2_wn_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_we12": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-e12/",
             "mvn_lpw_l2_we12_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_bursthf": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-e12bursthf/",
             "mvn_lpw_l2_we12bursthf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_burstmf": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-e12burstmf/",
             "mvn_lpw_l2_we12burstmf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_burstlf": [
-            "lpw/l2/",
+            "maven-lpw-derived/data/w-e12burstlf/",
             "mvn_lpw_l2_we12burstlf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
@@ -189,13 +189,13 @@
             "load_NGIMS_den_l4"
         ],
         "SWIA_mom": [
-            "swi/l2/",
+            "maven-swia-calibrated/data/onboard_svy_mom/",
             "mvn_swi_l2_onboardsvymom_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"
         ],
         "SWIA_svy_spec": [
-            "swi/l2/",
+            "maven-swia-calibrated/data/onboard_svy_spec/",
             "mvn_swi_l2_onboardsvyspec_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"

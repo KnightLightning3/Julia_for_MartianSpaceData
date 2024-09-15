@@ -54,6 +54,14 @@ pip install -r requirements.txt
 
 此外,'download_data\磁场重构.jl'和'download_data\KP 重构.jl'可以将 MAVEN 官方的磁场和 KP 文件转写为 Fortran 二进制和 JULIA 二进制文件以便读取
 
+可以使用的MAVEN外部服务器(需要VPN):
+
+- https://pds-ppi.igpp.ucla.edu/data/
+- https://lasp.colorado.edu/maven/sdc/public/data/sci/
+- http://sprg.ssl.berkeley.edu/data/maven/data/sci/
+
+其中https://pds-ppi.igpp.ucla.edu/data/的文件树与后两者不同,且没有NGIM数据
+
 # 火星磁场模型
 
 IGRF_calculate.jl
@@ -67,7 +75,8 @@ IGRF_calculate.jl
 - [ ] 全仪器读取
 - [ ] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
-- [ ] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
+- [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
+- [ ] 下载程序可以检查数据版本
 - [x] 简易 Julia 绘图包
 - [x] 外接读取文件树
 - [ ] 更多磁场模型
