@@ -55,7 +55,6 @@ session = requests.Session()
 session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
 timeout = None
 
-
 models_skip = ["MAG_ss_l2","MAG_ss1s_l2","MAG_pc1s_l2","MAG_pc_l2"]  #批量下载的时候跳过的模块, 这些模块有更好的二进制版本
 
 def sleep_local(sleep_time_range):
