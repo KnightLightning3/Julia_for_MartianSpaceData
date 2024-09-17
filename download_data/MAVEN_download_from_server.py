@@ -265,7 +265,7 @@ if __name__ == '__main__':
                 for item in file_names:
                     file.write(str(item) + '\n')
         import runpy
-        runpy.run_path('download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
+        runpy.run_path(f'{project_path}/download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
         exit(0) # check download file mode do not download file
     logic = test_server()
     if logic == False:
@@ -356,8 +356,12 @@ if __name__ == '__main__':
                     v_new = re.findall(r"_v\d{2}_", filename)[0][0:4]
                     r_new = re.findall(r"_r\d{2}", filename)[0][0:4]
                     if logic:
-                        download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                        download_time = str(round(progress_data["elapsed"],2))
+                        try:
+                            download_speed = str(round(progress_data["rate"]/1024/1024,2))
+                            download_time = str(round(progress_data["elapsed"],2))
+                        except:
+                            download_speed = "ERROR"
+                            download_time = "ERROR"
                         print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
                               f'Status: \033[0;32m{logic}\033[0m ' +
                               f'Responses: \033[0;32m{url_status_code}\033[0m '+
