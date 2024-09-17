@@ -62,7 +62,6 @@ def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
         print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds",end="\r")
         sleep(1)
-    print("Requesting...",end='\r')
     return None
 def test_server():
     global vpn_proxy
@@ -93,10 +92,12 @@ def search_url(url,file_style):
     global timeout
     sleep_local(step_time)
     try:
+        print(f"Requesting:{url}...",end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
+            print(f"Requesting:{url}...",end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
@@ -125,10 +126,12 @@ def requests_download(url,save_path):
     global timeout
     sleep_local(step_time)
     try:
+        print(f"Requesting:{url}...",end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
+            print(f"Requesting:{url}...",end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
@@ -183,7 +186,7 @@ def find_downloaded_version(file_names,filename, element,path):
             v_new = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
             r_old = int(re.findall(r"_r\d{2}", file1)[0][2:4])
             r_new = int(re.findall(r"_r\d{2}", filename)[0][2:4])
-            if v_new > v_old or r_new > r_old:
+            if v_new > v_old or (v_new == v_old and r_new > r_old) :
                 os.remove(path+file1) #删除path1的文件
                 print(f"\033[0;31mRemove old Version of {element}_v{v_old}_r{r_old}\033[0m ")
                 return False
@@ -264,7 +267,9 @@ if __name__ == '__main__':
                     file.write(str(item) + '\n')
         import runpy
         runpy.run_path('download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
-    if test_server() == False:
+        exit(0) # check download file mode do not download file
+    logic = test_server()
+    if logic == False:
         print('\033[1;31m Connection Failed, Exit Program \033[0m')
         exit(0)
     models=[]
