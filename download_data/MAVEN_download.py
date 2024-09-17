@@ -52,15 +52,14 @@ data_model = json_data["data_model"]
 session = requests.Session()
 # session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
 timeout = None
-step_time= 3 #每个请求之间间隔的时间，以防被ban
+step_time= 2 #每个请求之间间隔的时间，以防被ban
 
 models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
 
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
-        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds",end="\r")
+        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r")
         sleep(1)
-    print("Requesting...",end='\r')
     return None
 def test_proxies():
     global vpn_proxy
@@ -91,10 +90,12 @@ def search_url(url,file_style):
     global timeout
     sleep_local(step_time)
     try:
+        print(f"Requesting:{url}...\033[K",end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
+            print(f"Requesting:{url}...\033[K",end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
@@ -123,10 +124,12 @@ def requests_download(url,save_path):
     global timeout
     sleep_local(step_time)
     try:
+        print(f"Requesting:{url}...\033[K",end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
+            print(f"Requesting:{url}...\033[K",end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
@@ -182,7 +185,7 @@ def find_downloaded_version(file_names,filename, element,path):
             v_new = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
             r_old = int(re.findall(r"_r\d{2}", file1)[0][2:4])
             r_new = int(re.findall(r"_r\d{2}", filename)[0][2:4])
-            if v_new > v_old or r_new > r_old:
+            if v_new > v_old or (v_new == v_old and r_new > r_old) :
                 os.remove(path+file1) #删除path1的文件
                 print(f"\033[0;31mRemove old Version of {element}_v{v_old}_r{r_old}\033[0m ")
                 return False
@@ -263,6 +266,7 @@ if __name__ == '__main__':
                     file.write(str(item) + '\n')
         import runpy
         runpy.run_path('download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
+        exit(0) # check download file mode do not download file
     if vpn_proxy == None:
         print("\033[1;32m No VPN \033[0m")
     else:
@@ -319,7 +323,7 @@ if __name__ == '__main__':
             yyyymm    = str(current_date.strftime("%Y/%m/"))
             urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
             if bool_urls:
-                print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m')
+                print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K')
                 for url in urls:
                     filename = str(url)
                     date=re.findall(r"\d{8}", filename)[0]

@@ -132,7 +132,7 @@ function load_mag_l2(file::String)
         return epoch, [bx, by, bz], [x, y, z]
     end
     lines = readlines(file)
-    line_i = maximum(findall(line -> startswith(line, "END"), lines[1:600]))
+    line_i = maximum(findall(line -> startswith(line, "END"), lines[1:300]))
     lines = lines[line_i+1:end]
 
     nums = length(lines)

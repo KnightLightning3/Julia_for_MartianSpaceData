@@ -23,23 +23,33 @@ function data2bi(data,file)
     close(f)
 end
 
-mag_keys = ["MAG_pc","MAG_ss"]#,"MAG_ss1s","MAG_pc1s",
+mag_keys = ["MAG_ss1s","MAG_pc1s","MAG_pc","MAG_ss"]#]#]#,
+# if !isdefined(lists)
+#     lists = []
+# end
 for mag_key in mag_keys
+    # println("\033[0;32mBUILDING $mag_key\033[0m")
     local files = MAVEN_load.file_list(mag_key)
-    @showprogress 1 "Computing..."*mag_key for file in files  #  
-        old_path = file[1:13]*"l3"*file[16:end-4]*".f77_unformatted"
+    for file in files  # @showprogress 1 "Computing..."*mag_key 
         new_path = file[1:13]*"l3"*file[16:32]*"l3"*file[35:end-4]*".f77_unformatted"
         dir = dirname(new_path)
         if !isdir(dir)
             mkpath(dir)
         end
-        if isfile(old_path)
-            rm(old_path)
-        end
+        # if file in lists
+        #     println("skip $(new_path[25:end])")
+        #     continue
+        # end
+        # print("\033[0;32mREADing $(new_path[25:end])\033[0m")
+        # BData = MAVEN_load.load_mag_l2(file)["Vars"]
+        # push!(lists,file)
         if !isfile(new_path)
-            touch(new_path)
+            print("\033[0;32mBuilding $(new_path[25:end])\033[0m \n")
             BData = MAVEN_load.load_mag_l2(file)["Vars"]
+            touch(new_path)
             data2bi(BData,new_path)
+        else
+            print("\033[0;33mSKIP $(new_path[25:end])\033[0m \r")
         end
     end
 end

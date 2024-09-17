@@ -64,35 +64,52 @@ for i in 2:235
     KP_dict[string(i)] = i
 end
 MAVEN_load.change_kp_read_data(KP_dict);
-f = open("../MAVEN_data/KP_vars.json", "r")
+f = open("C:/Users/chengsw/Projects/Package_for_Julia_of_csw/MAVEN_data/KP_vars.json", "r")
 KP_vars = JSON.parse(f)
 close(f)
 
-f = open(raw"C:\Users\chengsw\Projects\Package_for_Julia_of_csw\MAVEN_data\MAVEN_data_format.json","r")
+f = open(raw"C:/Users/chengsw/Projects/Package_for_Julia_of_csw/MAVEN_data/MAVEN_data_format.json","r")
 MAVEN_format = JSON.parse(f)
 close(f)
 
 
 files = MAVEN_load.file_list("KP")
 new_list = []
-@showprogress 1 "Computing..." for file in files
+for file in files  #@showprogress 1 "Computing..." 
     new_path = file[1:12] * "l3" * file[19:end-4] * ".jld2"
     dir = dirname(new_path)
     if !isdir(dir)
         mkpath(dir)
     end
+    v_new = match(r"_v\d{2}",file).match
+    r_new = match(r"_r\d{2}",file).match
+    yyyymmdd_new = match(r"_\d{8}_",file).match
+    files_old = readdir(dir;join=true)
+    for file_old in files_old # 移除旧版本数据
+        yyyymmdd_old = match(r"_\d{8}_",file_old).match
+        if yyyymmdd_old == yyyymmdd_new
+            v_old = match(r"_v\d{2}",file_old).match
+            r_old = match(r"_r\d{2}",file_old).match
+            if v_old < v_new || (v_old == v_new && r_old < r_new)
+                rm(file_old)
+                println("\033[0;31mrm $yyyymmdd_old$v_old$r_old\033[0m")
+            end
+        end
+    end
     if !isfile(new_path)
         dummy = KP_rebuild(file, new_path, KP_vars)
+        println("\033[0;32mbuild $yyyymmdd_new$v_new$r_new\033[0m")
     end
+    # break
 end;
 
-f=MAVEN_format["save_path"]*"lists/KP_l3_list.txt"
-open(f,"w") do io
-    for ff in new_list
-    println(io,ff[16:end])
-    end
-end
-println("done")
+# f=MAVEN_format["save_path"]*"lists/KP_l3_list.txt"
+# open(f,"w") do io
+#     for ff in new_list
+#     println(io,ff[16:end])
+#     end
+# end
+# println("done")
 # build_KP_list_files
 
 # def search_downloaded_files(save_path,filestyle):
