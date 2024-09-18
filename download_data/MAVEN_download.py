@@ -144,9 +144,9 @@ def requests_download(url,save_path):
             # 如果路径不存在,创建路径
             if not os.path.exists(os.path.dirname(save_path)):
                 os.makedirs(save_path)
-                # print(f"创建路径:{save_path}")
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
+                print(f"Writing into: {save_path}",end='\r')
                 file.write(buffer)
             return response.status_code,True,progress_bar_data
         response.close()
@@ -265,7 +265,7 @@ if __name__ == '__main__':
                 for item in file_names:
                     file.write(str(item) + '\n')
         import runpy
-        runpy.run_path('f{project_path}/download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
+        runpy.run_path(f'{project_path}/download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
         exit(0) # check download file mode do not download file
     if vpn_proxy == None:
         print("\033[1;32m No VPN \033[0m")

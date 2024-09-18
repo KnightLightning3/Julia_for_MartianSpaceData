@@ -148,6 +148,7 @@ def requests_download(url,save_path):
                 # print(f"创建路径:{save_path}")
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
+                print(f"Writing into: {save_path}",end='\r')
                 file.write(buffer)
             return response.status_code,True,progress_bar_data
         response.close()
