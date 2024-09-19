@@ -1,201 +1,202 @@
 {
     "description": "data_model: data_type:[url_path, file_name_pattern, save_path, load_function]",
     "save_path": "E:/MAVEN/",
+    "server_url":["http://222.195.76.155:8000/MAVEN/","https://pds-ppi.igpp.ucla.edu/data/","https://lasp.colorado.edu/maven/sdc/public/data/sci/"],
     "data_model": {
         "KP": [
-            "maven-insitu-calibrated/data/",
+            ["KP/insitu/","maven-insitu-calibrated/data/","kp/insitu/"],
             "^mvn_kp_insitu_.+\\.tab$",
             "KP/insitu/",
             "load_kp"
         ],
         "KP_l3": [
-            "None",
+            ["KP/l3/","None","None"],
             "^mvn_kp_insitu_.+\\.jld2$",
             "KP/l3/",
             "load_kp_l3"
         ],
         "MAG_ss": [
-            "maven-mag-calibrated/data/ss/highres/",
+            ["MAG/l2/","maven-mag-calibrated/data/ss/highres/","mag/l2/"],
             "mvn_mag_l2_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_ss1s": [
-            "maven-mag-calibrated/data/ss/1sec/",
+            ["MAG/l2/","maven-mag-calibrated/data/ss/1sec/","mag/l2/"],
             "mvn_mag_l2_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_pc": [
-            "maven-mag-calibrated/data/pc/highres/",
+            ["MAG/l2/","maven-mag-calibrated/data/pc/highres/","mag/l2/"],
             "mvn_mag_l2_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_pc1s": [
-            "maven-mag-calibrated/data/pc/1sec/",
+            ["MAG/l2/","maven-mag-calibrated/data/pc/1sec/","mag/l2/"],
             "mvn_mag_l2_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.sts",
             "MAG/l2/",
             "load_mag_l2"
         ],
         "MAG_ss_l3": [
-            "None",
+            ["MAG/l3/","None","None"],
             "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_ss1s_l3": [
-            "None",
+            ["MAG/l3/","None","None"],
             "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_pc_l3": [
-            "None",
+            ["MAG/l3/","None","None"],
             "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "MAG_pc1s_l3": [
-            "None",
+            ["MAG/l3/","None","None"],
             "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/l3/",
             "load_mag_l3"
         ],
         "SWEA_spec": [
-            "maven-swea-calibrated/data/svy_spec/",
+            ["SWEA/l2/","maven-swea-calibrated/data/svy_spec/","swe/l2/"],
             "mvn_swe_l2_svyspec_.+\\.cdf",
             "SWEA/l2/",
             "load_cdf"
         ],
         "SWEA_pad_arc": [
-            "maven-swea-calibrated/data/arc_pad/",
+            ["SWEA/l2/","maven-swea-calibrated/data/arc_pad/","swe/l2/"],
             "mvn_swe_l2_arcpad_.+\\.cdf",
             "SWEA/l2/",
             "load_swea_pad"
         ],
         "SWEA_pad_svy": [
-            "maven-swea-calibrated/data/svy_pad/",
+            ["SWEA/l2/","maven-swea-calibrated/data/svy_pad/","swe/l2/"],
             "mvn_swe_l2_svypad_.+\\.cdf",
             "SWEA/l2/",
             "load_swea_pad"
         ],
         "STATIC_c6": [
-            "maven-static-c/data/c6_32e64m/",
+            ["STATIC/l2/","maven-static-c/data/c6_32e64m/","sta/l2/"],
             "mvn_sta_l2_c6-32e64m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_c8": [
-            "maven-static-c/data/c8_32e16d/",
+            ["STATIC/l2/","maven-static-c/data/c8_32e16d/","sta/l2/"],
             "mvn_sta_l2_c8-32e16d_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_ca": [
-            "maven-static-c/data/ca_16e4d16a/",
+            ["STATIC/l2/","maven-static-c/data/ca_16e4d16a/","sta/l2/"],
             "mvn_sta_l2_ca-16e4d16a_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_cf": [
-            "maven-static-c/data/cf_16e4d16a16m/",
+            ["STATIC/l2/","maven-static-c/data/cf_16e4d16a16m/","sta/l2/"],
             "mvn_sta_l2_cf-16e4d16a16m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_d0": [
-            "maven-static-c/data/d0_32e4d16a8m/",
+            ["STATIC/l2/","maven-static-c/data/d0_32e4d16a8m/","sta/l2/"],
             "mvn_sta_l2_d0-32e4d16a8m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "STATIC_d1": [
-            "maven-static-c/data/d1_32e4d16a8m/",
+            ["STATIC/l2/","maven-static-c/data/d1_32e4d16a8m/","sta/l2/"],
             "mvn_sta_l2_d1-32e4d16a8m_.+\\.cdf",
             "STATIC/l2/",
             "load_cdf"
         ],
         "LPW_wave": [
-            "maven-lpw-derived/data/w-specpas/",
+            ["LPW/l2/","maven-lpw-derived/data/w-specpas/","lpw/l2/"],
             "mvn_lpw_l2_wspecpas_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_wave_act": [
-            "maven-lpw-derived/data/w-specact/",
+            ["LPW/l2/","maven-lpw-derived/data/w-specact/","lpw/l2/"],
             "mvn_lpw_l2_wspecact_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_mrgscpot": [
-            "maven-lpw-derived/data/mrg-scpot/",
+            ["LPW/l2/","maven-lpw-derived/data/mrg-scpot/","lpw/l2/"],
             "mvn_lpw_l2_mrgscpot_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_lpiv": [
-            "maven-lpw-derived/data/lp-iv/",
+            ["LPW/l2/","maven-lpw-derived/data/lp-iv/","lpw/l2/"],
             "mvn_lpw_l2_lpiv_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_lpnt": [
-            "maven-lpw-derived/data/lp-nt/",
+            ["LPW/l2/","maven-lpw-derived/data/lp-nt/","lpw/l2/"],
             "mvn_lpw_l2_lpnt_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_wn": [
-            "maven-lpw-derived/data/w-n/",
+            ["LPW/l2/","maven-lpw-derived/data/w-n/","lpw/l2/"],
             "mvn_lpw_l2_wn_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_we12": [
-            "maven-lpw-derived/data/w-e12/",
+            ["LPW/l2/","maven-lpw-derived/data/w-e12/","lpw/l2/"],
             "mvn_lpw_l2_we12_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_bursthf": [
-            "maven-lpw-derived/data/w-e12bursthf/",
+            ["LPW/l2/","maven-lpw-derived/data/w-e12bursthf/","lpw/l2/"],
             "mvn_lpw_l2_we12bursthf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_burstmf": [
-            "maven-lpw-derived/data/w-e12burstmf/",
+            ["LPW/l2/","maven-lpw-derived/data/w-e12burstmf/","lpw/l2/"],
             "mvn_lpw_l2_we12burstmf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "LPW_burstlf": [
-            "maven-lpw-derived/data/w-e12burstlf/",
+            ["LPW/l2/","maven-lpw-derived/data/w-e12burstlf/","lpw/l2/"],
             "mvn_lpw_l2_we12burstlf_.+\\.cdf",
             "LPW/l2/",
             "load_cdf"
         ],
         "NGIMS_den_l3": [
-            "ngi/l3/",
+            ["NGIMS/l3/","None","ngi/l3/"],
             "mvn_ngi_l3_res-den-.+\\.csv",
             "NGIMS/l3/",
             "load_NGIMS_den_l3"
         ],
         "NGIMS_den_l4": [
-            "None",
+            ["NGIMS/l4/","None","None"],
             "mvn_ngi_l4_res-den-.+\\.csv",
             "NGIMS/l4/",
             "load_NGIMS_den_l4"
         ],
         "SWIA_mom": [
-            "maven-swia-calibrated/data/onboard_svy_mom/",
+            ["SWIA/l2/","maven-swia-calibrated/data/onboard_svy_mom/","swi/l2/"],
             "mvn_swi_l2_onboardsvymom_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"
         ],
         "SWIA_svy_spec": [
-            "maven-swia-calibrated/data/onboard_svy_spec/",
+            ["SWIA/l2/","maven-swia-calibrated/data/onboard_svy_spec/","swi/l2/"],
             "mvn_swi_l2_onboardsvyspec_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"

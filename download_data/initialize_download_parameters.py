@@ -10,6 +10,7 @@ config.optionxform = str
 config['DEFAULT'] = {
     'MAVEN_Server_url': 'https://pds-ppi.igpp.ucla.edu/data/',#'https://lasp.colorado.edu/maven/sdc/public/data/sci/',
     'USTC_Server_url': 'http://222.195.76.155:8000/MAVEN/',
+    'Server_ind' : "1\n;下载服务器的编号\n;0: 自建服务器USTC\n;1: 加州大学UCLA\n;2: 科罗拉多大学LASP",
     'Username': '待定用户007',
     'Password': '待定用户007的密码是待定用户007',
     "sleep_time": "60 \n;下载错误时的休眠时间\n;Sleep time in case of download error",

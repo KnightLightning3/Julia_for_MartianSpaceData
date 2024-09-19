@@ -18,43 +18,50 @@ def get_list_from_ini(input_string):
     items = stripped_string.split(',')
     return items
 
+
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
+    json_data = json.load(file)
+data_model = json_data["data_model"]
+
 config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
 config_data = configparser.ConfigParser()
 config_data.optionxform = str
 config_data.read(config_file_path, encoding='utf-8')
 
-url_path_0 = config_data['DEFAULT']['MAVEN_Server_url']
+Server_ind = config_data.getint('DEFAULT','Server_ind')
+url_path_0 = json_data["server_url"][Server_ind]
 sleep_time = config_data.getint('DEFAULT','sleep_time')
 step_time = config_data.getint('DEFAULT','step_time')
-vpn_proxy1 = get_list_from_ini(config_data['VPN_proxy']['MAVEN_server'])
-if vpn_proxy1 == None:
-    vpn_proxy = None
-else:
-    vpn_proxy = {
-    "http": vpn_proxy1[0],
-    "https": vpn_proxy1[0],
-    }
+timeout = None
 
 start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
 end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
 
 single_model = config_data['Settings'].get('single_model', [])
 muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
-models_pass = get_list_from_ini(config_data['Settings']['models_pass_MAVEN_server'])
 single_download = config_data['Settings'].getboolean('single_download')
 check_download_file = config_data['Settings'].getboolean('check_download_file')
 update_file_version = config_data['Settings'].getboolean('update_file_version')
-with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
-    json_data = json.load(file)
-data_model = json_data["data_model"]
 
 session = requests.Session()
-# session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
-timeout = None
-step_time= 2 #每个请求之间间隔的时间，以防被ban
-
-models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+if Server_ind == 0:  #自建服务器
+    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
+    user_name = config_data['DEFAULT']['Username']
+    password = config_data['DEFAULT']['Password']
+    session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
+    models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
+    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+    step_time = 0
+else:              # 外部服务器
+    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['MAVEN_server'])
+    models_pass = get_list_from_ini(config_data['Settings']['models_pass_MAVEN_server'])
+    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+if vpn_proxy != None:
+    vpn_proxy = {
+    "http": vpn_proxy[0],
+    "https": vpn_proxy[0],
+    }
 
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
@@ -156,6 +163,7 @@ def requests_download(url,save_path):
         return response.status_code,False,None
     return response.status_code,False,None
 def download_model(model):
+    global Server_ind
     global url_path_0
     save_dir = json_data["save_path"]
     data_model = json_data["data_model"]
@@ -163,7 +171,8 @@ def download_model(model):
     for key, value in data_model.items():
         model_key[key] = value[:3]
 
-    model_url,filename,pathname=model_key[model]
+    model_url0,filename,pathname=model_key[model]
+    model_url = model_url0[Server_ind]
     url = url_path_0+model_url
     save_path =  save_dir+pathname
     return [url,save_path,filename]
