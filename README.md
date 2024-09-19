@@ -46,19 +46,17 @@ pip install -r requirements.txt
 
 运行'download_data\initialize_download_parameters.py'
 
-完成设置文件的初始化后,修改'download_data\MAVEN_download_config.ini'调整下载模式,
+完成设置文件的初始化后,修改'download_data\MAVEN_download_config.ini'调整下载模式, 默认模式为从USTC源下载2014-10 至 2023-02 的全部数据
 
-'download_data\MAVEN_download_from_server.py'将会下载科大服务器上的数据文件,
-
-'download_data\MAVEN_download.py'将会下载 MAVEN 官方服务器上的数据文件,
+'download_data\MAVEN_download.py'将会下载指定服务器上的数据文件, 建议从科大源下载(Server_ind = 0)
 
 此外,'download_data\磁场重构.jl'和'download_data\KP 重构.jl'可以将 MAVEN 官方的磁场和 KP 文件转写为 Fortran 二进制和 JULIA 二进制文件以便读取
 
-可以使用的MAVEN外部服务器(需要VPN):
-
-- https://pds-ppi.igpp.ucla.edu/data/
-- https://lasp.colorado.edu/maven/sdc/public/data/sci/
-- http://sprg.ssl.berkeley.edu/data/maven/data/sci/
+可以使用的MAVEN外部服务器(可能需要VPN):
+- USTC源,校内速度快,服务器不一定运行,数据不一定完整: http://222.195.76.155:8000/MAVEN/
+- UCLA源,服务器稳定,没有NGIMS数据: https://pds-ppi.igpp.ucla.edu/data/
+- LASP源,服务器稳定: https://lasp.colorado.edu/maven/sdc/public/data/sci/
+- berkeley源,格式与LASP类似,SPADES库默认服务器,相当部分的数据需要账户密码,不可直接访问: http://sprg.ssl.berkeley.edu/data/maven/data/sci/
 
 其中https://pds-ppi.igpp.ucla.edu/data/的文件树与后两者不同,且没有NGIM数据
 
@@ -76,7 +74,7 @@ IGRF_calculate.jl
 - [ ] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
-- [ ] 下载程序可以检查数据版本
+- [X] 下载程序可以检查数据版本
 - [x] 简易 Julia 绘图包
 - [x] 外接读取文件树
 - [ ] 更多磁场模型
@@ -84,7 +82,7 @@ IGRF_calculate.jl
 - [x] 磁力线追踪
 - [x] 文件树去适配 SPEDAS 的结构
 - [x] MAVEN STATIC
-- [ ] 增加项目初始化和文件处理流程的流程图
+- [X] 增加项目初始化和文件处理流程的流程图
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
       随缘更新
 

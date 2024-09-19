@@ -10,7 +10,7 @@ config.optionxform = str
 config['DEFAULT'] = {
     'MAVEN_Server_url': 'https://pds-ppi.igpp.ucla.edu/data/',#'https://lasp.colorado.edu/maven/sdc/public/data/sci/',
     'USTC_Server_url': 'http://222.195.76.155:8000/MAVEN/',
-    'Server_ind' : "1\n;下载服务器的编号\n;0: 自建服务器USTC\n;1: 加州大学UCLA\n;2: 科罗拉多大学LASP",
+    'Server_ind' : "0\n;下载服务器的编号\n;0: 自建服务器USTC\n;1: 加州大学UCLA\n;2: 科罗拉多大学LASP",
     'Username': '待定用户007',
     'Password': '待定用户007的密码是待定用户007',
     "sleep_time": "60 \n;下载错误时的休眠时间\n;Sleep time in case of download error",
@@ -29,7 +29,7 @@ config['Settings'] = {
     "models_pass_MAVEN_server":"MAG_ss_l3,MAG_ss1s_l3,MAG_pc1s_l3,MAG_pc_l3,NGIMS_den_l4,KP_l3\n;从MAVEN官网批量下载的时候默认跳过的模块,这些模块为本地自制模块,lasp服务器上不存在,不同模块间用英文逗号分隔\n; Modules that are skipped by default when downloading in batches from the MAVEN official website. These modules are local self-made modules and do not exist on the LASP server. Different modules are separated by commas.",
     "single_download": "False\n;为true时下载single_model, 为false时下载muti_models\n;true for single_model, false for muti_models",
     "check_download_file":"False\n;检查并索引所有已下载文件,检索模式不会下载文件 \n;check and build all data already downloaded,check download file mode do not download file",
-    "update_file_version" : "True\n;为True 时检查所下载文件的版本,此时下载会逐月检索所有文件 \n;update data already downloaded, on this mode, all files on server will be checked",
+    "update_file_version" : "False\n;为True 时检查所下载文件的版本,此时下载会逐月检索所有文件 \n;update data already downloaded, on this mode, all files on server will be checked",
 }
 with open(config_file_path, "w", encoding='utf-8') as file:
     config.write(file)
