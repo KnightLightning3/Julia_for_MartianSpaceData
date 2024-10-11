@@ -1,7 +1,4 @@
-# 读取和计算MAVEN数据
-# data_get_from_date 返回字典dates_dict["数据类型"]["数据内容"]
-# dates_dict["数据类型"]["data_load_flag"]表示读取是否成功
-# 所有的CDF文件统一读取为cdf对应的字典，并去除PyObjects
+# 处理MAVEN的STATIC数据
 # STATIC中的theta值在球坐标系下,应当为90-Theta.
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
 # 默认能量单位: EV. 默认粒子质量单位:AMU
@@ -10,6 +7,10 @@ using TimesDates, Dates
 using Statistics
 using Quaternions
 
+# -------------------------Export parts-------------------------
+export static_c6_mass_mean,static_c6_energy_mean
+export static_rotation,static_slip,static_slip_2_V,sta_v_4d
+export ion_energy2v,ion_v2energy
 function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(不包括角度信息)
     # energy_spec为在mass维度做求和,得到eflux,energy谱
     # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
@@ -392,6 +393,41 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = 
     vel = 1e-5 .* flux ./(density .+ 1e-10)
     return vel,flux,density
 end
+function sta_d_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片
+    if dat["valid"] == 0
+        println("Invalid Data")
+        return NaN
+    end
+
+    dat = STA_count2df(dat;m_int=m_int)
+    data=dat["df"]
+
+    energy = dat["energy"] 
+    denergy = dat["denergy"] 
+    theta = dat["theta"]./RADG
+    phi = dat["phi"] ./RADG
+    dtheta = dat["dtheta"] ./RADG
+    dphi = dat["dphi"] ./RADG
+    mass_arr = dat["mass_arr"]
+    pot = dat["sc_pot"]
+
+    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+    data[ind].=0.0
+
+    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+    data[ind].=0.0
+    
+    mass=dat["mass"]*m_int
+    
+    Const = 2.0/mass/mass*1e5
+    energy=energy.+pot		# energy/charge analyzer, require positive energy
+    energy[energy .< 0.0] .=0.0
+
+    #units are 1/cm^2-s
+    Const = mass^(-1.5)*2.0^(0.5)
+    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    return density
+end
 function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
     function rotate_vector(u::AbstractVector,q::QuaternionF64)
         q_u = QuaternionF64(0, u[1], u[2], u[3])
@@ -543,13 +579,13 @@ function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度
     energy = (γ - 1.0) * E0 * 1e3
     return energy
 end
-function ion_v2energy(v,mass) # 离子子能量对应速度(相对论)
-    E0 = 511.0 * mass * 1836.23
-    β = v / 3e8
-    γ = 1.0 / sqrt(1.0 - β^2)
-    energy = (γ - 1.0) * E0 * 1e3
-    return energy
-end
+# function ion_v2energy(v,mass) # 离子子能量对应速度(相对论)
+#     E0 = 511.0 * mass * 1836.23
+#     β = v / 3e8
+#     γ = 1.0 / sqrt(1.0 - β^2)
+#     energy = (γ - 1.0) * E0 * 1e3
+#     return energy
+# end
 const EV=1.602176487e-19
 const C=3.0e8
 const Me=9.109e-31

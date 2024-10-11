@@ -2,6 +2,11 @@ module IGRF_calculate
 using FortranFiles
 using LinearAlgebra
 using Statistics
+
+# -----------------export part -----------------------
+export pc2sphere, sphere2pc, Bsphere2pc, Bpc2sphere
+export IGRF_pc,IGRF_sphere
+export trace_mag_line
 #返回nT
 # function linear_fit_mag(data,datam) #使用最小二乘法给模型三个维度加一个常数[a,b,c]来拟合模型和实际数据
 #     x = data[:,1:3]
@@ -130,6 +135,7 @@ function RK4_Trace_fortran(r::Real, θ::Real, ϕ::Real, h::Real)
         h_in)
     return B_result, dB.x, path_next
 end
+IGRF_sphere = IGRF_fortran
 function IGRF_pc(x::Real, y::Real, z::Real)
     r, θ, ϕ = pc2sphere(x, y, z)
     Br, Bθ, Bϕ, _ = IGRF_fortran(r, θ, ϕ)
