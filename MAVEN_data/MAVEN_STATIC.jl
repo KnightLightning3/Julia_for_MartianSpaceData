@@ -335,7 +335,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     return dat_slip
 end
 # 速度计算
-function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片
+function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
     if dat["valid"] == 0
         println("Invalid Data")
         return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
@@ -393,7 +393,7 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = 
     vel = 1e-5 .* flux ./(density .+ 1e-10)
     return vel,flux,density
 end
-function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片
+function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
     if dat["valid"] == 0
         println("Invalid Data")
         return NaN

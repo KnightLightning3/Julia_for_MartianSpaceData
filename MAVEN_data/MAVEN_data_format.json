@@ -1,5 +1,5 @@
 {
-    "description": "data_model: data_type:[url_paths, file_name_pattern, save_path, load_function,description]",
+    "description": "data_model: data_type:[url_pathss, file_name_pattern, save_path, load_function,description,description]",
     "save_path": "E:/MAVEN/",
     "server_url":["http://222.195.76.155:8000/MAVEN/","https://pds-ppi.igpp.ucla.edu/data/","https://lasp.colorado.edu/maven/sdc/public/data/sci/"],
     "data_model": {
@@ -203,8 +203,7 @@
             ["NGIMS/l4/","None","None"],
             "mvn_ngi_l4_res-den-.+\\.csv",
             "NGIMS/l4/",
-            "load_NGIMS_den_l3",
-            "resampled average denity table"
+            "load_NGIMS_den_l3"
         ],
         "SWIA_mom": [
             ["SWIA/l2/","maven-swia-calibrated/data/onboard_svy_mom/","swi/l2/"],
