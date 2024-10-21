@@ -144,9 +144,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
         b = -cross(a, c)
         b = normalize(b)
         rotinv = zeros(3, 3)
-        rotinv[:, 1] = a
-        rotinv[:, 2] = b
-        rotinv[:, 3] = c
+        rotinv = hcat(a,b,c)
         rot = inv(rotinv)
         return rot
     end

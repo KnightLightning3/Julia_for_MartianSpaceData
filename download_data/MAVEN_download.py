@@ -18,7 +18,6 @@ def get_list_from_ini(input_string):
     items = stripped_string.split(',')
     return items
 
-
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
     json_data = json.load(file)
@@ -51,7 +50,7 @@ if Server_ind == 0:  #自建服务器
     password = config_data['DEFAULT']['Password']
     session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
     models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
-    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+    models_skip = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块, 这些模块存在本地自制的二进制文件
     step_time = 0
 else:              # 外部服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['MAVEN_server'])
@@ -106,12 +105,9 @@ def search_url(url,file_style):
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
-
             soup = BeautifulSoup(html_content, 'html.parser')
-
             file_urls = []
             file_elements = soup.find_all('a', href=True)  # 找到所有带有href属性的<a>元
-
             for element in file_elements:
                 file_url = element['href']
                 file_urls.append(file_url)
@@ -131,17 +127,17 @@ def requests_download(url,save_path):
     global timeout
     sleep_local(step_time)
     try:
-        print(f"Requesting:{url}...\033[K",end='\r')
+        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K")
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
-            print(f"Requesting:{url}...\033[K",end='\r')
+            print(f"Requesting:{url}...\033[K")
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False)
+            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True)
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
@@ -153,7 +149,7 @@ def requests_download(url,save_path):
                 os.makedirs(save_path)
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
-                print(f"Writing into: {save_path}",end='\r')
+                print(f"\033[FWriting into: {save_path}",end='\r')
                 file.write(buffer)
             return response.status_code,True,progress_bar_data
         response.close()
@@ -170,7 +166,6 @@ def download_model(model):
     model_key = {}
     for key, value in data_model.items():
         model_key[key] = value[:3]
-
     model_url0,filename,pathname=model_key[model]
     model_url = model_url0[Server_ind]
     url = url_path_0+model_url
@@ -313,7 +308,6 @@ if __name__ == '__main__':
             with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
                 for item in file_names:
                     file.write(str(item) + '\n') 
-        #get all url:
         while current_date <= end_date:
             date=str(current_date.strftime("%Y%m%d"))
             if not update_file_version:
@@ -331,68 +325,75 @@ if __name__ == '__main__':
             month     = current_date.month
             yyyymm    = str(current_date.strftime("%Y/%m/"))
             urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
-            if bool_urls:
-                print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K')
-                for url in urls:
-                    filename = str(url)
-                    date=re.findall(r"\d{8}", filename)[0]
-                    if start_date.strftime("%Y%m%d") > date or date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
+            if not bool_urls:
+                month+=1
+                if month == 13:
+                    month=1
+                    year+=1
+                current_date = datetime.date(year, month, 1)
+                continue
+            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K')
+            for url in urls:
+                filename = str(url)
+                date=re.findall(r"\d{8}", filename)[0]
+                if start_date.strftime("%Y%m%d") > date or date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
+                    continue
+                if not update_file_version:
+                    if find_downloaded_file(file_names, date):
+                        if bool_skip == False:
+                            skip_data_start = current_date.strftime("%Y-%m-%d")
+                        bool_skip = True
+                        current_date+=datetime.timedelta(days=1)
                         continue
-                    if not update_file_version:
-                        if find_downloaded_file(file_names, date):
-                            if bool_skip == False:
-                                skip_data_start = current_date.strftime("%Y-%m-%d")
-                            bool_skip = True
-                            current_date+=datetime.timedelta(days=1)
-                            continue
-                        else:
-                            if bool_skip:
-                                print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
-                                bool_skip = False
                     else:
-                        if find_downloaded_version(file_names,filename,date,save_path):
-                            # 本地版本不需要更新
-                            if bool_skip == False:
-                                skip_data_start = current_date.strftime("%Y-%m-%d")
-                            bool_skip = True
-                            current_date+=datetime.timedelta(days=1)
-                            continue
-                        else:
-                            if bool_skip:
-                                print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
-                                bool_skip = False
+                        if bool_skip:
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            bool_skip = False
+                else:
+                    if find_downloaded_version(file_names,filename,date,save_path):
+                        # 本地版本不需要更新
+                        if bool_skip == False:
+                            skip_data_start = current_date.strftime("%Y-%m-%d")
+                        bool_skip = True
+                        current_date+=datetime.timedelta(days=1)
+                        continue
+                    else:
+                        if bool_skip:
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            bool_skip = False
 
-                    if not os.path.exists(save_path+yyyymm):
-                        os.makedirs(save_path+yyyymm)
-                    url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                    time_now = datetime.datetime.now()
-                    v_new = re.findall(r"_v\d{2}_", filename)[0][0:4]
-                    r_new = re.findall(r"_r\d{2}", filename)[0][0:4]
-                    if logic:
-                        try:
-                            download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                            download_time = str(round(progress_data["elapsed"],2))
-                        except:
-                            download_speed = "ERROR"
-                            download_time = "ERROR"
-                        print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                              f'Status: \033[0;32m{logic}\033[0m ' +
-                              f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                              f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
-                              f'Time spend: \033[1;34m{download_time}\033[0m s '+
-                              f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
-                        nums_downloaded = nums_downloaded+1
-                    else:
-                        print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                              f'Status: \033[0;31m{logic}\033[0m ' +
-                              f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                              f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ')
-                        nums_failed = nums_failed+1
+                if not os.path.exists(save_path+yyyymm):
+                    os.makedirs(save_path+yyyymm)
+                url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
+                time_now = datetime.datetime.now()
+                v_new = re.findall(r"_v\d{2}_", filename)[0][0:4]
+                r_new = re.findall(r"_r\d{2}", filename)[0][0:4]
+                if logic:
+                    try:
+                        download_speed = str(round(progress_data["rate"]/1024/1024,2))
+                        download_time = str(round(progress_data["elapsed"],2))
+                    except:
+                        download_speed = "ERROR"
+                        download_time = "ERROR"
+                    print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
+                            f'Status: \033[0;32m{logic}\033[0m ' +
+                            f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
+                            f'Time spend: \033[1;34m{download_time}\033[0m s '+
+                            f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
+                    nums_downloaded = nums_downloaded+1
+                else:
+                    print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
+                            f'Status: \033[0;31m{logic}\033[0m ' +
+                            f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ')
+                    nums_failed = nums_failed+1
             month+=1
             if month == 13:
                 month=1
                 year+=1
             current_date = datetime.date(year, month, 1)
+            
         file_names = search_downloaded_files(save_path,file_style)
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:

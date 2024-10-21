@@ -285,6 +285,39 @@ function load_NGIMS_den_l4(file::String)
     close(f)
     return data_out_dict
 end
+function load_NGIMS_sht_l3(file::String) # L3 resampled scale height table of NGIMs
+    lines = readlines(file)
+    lines = lines[2:end]
+    #t_utc,t_unix,t_sclk,t_tid,tid,orbit,exo_alt,mass,species,scale_height,scale_height_error,Temperature,Temperature_error,fit_residual,quality
+    n = length(lines)
+    str_vars = Matrix{String}(undef, n, 15)
+    for (i, line) in enumerate(lines)
+        vars = split(line, ",")
+        str_vars[i, :] = vars
+    end
+    t_unix = parse.(Float64, str_vars[:, 2])
+    t_datetime = unix2datetime.(t_unix)
+    data_out_dict = Dict{String,Any}()
+    species = str_vars[:, 10]
+    unique_elements = unique(species)
+    for element in unique_elements
+        indices = findall(x -> x == element, species)
+        data_out_dict[element] = Dict{String,Any}(
+            "epoch" => t_datetime[indices],
+            "orbit" => parse.(Int32, str_vars[indices, 6]),
+            "exo_alt" => parse.(Float64, str_vars[indices, 7]),
+            "mass" => parse.(Float64, str_vars[indices, 8]),
+            "species" => parse.(Float64, str_vars[indices, 9]),
+            "scale_height" => parse.(Float64, str_vars[indices, 10]),
+            "scale_height_error" => parse.(Float64, str_vars[indices, 11]),
+            "Temperature" => parse.(Float64, str_vars[indices, 12]),
+            "Temperature_error" => parse.(Float64, str_vars[indices, 13]),
+            "fit_residual" => parse.(Float64, str_vars[indices, 14]),
+            "quality" => str_vars[indices, 15]
+        )
+    end
+    return data_out_dict
+end
 ## ------------------------------数据处理--------------------------------
 function Bpc2sphere(x, y, z, bx, by, bz)
     r = sqrt(x^2 + y^2 + z^2)
