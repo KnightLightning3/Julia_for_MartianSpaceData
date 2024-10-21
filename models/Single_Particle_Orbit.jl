@@ -2,6 +2,8 @@ module Single_Particle_Orbit
 using LinearAlgebra
 using Dates
 
+export solve_orbit, cyclotron_radius
+
 function TimeFormat(time1, time2)
     elapsed_time_ms = Dates.value(time2 - time1)
     minutes = div(mod(elapsed_time_ms, 3600000), 60000)
@@ -15,13 +17,12 @@ const me   = 9.1093837e-31
 const mp   = 1.67262192e-27
 const q2me = -e / me
 const q2mp = e / mp
-
 # mq # 比荷
-function dvdt(v::Vector{Float64}, E_in::Vector{Float64}, B_in::Vector{Float64}, mq::Float64)
+function dvdt(v::Vector{Float64}, E_in::Vector{Float64}, B_in::Vector{Float64}, mq::Float64)::Vector{Float64}
     ans = mq * (E_in + cross3(v, B_in))
     return ans
 end
-function cross3(a::Vector{Float64}, b::Vector{Float64})
+function cross3(a::Vector{Float64}, b::Vector{Float64})::Vector{Float64}
     ans = [
         a[2] *  b[3] - a[3] * b[2], 
          a[3] * b[1] - a[1] * b[3], 
@@ -123,7 +124,20 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     )
     return return_data
 end
-
+function cyclotron_radius(B_in::Real,v::Real;nM=1,nQ=-1)
+    B1=B_in*1e-9  # 输入nT，转T
+    if nQ == -1
+        cc = me /(B1*e)
+    else
+        cc = mp*nM/(B1*e*nQ)
+    end
+    # γ=(energy * 1e-3 /E0 + 1)
+    # β=sqrt(1.0 - 1.0 / γ^2)
+    # V=β * C
+    f = 1  / (cc *2*π)
+    rc = cc * v
+    return f,rc,v
+end
 # 定义电场和磁场函数
 E(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设电场沿x轴方向
 B(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设磁场沿z轴方向

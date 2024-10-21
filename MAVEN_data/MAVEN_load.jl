@@ -16,6 +16,9 @@ using JLD2
 using Statistics
 using Quaternions
 using FortranFiles
+# -------------------------Export parts-------------------------
+export load_MAVEN_data
+export mean_SWEA_pad_pa, carclu_SWEA_pad
 # -------------------------Read filelist parts-------------------------
 """     
 打印所有可支持的数据的读取.
@@ -75,6 +78,7 @@ function data_get_from_date(date::DateTime; model_index=[], show_filename=false)
     end
     return datas_dict
 end
+load_MAVEN_data = data_get_from_date
 function get_orbits()  # 获取每个轨道对应的time_range
     file_path = root_path * "orbit_time_range.txt"
     lines = readlines(file_path)

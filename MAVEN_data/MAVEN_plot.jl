@@ -17,6 +17,9 @@ const Rm = 3393.5  #km
 const E0 = 511.0 # 电子静止能量KeV
 const RAD = π / 180
 
+# -------------------------Export parts-------------------------
+export sta_heatmap, STA_2d_slip, SWEA_PAD_heatmap, WaveSpactra_heatmap, Orbit, PAD_slice, PAD_slice_polar, PAD_slice_velocity
+export time2x, time_ticks, x_ticks
 function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
     # 转接vspan函数,y需要为bool值
     segments1 = []
@@ -40,10 +43,18 @@ function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
     vspan!(ax, segments1, segments2; krawg...)
     return ax
 end
-function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true, krawg...)
+function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
     ax.ylabel = ylabel
-    unique_elements = unique(swp_ind)
-    nenergy = length(y[:, 1])
+    swp_ind = sta_data["swp_ind"]; unique_swp_ind = unique(swp_ind)
+    epoch = sta_data["epoch"] ; x, time_i = time2x(x0, x_range)
+    eflux = sta_data["eflux"]
+    energy = sta_data["energy"]
+    sc_pot = sta_data["sc_pot"]
+    nenergy = length(sta_data["energy"][:, 1])
+    
+    y = energy
+    c = eflux[time_i,:,:]
+
     for element in unique_elements
         indices = findall(x -> x == element, swp_ind)
         if unit == "flux"
@@ -54,6 +65,32 @@ function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), yl
         heatmap!(ax, x[indices], y[:, element+1], c1, colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
     end
     return ax
+end
+function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true,sc_correction = false,sc_pot = nothing, krawg...)
+    ax.ylabel = ylabel
+    unique_elements = unique(swp_ind)
+    if !sc_correction
+        nenergy = length(y[:, 1])
+        for element in unique_elements
+            indices = findall(x -> x == element, swp_ind)
+            if unit == "flux"
+                c1 = c[indices, :] ./ reshape(y[:, element+1], 1, nenergy)
+            else
+                c1 = c[indices, :]
+            end
+            heatmap!(ax, x[indices], y[:, element+1], c1; colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
+        end
+        return ax
+    else
+        for ii in eachindex(swp_ind)
+            if ii == length(swp_ind)
+                break
+            end
+            y1 = y[:, swp_ind[ii]+1] .+ sc_pot[ii]
+            e_ind = findall(x -> x > 0.5, y1)
+            heatmap!(ax, x[ii:ii+1], y1[e_ind], c[ii:ii+1, e_ind]; colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
+        end
+    end
 end
 """
     dat imported by MAVEN_load.static_slip_2_V     
@@ -144,7 +181,10 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
         b = -cross(a, c)
         b = normalize(b)
         rotinv = zeros(3, 3)
-        rotinv = hcat(a,b,c)
+        # rotinv[:, 1] = a
+        # rotinv[:, 2] = b
+        # rotinv[:, 3] = c
+        rotinv = hcat(a, b, c)
         rot = inv(rotinv)
         return rot
     end
@@ -504,11 +544,9 @@ function x_ticks(ax, x, var, x_i; xticklabelpad=3)
     return ax
 end
 function vector_angle(a, b)
-    a = a ./ norm(a)
-    b = b ./ norm(b)
-    angle = acos(dot(a, b))
-    angle *= 180.0 / π
-    return angle
+    a1 = normalize(a)
+    b1 = normalize(b)
+    return acosd(dot(a1, b1))
 end
 function Vandermonde(x, n)
     return hcat([x .^ i for i in 0:n]...)
