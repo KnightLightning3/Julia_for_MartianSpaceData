@@ -43,7 +43,7 @@ function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
     vspan!(ax, segments1, segments2; krawg...)
     return ax
 end
-function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
+function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
     ax.ylabel = ylabel
     swp_ind = sta_data["swp_ind"]; unique_swp_ind = unique(swp_ind)
     epoch = sta_data["epoch"] ; x, time_i = time2x(x0, x_range)
@@ -66,7 +66,7 @@ function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabe
     end
     return ax
 end
-function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:jet, colorscale=log10, overdraw=true,sc_correction = false,sc_pot = nothing, krawg...)
+function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,sc_pot = nothing, krawg...)
     ax.ylabel = ylabel
     unique_elements = unique(swp_ind)
     if !sc_correction
@@ -114,7 +114,7 @@ end
                         while the x axis is the y projection on the plane.
            ANGLE: the lower and upper angle limits of the slice selected to plot (DEFAULT [-20,20]).
 """
-function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e4], colormap=:jet, show_data=false)
+function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e4], colormap=:viridis, show_data=false)
     function remove_repeat_points(x, y, z, c; angle=[-30, 30])
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
@@ -255,7 +255,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     # tricontourf!(ax, tri, scatter_colors, colormap = colormap,bottom = :black,levels = 256)
 
     if show_data
-        colormap = :jet
+        colormap = :viridis
         n_colors = 256
         colors = resample_cmap(colormap, n_colors)
         scatter_color = [colors[i] for i in scatter_colors]
@@ -279,7 +279,7 @@ function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10), ylabel="Pitc
     ax.ylabel = ylabel
     ntime = length(time)
     for i = 1:3:ntime-3
-        heatmap!(ax, time[i:i+3], pa[i, :], eflux[i:i+3, :], colormap=:jet, colorscale=log10, colorrange=c_range, overdraw=true)
+        heatmap!(ax, time[i:i+3], pa[i, :], eflux[i:i+3, :], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     end
     return ax
 end
@@ -301,7 +301,7 @@ function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9), ylabel
     x = df_unique.X
     y = df_unique.Y
     c = df_unique.C
-    heatmap!(ax, x, y, c, colormap=:jet, colorscale=log10, colorrange=c_range, overdraw=true)
+    heatmap!(ax, x, y, c, colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
 function Orbit(ax, position_ss; xlimit=(-5, 4), ylimit=(0, 3), obs_position=[-0.5, 0, 0], times=([], []), frame="x-yz")
@@ -358,7 +358,7 @@ function Orbit(ax, position_ss; xlimit=(-5, 4), ylimit=(0, 3), obs_position=[-0.
     return ax
 end
 function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit=(1e-17, 1e-11), xlabel="pitch angle", ylabel="PSD", n=4)
-    colormap = :jet  # 可以选择任何Makie支持的颜色图
+    colormap = :viridis  # 可以选择任何Makie支持的颜色图
     n_colors = length(energy)
     colors = resample_cmap(colormap, n_colors)
     ax.limits = (xlimit, ylimit)
@@ -388,7 +388,7 @@ function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit
     end
 end
 function PAD_slice_polar(ax, pa, energy, eflux; potential=0.0, ylimit=(0, 200), xlimit=(-200, 200), xlabel="Ek_para [eV]", ylabel="Ek_prep [eV]", c_range=(1e-17, 1e-11))
-    colormap = :jet  # 可以选择任何Makie支持的颜色图
+    colormap = :viridis  # 可以选择任何Makie支持的颜色图
     n_colors = 256
     colors = resample_cmap(colormap, n_colors)
 
@@ -436,7 +436,7 @@ function PAD_slice_polar(ax, pa, energy, eflux; potential=0.0, ylimit=(0, 200), 
     return ax
 end
 function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7, 1.5e7), ylimit=(0, 1.5e7), xlabel="v_para [m/s]", ylabel="v_prep [m/s]", c_range=(1e-17, 1e-11))
-    colormap = :jet  # 可以选择任何Makie支持的颜色图
+    colormap = :viridis  # 可以选择任何Makie支持的颜色图
     n_colors = 256
     colors = resample_cmap(colormap, n_colors)
 
@@ -503,7 +503,7 @@ function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7
     # end
     # x,y,c = v_para_fitted,v_perp_fitted,  PSD_fitted
     # x = vec(x) ; y = vec(y) ; c = vec(c)
-    # scatter!(ax, x,y, colormap=:jet, color = c , colorrange=c_range , colorscale=log10)
+    # scatter!(ax, x,y, colormap=:viridis, color = c , colorrange=c_range , colorscale=log10)
     # itp = interpolate((x,y),c,Gridded(Linear()))
     # v_para_gridded = [-1.5e7:1e5:1.5e7;]
     # v_perp_gridded = [0:1e5:1.5e7;]
@@ -513,7 +513,7 @@ function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7
     #         c_interp[i,j] = itp(v_para_gridded[i],v_perp_gridded[j])
     #     end
     # end
-    # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:jet, colorrange=c_range , colorscale=log10)
+    # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:viridis, colorrange=c_range , colorscale=log10)
     return ax
 end
 function time2x(time, range)

@@ -77,7 +77,7 @@ function Orbit(ax,x,y; times = ([],[]),no_lines=false)
     if times != ([],[])
         times_t = times[2]
         time_index = times[1]
-        colormap = :jet
+        colormap = :viridis
         n_colors = length(time_index)
         colors = resample_cmap(colormap, n_colors)
         for (it,i) in enumerate(time_index)
@@ -337,7 +337,7 @@ function plot_module(fig,x_range,datas_dict,date_str; time_step=Dates.Minute(6),
             println("no_sta")
         else
             MAVEN_plot.sta_heatmap(axs[np],x,y,c[time_i,:], swp[time_i];c_range=c_range_1)
-            Colorbar(fig[np,color_ind],limits = c_range_1,label="ion eflux",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = c_range_1,label="ion eflux",colormap=:viridis,scale=log10)
             
             np = pannels["STATIC_mass"];
             x0,y,c, swp = datas_dict["STATIC_mass"]["epoch"],datas_dict["STATIC_mass"]["mass"],datas_dict["STATIC_mass"]["eflux"],datas_dict["STATIC_mass"]["swp_ind"]  
@@ -347,19 +347,19 @@ function plot_module(fig,x_range,datas_dict,date_str; time_step=Dates.Minute(6),
             lines!(axs[np],[x[1],x[end]],[64.0,64.0],color=:black)
             lines!(axs[np],[x[1],x[end]],[16.0,16.0],color=:black)
             lines!(axs[np],[x[1],x[end]],[32.0,32.0],color=:black)
-            Colorbar(fig[np,color_ind],limits = c_range_2,label="ion eflux",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = c_range_2,label="ion eflux",colormap=:viridis,scale=log10)
 
             np = pannels["STATIC_H"];
             x0,y,c, swp = datas_dict["STATIC_H"]["epoch"],datas_dict["STATIC_H"]["energy"],datas_dict["STATIC_H"]["eflux"],datas_dict["STATIC_H"]["swp_ind"]  
             x,time_i=MAVEN_plot.time2x(x0,time_julian0,x_range)
             MAVEN_plot.sta_heatmap(axs[np],x,y,c[time_i,:], swp[time_i];c_range=c_range_2,ylabel="energy")
-            Colorbar(fig[np,color_ind],limits = c_range_2,label="H+ eflux",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = c_range_2,label="H+ eflux",colormap=:viridis,scale=log10)
             
             np = pannels["STATIC_O"];
             x0,y,c, swp = datas_dict["STATIC_O"]["epoch"],datas_dict["STATIC_O"]["energy"],datas_dict["STATIC_O"]["eflux"],datas_dict["STATIC_O"]["swp_ind"]  
             x,time_i=MAVEN_plot.time2x(x0,time_julian0,x_range)
             MAVEN_plot.sta_heatmap(axs[np],x,y,c[time_i,:], swp[time_i];c_range=c_range_2,ylabel="energy")
-            Colorbar(fig[np,color_ind],limits = c_range_2,label="O+ eflux",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = c_range_2,label="O+ eflux",colormap=:viridis,scale=log10)
             
             np = pannels["STATIC_O2"];
             x0,y,c, swp = datas_dict["STATIC_O2"]["epoch"],datas_dict["STATIC_O2"]["energy"],datas_dict["STATIC_O2"]["eflux"],datas_dict["STATIC_O2"]["swp_ind"]  
@@ -372,7 +372,7 @@ function plot_module(fig,x_range,datas_dict,date_str; time_step=Dates.Minute(6),
             lines!(axs[np],[x[1],x[end]],[50.0,50.0],  color=:white)
 
             lines!(axs[np],[x[1],x[end]],[30.0,30.0],  color=:white)
-            Colorbar(fig[np,color_ind],limits = c_range_2,label="O2+ eflux",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = c_range_2,label="O2+ eflux",colormap=:viridis,scale=log10)
         end
 
         # ion vels
@@ -452,7 +452,7 @@ function plot_module(fig,x_range,datas_dict,date_str; time_step=Dates.Minute(6),
         times_electorn, energy_e, flux_e = datas_dict["SWEA_spec"]["epoch"],datas_dict["SWEA_spec"]["energy"],datas_dict["SWEA_spec"]["diff_en_fluxes"]
         x,time_i=MAVEN_plot.time2x(times_electorn,time_julian0,x_range)
         if time_i != []
-            hm_e_sp = heatmap!(axs[np],x,energy_e,flux_e[time_i,:],colorscale=log10,colorrange=(1e4,1e10),colormap=:jet)
+            hm_e_sp = heatmap!(axs[np],x,energy_e,flux_e[time_i,:],colorscale=log10,colorrange=(1e4,1e10),colormap=:viridis)
             Colorbar(fig[np,color_ind],hm_e_sp,label="electorn eflux")#
         end
     end
@@ -466,12 +466,12 @@ function plot_module(fig,x_range,datas_dict,date_str; time_step=Dates.Minute(6),
         x,time_i=MAVEN_plot.time2x(x,time_julian0,x_range)
         if time_i != []
             MAVEN_plot.SWEA_PAD_heatmap(axs[np],x,y[time_i,:],c[time_i,:];c_range=colorrange_1,ylabel="Pitch angle \n [deg]")
-            Colorbar(fig[np,color_ind],limits = colorrange_1,label="SWEA \n 20-30eV",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = colorrange_1,label="SWEA \n 20-30eV",colormap=:viridis,scale=log10)
             np = pannels["swea_pad_high"];
             x,y,c = datas_dict["swea_pad_high"]["epoch"],datas_dict["swea_pad_high"]["pa"],datas_dict["swea_pad_high"]["diff_en_fluxes"]
             x,time_i=MAVEN_plot.time2x(x,time_julian0,x_range)
             MAVEN_plot.SWEA_PAD_heatmap(axs[np],x,y[time_i,:],c[time_i,:];c_range=colorrange_2,ylabel="Pitch angle \n [deg]")
-            Colorbar(fig[np,color_ind],limits = colorrange_2,label="SWEA \n 90-120eV",colormap=:jet,scale=log10)
+            Colorbar(fig[np,color_ind],limits = colorrange_2,label="SWEA \n 90-120eV",colormap=:viridis,scale=log10)
         end
     end
 # Wave Spectra
@@ -487,7 +487,7 @@ function plot_module(fig,x_range,datas_dict,date_str; time_step=Dates.Minute(6),
     #             # lines!(axs[np], timeB_julian, 0.5.*fce, label="0.5fce",linewidth = 2,linstyle=:dash,color=:white)
     #             lines!(axs[np], timeB_julian, fce, label="fce",linewidth = 2,linstyle=:dash,color=:white)
     #         end
-    #         Colorbar(fig[np,color_ind],limits = c_range,label=L"P_{E}",colormap=:jet,scale=log10)
+    #         Colorbar(fig[np,color_ind],limits = c_range,label=L"P_{E}",colormap=:viridis,scale=log10)
     #     end
     # end
     np=length(pannel_name)
