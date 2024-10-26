@@ -286,7 +286,6 @@ end
 function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Real, θ::Real, ϕ::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
     B_data = Array{Float64}(undef, max_trace, 6)
     PATH = Array{Float64}([r, θ, ϕ])
-
     dir_in = Ref{Float64}(dir)
     step_in = Ref{Float64}(step)
     r_range_in = Array{Float64}(r_range)
@@ -314,13 +313,12 @@ function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Real, θ::Real, ϕ::Real; dir=1.
     return B_data[1:trace_conts, :]
 end
 function mag_trace_rk4(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
-    B_data = []
     r, θ, ϕ = r0, θ0, ϕ0
     r_state = 500 + Rm
     trace_steps = 0
     h = dir * step
     h_new = h
-    B_data = zeros(max_trace, 6)
+    B_data = Matrix{Float64}(undef, max_trace,6)#zeros(max_trace, 6)
 
     while r_state >= r_range[1] && r_state <= r_range[2] && trace_steps < max_trace
         B_result, dB, path_next = RK4_Trace_fortran(r, θ, ϕ, h_new)
@@ -337,11 +335,10 @@ function mag_trace_rk4(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_rang
     return B_data[1:trace_steps, :]
 end
 function mag_trace_Euler_step(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
-    B_data = []
     r, θ, ϕ = r0, θ0, ϕ0
     trace_steps = 0
     Δs = dir * step
-    B_data = zeros(max_trace, 6)
+    B_data = Matrix{Float64}(undef, max_trace,6)#zeros(max_trace, 6)
     trace_state = true
     while trace_state
         Br, Bθ, Bϕ, BB = IGRF_fortran(r, θ, ϕ)
@@ -396,6 +393,8 @@ function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[Rm, Rm 
     else
         r0, θ0, ϕ0 = p1, p2, p3
     end
+    # B_data_1 = Matrix{Float64}(undef, max_trace,6)
+    # B_data_2 = Matrix{Float64}(undef, max_trace,6)
     B_data_1 = mag_trace_Euler_step(r0, θ0, ϕ0; r_range=r_range, step=step, dir=1.0, max_trace=max_trace)
     B_data_2 = mag_trace_Euler_step(r0, θ0, ϕ0; r_range=r_range, step=step, dir=-1.0, max_trace=max_trace)
     B_data_2 = reverse(B_data_2, dims=1)
