@@ -5,9 +5,9 @@ using ProgressMeter
 using LinearAlgebra
 using LaTeXStrings
 using JLD2
-include("../MAVEN_data/MAVEN_load.jl")
-include("../MAVEN_data/MAVEN_plot.jl")
-include("../MAVEN_data/MAVEN_STATIC.jl")
+include("../../MAVEN_data/MAVEN_load.jl")
+include("../../MAVEN_data/MAVEN_plot.jl")
+include("../../MAVEN_data/MAVEN_STATIC.jl")
 import .MAVEN_load;
 import .MAVEN_plot;
 import .MAVEN_STATIC;
@@ -150,12 +150,12 @@ function plot_module(fig, x_range, datas_dict, date_str; time_step=Dates.Minute(
     if "MAGF" in pannels
         np = pannels["MAGF"]
         axs[np] = Axis(fig[np, pannel_ind], limits=(x_range_julian, nothing), ylabel=L"\textbf{\text{B}} \; (\; \text{nT} \;)")
-        timeB, _, B0, _ = datas_dict["MAG_ss1s"]["Vars"]
+        timeB, _, B0, _ = datas_dict["MAG_ss1s_l3"]["Vars"]
         timeB_julian, time_i = MAVEN_plot.time2x(timeB, x_range)
         if time_i != []
             shadow_Br = true
             if shadow_Br
-                br,_,_ = datas_dict["MAG_ss1s"]["SphereB"]
+                br,_,_ = datas_dict["MAG_ss1s_l3"]["SphereB"]
                 br = br .> 0
                 @inline function find_segments(x::Vector{T}, y::BitVector) where T
                     segments1 = []
@@ -308,8 +308,8 @@ function plot_module(fig, x_range, datas_dict, date_str; time_step=Dates.Minute(
         x, time_i = MAVEN_plot.time2x(timeSP, x_range)
         if time_i != []
             MAVEN_plot.WaveSpactra_heatmap(axs[np], x, freq[time_i, :], wave_data[time_i, :])
-            if datas_dict["MAG_ss1s_l3"]["data_load_flag"]
-                timeB, _, B0, _ = datas_dict["MAG_ss1s"]["Vars"]
+            if datas_dict["MAG_ss1s_l3_l3"]["data_load_flag"]
+                timeB, _, B0, _ = datas_dict["MAG_ss1s_l3"]["Vars"]
                 fce = B0 .*27.99
                 timeB_julian = datetime2julian.(timeB)
                 lines!(axs[np], timeB_julian, fce, label="fce", linewidth=2, linstyle=:dash, color=:white)
