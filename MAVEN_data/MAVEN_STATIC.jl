@@ -122,7 +122,14 @@ function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处�
     end
     return return_data
 end
-# UNITS计算
+# UNITS计算  
+# STA_ 系列的单位转换代码源于SPEDAS的"projects\maven\sta\mvn_sta_functions\mvn_sta_convert_units.pro", 其默认输出单位并非IS单位, 此程序中的速度等计算无特殊声明则默认使用以下单位制:
+# 'counts':y_units = 'counts'
+# 'eflux':y_units = 'eV/(cm^2-s-sr-eV)'
+# 'rate':y_units = '#/sec'
+# 'crate':y_units = 'Deadtime Corrected #/sec'
+# 'flux':y_units = '#/(cm^2-s-sr-eV)'
+# 'df':y_units = '#/(cm^3-(km/sec)^3)'
 # 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
 # function STA_count2eflux_full_time_4d(dat)
 #     ntime   = dat["ntime"]
@@ -161,7 +168,7 @@ function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得�
 
     gf = reshape(dat["gf"], 1, nbins,nenergy)
     eff = dat["eff"]
-    gf = dat["geom_factor"].*eff.*gf
+    G = dat["geom_factor"].*eff.*gf
     dt = dat["time_integ"]
     mass = dat["mass"].*m_int
     dead = dat["dead"]						# dead time array usec for STATIC
@@ -169,7 +176,7 @@ function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得�
     tmp = dat["data"]
 
     tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
+    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
     dat["df"] = scale .* tmp
     return dat
 end
@@ -223,10 +230,10 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
         end
     end
 
-    gf = dat["geom_factor"].*eff.*gf
+    G = dat["geom_factor"].*eff.*gf
 
     tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* gf .* energy.^2 .* 2 ./mass./mass.*1e5)
+    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
     dat["df"] = scale .* tmp
     return dat
 end
@@ -259,28 +266,28 @@ function STA_count2eflux_all(dat) #计算df,对非时间切片数据
         eff[i,:,:,:]  = eff0[:,:,:,eff_ind+1]
     end
 
-    gf = dat["geom_factor"].*eff.*gf
+    G = dat["geom_factor"].*eff.*gf
 
     tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* gf)
+    scale = 1 ./(dt.* G)
     dat["eflux_from_count"] = scale .* tmp
     return dat
 end
 function STA_count2eflux(dat;m_int=m_int)
     nbins   = dat["nbins"]
     nenergy = dat["nenergy"]
-    # energy = dat["energy"]   					# in eV     (n_e,nbins,n_m)
+    # energy = dat["energy"]   				# in eV     (n_e,nbins,n_m)
     gf = reshape(dat["gf"], 1, nbins,nenergy)
     eff = dat["eff"]
-    gf = dat["geom_factor"].*eff.*gf
+    G = dat["geom_factor"].*eff.*gf
     dt = dat["time_integ"]
     # mass = dat["mass"].*m_int
     dead = dat["dead"]						# dead time array usec for STATIC
-    bkg = dat["bkg"]							# background array usec for STATIC
+    bkg = dat["bkg"]						# background array usec for STATIC
     tmp = dat["data"]
 
     tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* gf)
+    scale = 1 ./(dt.* G)
     dat["eflux"] = scale .* tmp
     return dat
 end
@@ -488,7 +495,8 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     mass_arr = dat["mass_arr"]   
     sc_pot   = dat["sc_pot"]     
 
-    dat = STA_count2df(dat;m_int=m_int)
+    # dat = STA_count2df(dat;m_int=m_int)
+    dat = STA_eflux2df(dat;m_int=m_int)
     data=dat["df"]
     
     mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
@@ -536,15 +544,25 @@ function rotate_vector_with_quat(u::AbstractVector,q::QuaternionF64)
     q_v = q*q_u*conj(q)
     return [imag_part(q_v)...]
 end
-function ion_eflux2F(energy,eflux,mION)  # 离子eflux转PSD
-    M = mION * Mp
-    E0 = 511.0 * mION * 1836.23 # 离子静止能量
-    #energy 与 eflux 一一对应
-    γ=(energy * 1e-3 /E0 + 1)
-    β=sqrt(1.0 - 1.0 / γ^2)
-    P=γ *M * β *C        # kg m/s
-    # V=β .* C
-    F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2
+function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位制, 与STA方法差了1e3倍
+    # M = m_int * Mp
+    # E0 = 511.0 * m_int * 1836.23 # 离子静止能量
+    # #energy 与 eflux 一一对应
+    # γ=(energy * 1e-3 /E0 + 1)
+    # β=sqrt(1.0 - 1.0 / γ^2)
+    # P=γ *M * β *C        # kg m/s
+    # # V=β .* C
+    # F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2 
+
+    # M = m_int * Mp
+    # V2 = energy * EV / M *2  # m/s
+    # F = 2* eflux / V2^2*1e4
+
+    E0 = 511.0 * m_int * 1836.23
+    γ =(energy * 1e-3 /E0 + 1)
+    β =sqrt(1.0 - 1.0 / γ^2)
+    V = β * C
+    F = 2 * eflux *1e4 / V^4
     return F
 end
 function sphere2xyz_for_STATIC(r,θ,ϕ)
@@ -565,15 +583,15 @@ function sphere2xyz(r,θ,ϕ)
     z = r .* cosd.(θ)
     return [x,y,z]
 end
-function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV
+function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, IS单位制
     E0 = 938313.53 * AMU  # 质子静止能量 MeV
     γ= energy*1e-3/E0 + 1.0
     β=sqrt(1.0 - 1.0 / γ^2)
     v = β * 3e8
     return v
 end
-function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度
-    E0 = 938313.53 * AMU 
+function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制
+    E0 = 938313.53 * AMU
     β  = v / 3e8
     γ = 1.0 / sqrt(1.0 - β^2)
     energy = (γ - 1.0) * E0 * 1e3
