@@ -216,6 +216,18 @@
             "mvn_swi_l2_onboardsvyspec_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"
+        ],
+        "SWIA_fine_svy_3d": [
+            ["SWIA/l2/","maven-swia-calibrated/data/fine_svy_3d/","swi/l2/"],
+            "mvn_swi_l2_finesvy3d_.+\\+.cdf",
+            "SWIA/l2/",
+            "load_cdf"
+        ],
+        "SWIA_coarse_svy_3d": [
+            ["SWIA/l2/","maven-swia-calibrated/data/coarse_svy_3d/","swi/l2/"],
+            "mvn_swi_l2_coarsesvy3d_.+\\.cdf",
+            "SWIA/l2/",
+            "load_cdf"
         ]
     },
     "kp_dict": {
