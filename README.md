@@ -70,8 +70,10 @@ IGRF_calculate.jl
 # ToDo list
 
 - [x] 云 MAVEN 数据
+- [ ] 利用SPEDAS包的spice核计算各个仪器的坐标变换矩阵并保存为文件
+- [ ] 利用SPEDAS包的spice核计算飞行器的速度, 加速度, 轨道参数等并保存为文件
 - [ ] 全仪器读取
-- [ ] overview 事件绘制 example
+- [X] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
 - [X] 下载程序可以检查数据版本
@@ -94,3 +96,4 @@ IGRF_calculate.jl
 - 扫描模式: STATIC 有多个不同的扫描模式,对应不同的能量范围,由 swd_ind 参数[0-26]决定,对应 energy,phi,theta,mass_arr 矩阵中的最后一个维度. 在 julia 这种以 1 开始计数的语言中,要将 swd_ind 参数加一
 - 衰减器 衰减器 attenuator 会根据具体情况对小于 15eV 的低能量段 STA 数据乘以(1., 1/10, 1/100, 1/1000)以防止过饱和,官方宣称其更换时间不会小于 5min,然而一些数据可以用临时的过饱和解释,而且有切换 attenuator
 - STATIC 返回的 theta 和 phi,对应球坐标系的 90-theta 和 phi,处于仪器参考系下. 文件中的 quat_mso 和 quat_sc 为四元数,可以用于将仪器参考系投影到 mso 和 sc 参考系.
+- STATIC, SWEA, SWIA 使用的参考系为对应球坐标系的 90-theta 和 phi, ref:spedas_6_1\general\science\sphere_to_cart.pro

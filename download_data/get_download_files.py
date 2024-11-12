@@ -6,7 +6,7 @@ import json
 list_dict={}
 
 data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(f"{data_format_path}\MAVEN_data\MAVEN_data_format.json", "r") as file:
+with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r") as file:
     json_data = json.load(file)
 path = json_data["save_path"]+"lists/"
 listnames = os.listdir(path)

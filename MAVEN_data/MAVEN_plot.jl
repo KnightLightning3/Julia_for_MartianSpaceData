@@ -114,7 +114,7 @@ end
                         while the x axis is the y projection on the plane.
            ANGLE: the lower and upper angle limits of the slice selected to plot (DEFAULT [-20,20]).
 """
-function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e4], colormap=:viridis, show_data=false)
+function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false)
     function remove_repeat_points(x, y, z, c; angle=[-30, 30])
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
@@ -219,7 +219,6 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     ax.limits = (plot_range, plot_range)
     df_data = dat["dF"]
     v0 = dat["v"]
-    m_int = ["mass"]
     nenergy = dat["nenergy"]
     nbins = dat["nbins"]
     energy0 = dat["energy"]
@@ -516,16 +515,24 @@ function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:viridis, colorrange=c_range , colorscale=log10)
     return ax
 end
-function time2x(time, range)
+function time2x(time, range;model = "unix")
     time_i = findall(t -> range[1] <= t <= range[2], time)
     x = time[time_i]
-    x = Dates.datetime2julian.(x)
+    if model == "unix"
+        x = Dates.datetime2unix.(x)
+    else
+        x = Dates.datetime2julian.(x)
+    end
     return x, time_i
 end
-function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS") # 取得time_range 对应步长的
+function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS",model = "unix") # 取得time_range 对应步长的时间刻度
     xd = range(time_range[1], time_range[2], step=step)
-    x_i = Dates.datetime2julian.(xd)
-    xtimes = (x_i, Dates.format.(xd, format))
+    if model == "unix"
+        x_i = Dates.datetime2unix.(xd)
+    else
+        x_i = Dates.datetime2julian.(xd)
+    end
+    xtimes = (x_i,Dates.format.(xd, format))
     return xtimes, x_i
 end
 function x_ticks(ax, x, var, x_i; xticklabelpad=3)

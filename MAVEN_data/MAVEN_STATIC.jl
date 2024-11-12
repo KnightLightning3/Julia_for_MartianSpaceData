@@ -565,7 +565,7 @@ function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位�
     F = 2 * eflux *1e4 / V^4
     return F
 end
-function sphere2xyz_for_STATIC(r,θ,ϕ)
+function sphere2xyz_for_STATIC(r,θ,ϕ) #spedas_6_1\general\science\sphere_to_cart.pro
     x = r .* cosd.(θ) .*  cosd.(ϕ)
     y = r .* cosd.(θ) .*  sind.(ϕ)
     z = r .* sind.(θ)

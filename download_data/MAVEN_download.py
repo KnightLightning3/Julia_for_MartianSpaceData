@@ -28,6 +28,7 @@ config_data = configparser.ConfigParser()
 config_data.optionxform = str
 config_data.read(config_file_path, encoding='utf-8')
 
+save_dir = config_data['DEFAULT']['Save_dir']
 Server_ind = config_data.getint('DEFAULT','Server_ind')
 url_path_0 = json_data["server_url"][Server_ind]
 sleep_time = config_data.getint('DEFAULT','sleep_time')
@@ -161,7 +162,8 @@ def requests_download(url,save_path):
 def download_model(model):
     global Server_ind
     global url_path_0
-    save_dir = json_data["save_path"]
+    global save_dir
+    global json_data
     data_model = json_data["data_model"]
     model_key = {}
     for key, value in data_model.items():

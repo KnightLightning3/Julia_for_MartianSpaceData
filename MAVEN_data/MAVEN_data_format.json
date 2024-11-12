@@ -219,7 +219,7 @@
         ],
         "SWIA_fine_svy_3d": [
             ["SWIA/l2/","maven-swia-calibrated/data/fine_svy_3d/","swi/l2/"],
-            "mvn_swi_l2_finesvy3d_.+\\+.cdf",
+            "mvn_swi_l2_finesvy3d_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"
         ],

@@ -8,6 +8,7 @@ config_file_path = os.path.join(data_format_path, "download_data", "MAVEN_downlo
 config = configparser.ConfigParser()
 config.optionxform = str
 config['DEFAULT'] = {
+    'Save_dir': 'E:/MAVEN/',
     'MAVEN_Server_url': 'https://pds-ppi.igpp.ucla.edu/data/',#'https://lasp.colorado.edu/maven/sdc/public/data/sci/',
     'USTC_Server_url': 'http://222.195.76.155:8000/MAVEN/',
     'Server_ind' : "0\n;下载服务器的编号\n;0: 自建服务器USTC\n;1: 加州大学UCLA\n;2: 科罗拉多大学LASP",

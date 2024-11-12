@@ -10,8 +10,8 @@ using PyCall
 cdflib = pyimport("cdflib")
 using TimesDates, Dates
 using DataFrames
-using DelimitedFiles
 using JSON
+using ConfParser
 using JLD2
 using Statistics
 using Quaternions
@@ -622,14 +622,17 @@ const Mp = 1.672621637e-27
 const RADG = 180.0 / π
 
 dir = dirname(@__FILE__)
-f = open(dir * "/" * "MAVEN_data_format.json", "r")
-data = JSON.parse(f)
-close(f)
-root_path = data["save_path"] #所有文件的根目录
-kp_dict = data["kp_dict"]
+porject_path = dirname(dir)
+open(dir * "/MAVEN_data_format.json", "r") do f
+    data = JSON.parse(f)
+    global kp_dict = data["kp_dict"]
+    global data_model = data["data_model"]
+end
+conf = ConfParse(dirname(dir) * "/download_data/MAVEN_download_config.ini")
+parse_conf!(conf)
+root_path = retrieve(conf, "DEFAULT", "Save_dir")#所有文件的根目录
 kp_dict = change_kp_read_data(kp_dict)
 
-data_model = data["data_model"]
 read_models = Dict{String,Tuple{String,Function}}()
 for (key, value) in data_model
     func = eval(Meta.parse(value[4]))
@@ -637,8 +640,7 @@ for (key, value) in data_model
 end
 
 # data = JSON.parsefile(root_path*"lists/"*"filename_lists.json")
-f = open(dir * "/" * "filename_lists.json", "r")
-data = JSON.parse(f)
-close(f)
-filename_list = data
+open(dir * "/" * "filename_lists.json", "r") do f
+    global filename_list = JSON.parse(f)
+end
 end # module
