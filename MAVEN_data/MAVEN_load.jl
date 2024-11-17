@@ -151,9 +151,15 @@ function load_mag_l2(file::String)
     B_total = sqrt.(sum(B .^ 2, dims=2))
     B_total = B_total[:, 1]
 
+    type = file[end-24:end-21]
     data = Dict{String,Any}(
-        "Var name" => "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
-        "Vars" => [times, B_total, B, position],
+        # "Var name" => "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
+        # "Vars" => [times, B_total, B, position],
+        "epoch" => times,
+        "type" => type,
+        "B_total" => B_total,
+        "B" => B,
+        "position" => position,
     )
     return data
 end
@@ -166,10 +172,16 @@ function load_mag_l3(file::String)
     position = read(f, (Float32, n_time, 3))
     close(f)
 
-    timeB_datetime = Dates.julian2datetime.(timeB)
+    times = Dates.julian2datetime.(timeB)
+    coodinate = file[end-36:end-33]
     data = Dict{String,Any}(
-        "Var name" => "time[Ntime], BB[Ntime],B[Ntime,3],position[Ntime,3]",
-        "Vars" => [timeB_datetime, BB, B, position],
+        # "Var name" => "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
+        # "Vars" => [times, B_total, B, position],
+        "epoch" => times,
+        "coodinate" => coodinate,
+        "B_total" => BB,
+        "B" => B,
+        "position" => position,
     )
     return data
 end
@@ -614,6 +626,98 @@ function ion_energy2v(energy, mass) # 离子子能量对应速度(相对论)
     β = sqrt(1.0 - 1.0 / γ^2)
     v = β .* 3e8
     return v
+end
+function SWEA_calc_shape_arr(dat;energy_range = [0,100], pad_range = [0,180])
+    function deriv(x, y)
+        # Ensure we have at least 3 points
+        n = length(x)
+        if n < 3
+            throw(ArgumentError("Parameters must have at least 3 points"))
+        end
+
+        d = (circshift(x, -1) .- circshift(x, 1)) / 2.0
+        d[1] = (-3.0 * x[1] + 4.0 * x[2] - x[3]) / 2.0
+        d[end] = (3.0 * x[end] - 4.0 * x[end-1] + x[end-2]) / 2.0
+    
+        # Compute the shifts
+        x0 = circshift(x, 1)
+        x2 = circshift(x, -1)
+        x01 = x0 .- x
+        x02 = x0 .- x2
+        x12 = x .- x2
+    
+        # Middle points calculation (flip sign of the last term so we can reuse x01)
+        d = circshift(y, 1) .* (x12 ./ (x01 .* x02)) .+ y .* (1.0 ./ x12 .- 1.0 ./ x01) .- circshift(y, -1) .* (x01 ./ (x02 .* x12))
+    
+        # Formulae for the first and last points
+        d[1] = y[1] * (x01[2] + x02[2]) / (x01[2] * x02[2]) - y[2] * x02[2] / (x01[2] * x12[2]) + y[3] * x01[2] / (x02[2] * x12[2])
+        d[end] = -y[end-2] * x12[end-1] / (x01[end-1] * x02[end-1]) + y[end-1] * x02[end-1] / (x01[end-1] * x12[end-1]) - y[end] * (x02[end-1] + x12[end-1]) / (x02[end-1] * x12[end-1])
+    
+        return d
+    end    
+    function mvn_swe_calc_shape_arr(npts, fin, energy; hresflg=true, energy_range = [0.0, 100.0])
+        # ref projects\maven\swea\mvn_swe_calc_shape_arr.pro
+        # Constants for ionospheric response
+        df_lres = [ 0.0371289, 0.0179520, 0.0179520, 0.0356604, 0.0356604, 0.259604,
+                    0.259604, 0.188697, 0.188697, -0.0261332, -0.0261332, 0.0849961,
+                    0.0849961, 0.102494, 0.102494, 0.0595406, 0.0595406, 0.0591643,
+                    0.0591643, 0.0459675, 0.0459675, 0.0296691, 0.0296691, 0.204077,
+                    0.204077, 0.308229, 0.308229, 0.0962973, 0.0962973, 0.118876,
+                    0.118876, 0.160658, 0.160658, 0.0387319, 0.0387319, 0.00507925,
+                    0.00507925, 0.0866565, 0.0866565, 0.114288, 0.114288, 0.0612787,
+                    0.0612787, 0.0209041, 0.0209041, -0.0567795, -0.0567795, -0.124904,
+                    -0.124904, -0.123564, -0.123564, 0.123564]
+        
+        df_hres = [ -0.00621939, 0.144627, -0.00556159, 0.0933514, 0.101257, 0.186915,
+                    0.479829, 0.401596, 0.0638178, -0.0410685, -0.0147899, 0.0405415,
+                    0.120542, 0.129752, 0.0718670, 0.0592695, 0.0666794, 0.0681327,
+                    0.0577553, 0.0493796, 0.0360952, 0.0234586, 0.0409702, 0.108591,
+                    0.251231, 0.360782, 0.279757, 0.129745, 0.0748887, 0.0924677,
+                    0.131181, 0.166274, 0.156800, 0.0917069, -0.0123766, -0.0285236,
+                    0.0425429, 0.0720319, 0.0926143, 0.114485, 0.105823, 0.0707967,
+                    0.0469701, 0.0305556, 0.00320172, -0.0334262, -0.0743820, -0.107133,
+                    -0.127032, -0.128968, -0.118429, -0.120177]
+    
+        # Select df_iono based on hresflg
+        df_iono = hresflg == 1 ? df_hres : df_lres
+        
+        # Select energy channels
+        n_e = length(df_iono)
+        indx = collect(1:n_e) .+ (64 - n_e)
+        e = energy[indx]
+        # Take the first derivative of log(eflux) w.r.t. log(E)
+        f = log10.(fin[:,indx])
+
+        emin, emax = energy_range[1], energy_range[2]
+        endx = findall(x -> emin <= x <= emax, e)
+        f = f[:, endx]
+        n_e = length(endx)
+        
+        # Filter out bad spectra (such as hot electron voids)
+        gndx = [ !(false in isfinite.(x)) for x in eachrow(f[:, :])]
+        # Initialize df
+        df = copy(f)
+        df .= NaN  # Initialize with NaN for invalid entries
+        for (i,bool) in enumerate(gndx)
+            df[i, :] .= deriv(1:n_e,f[i, :]) # First derivative
+        end
+    
+        # Calculate electron energy shape parameter over [emin, emax]
+        df_iono = reshape(df_iono,1,52)
+        par = sum(abs.(df .- df_iono[:,endx]), dims=2)[:,1]
+        return par
+    end
+    hresflg = 1
+    flux = dat["diff_en_fluxes"]
+    flux[isnan.(flux)] .= 0
+    energy = dat["energy"]
+    npts = dat["num_dists"]
+    hresflg = data["filename"][end-26:end-24] == "arc"
+    pad = dat["pa"]
+    mask_pad = pad_range[1] .<= pad .<= pad_range[2]
+    flux_pad_mean = sum(flux .* mask_pad,dims=2)[:,1,:] ./ sum(mask_pad,dims=2)[:,1,:]
+    par = mvn_swe_calc_shape_arr(npts,flux_pad_mean,energy; energy_range=energy_range, hresflg=hresflg)
+    return par
 end
 const EV = 1.602176487e-19
 const C = 3.0e8

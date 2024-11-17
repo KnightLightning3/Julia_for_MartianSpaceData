@@ -73,6 +73,7 @@ IGRF_calculate.jl
 - [ ] 利用SPEDAS包的spice核计算各个仪器的坐标变换矩阵并保存为文件
 - [ ] 利用SPEDAS包的spice核计算飞行器的速度, 加速度, 轨道参数等并保存为文件
 - [ ] 全仪器读取
+- [ ] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
 - [X] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件

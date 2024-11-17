@@ -29,7 +29,8 @@ import .MAVEN_STATIC;
         O_den = zeros(ntime)
         O2_den = zeros(ntime)
 
-        timeb, B_total, B, position = datas_dict["MAG_ss1s_l3"]["Vars"]
+        timeb = datas_dict["MAG_ss1s_l3"]["epoch"]
+        position = datas_dict["MAG_ss1s_l3"]["position"]
 
         @showprogress dt = 1 desc = "carcu_sta_vel" for (i, time_ind) in enumerate(time_i)
 
@@ -81,7 +82,8 @@ import .MAVEN_STATIC;
         return datas_dict
     end
     @inline function mag2sphere(datas_dict)
-        _, _, b, position = datas_dict["MAG_ss1s_l3"]["Vars"]
+        position = datas_dict["MAG_ss1s_l3"]["position"]
+        b = datas_dict["MAG_ss1s_l3"]["B"]
         data = MAVEN_load.Bpc2sphere.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
         br = [x[1] for x in data]
         bθ = [x[2] for x in data]
@@ -290,6 +292,8 @@ end
         np = pannels["MAGF"]
         axs[np] = Axis(fig[np, pannel_ind], limits=(x_range_unix, nothing), ylabel=L"\textbf{\text{B}} \; (\; \text{nT} \;)")
         timeB, _, B0, _ = datas_dict["MAG_ss1s_l3"]["Vars"]
+        timeB = datas_dict["MAG_ss1s_l3"]["epoch"]
+        B0 = datas_dict["MAG_ss1s_l3"]["B"]
         timeB_unix, time_i = MAVEN_plot.time2x(timeB, x_range)
         if time_i != []
             shadow_Br = false
@@ -458,7 +462,8 @@ end
             if time_i != []
                 MAVEN_plot.WaveSpactra_heatmap(axs[np], x, freq[time_i, :], wave_data[time_i, :])
                 if datas_dict["MAG_ss1s_l3"]["data_load_flag"]
-                    timeB, B_total, _, _ = datas_dict["MAG_ss1s_l3"]["Vars"]
+                    timeB = datas_dict["MAG_ss1s_l3"]["epoch"]
+                    B_total = datas_dict["MAG_ss1s_l3"]["B_total"]
                     fce = B_total .* 27.99
                     timeB_unix = datetime2unix.(timeB)
                     lines!(axs[np], timeB_unix, fce, label="fce", linewidth=2, linestyle=:dash, color=:white)
@@ -474,7 +479,7 @@ end
     #####!!!!!!!!!!!!待办, 试试看只用一个坐标轴, 将label设置成"time \n , x \n y \n z \n Alt \n"格式
     #设置下标刻度
     # alt = datas_dict["KP"][:alt][KP_time_i]
-    xtimes,x_i = MAVEN_plot.time_ticks(x_range;step=Dates.Minute(5))
+    xtimes,x_i = MAVEN_plot.time_ticks(x_range;step=step=time_step)
     axs_xtick.xticks = xtimes
     # axs_xtick[2] = x_ticks(axs_xtick[2], x, alt, x_i; xticklabelpad=20, range=x_range_unix)
     # axs_xtick[2].xlabel = "Alt[Km]"
