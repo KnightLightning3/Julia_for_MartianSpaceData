@@ -627,35 +627,32 @@ function ion_energy2v(energy, mass) # 离子子能量对应速度(相对论)
     v = β .* 3e8
     return v
 end
-function SWEA_calc_shape_arr(dat;energy_range = [0,100], pad_range = [0,180])
-    function deriv(x, y)
-        # Ensure we have at least 3 points
-        n = length(x)
-        if n < 3
-            throw(ArgumentError("Parameters must have at least 3 points"))
-        end
-
-        d = (circshift(x, -1) .- circshift(x, 1)) / 2.0
-        d[1] = (-3.0 * x[1] + 4.0 * x[2] - x[3]) / 2.0
-        d[end] = (3.0 * x[end] - 4.0 * x[end-1] + x[end-2]) / 2.0
-    
-        # Compute the shifts
-        x0 = circshift(x, 1)
-        x2 = circshift(x, -1)
-        x01 = x0 .- x
-        x02 = x0 .- x2
-        x12 = x .- x2
-    
-        # Middle points calculation (flip sign of the last term so we can reuse x01)
-        d = circshift(y, 1) .* (x12 ./ (x01 .* x02)) .+ y .* (1.0 ./ x12 .- 1.0 ./ x01) .- circshift(y, -1) .* (x01 ./ (x02 .* x12))
-    
-        # Formulae for the first and last points
-        d[1] = y[1] * (x01[2] + x02[2]) / (x01[2] * x02[2]) - y[2] * x02[2] / (x01[2] * x12[2]) + y[3] * x01[2] / (x02[2] * x12[2])
-        d[end] = -y[end-2] * x12[end-1] / (x01[end-1] * x02[end-1]) + y[end-1] * x02[end-1] / (x01[end-1] * x12[end-1]) - y[end] * (x02[end-1] + x12[end-1]) / (x02[end-1] * x12[end-1])
-    
-        return d
-    end    
+function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time_i = nothing)# 计算指定pa范围的shape parameter,设置time_i后可以计算指定时间段的数据以增加运行速度
     function mvn_swe_calc_shape_arr(npts, fin, energy; hresflg=true, energy_range = [0.0, 100.0])
+        function deriv(x, y)
+            # ref deriv for idl
+            # Ensure we have at least 3 points
+            n = length(x)
+    
+            d = (circshift(x, -1) .- circshift(x, 1)) / 2.0
+            d[1] = (-3.0 * x[1] + 4.0 * x[2] - x[3]) / 2.0
+            d[end] = (3.0 * x[end] - 4.0 * x[end-1] + x[end-2]) / 2.0
+        
+            # Compute the shifts
+            x0 = circshift(x, 1)
+            x2 = circshift(x, -1)
+            x01 = x0 .- x
+            x02 = x0 .- x2
+            x12 = x .- x2
+        
+            # Middle points calculation (flip sign of the last term so we can reuse x01)
+            d = circshift(y, 1) .* (x12 ./ (x01 .* x02)) .+ y .* (1.0 ./ x12 .- 1.0 ./ x01) .- circshift(y, -1) .* (x01 ./ (x02 .* x12))
+        
+            # Formulae for the first and last points
+            d[1] = y[1] * (x01[2] + x02[2]) / (x01[2] * x02[2]) - y[2] * x02[2] / (x01[2] * x12[2]) + y[3] * x01[2] / (x02[2] * x12[2])
+            d[end] = -y[end-2] * x12[end-1] / (x01[end-1] * x02[end-1]) + y[end-1] * x02[end-1] / (x01[end-1] * x12[end-1]) - y[end] * (x02[end-1] + x12[end-1]) / (x02[end-1] * x12[end-1])
+            return d
+        end
         # ref projects\maven\swea\mvn_swe_calc_shape_arr.pro
         # Constants for ionospheric response
         df_lres = [ 0.0371289, 0.0179520, 0.0179520, 0.0356604, 0.0356604, 0.259604,
@@ -682,8 +679,8 @@ function SWEA_calc_shape_arr(dat;energy_range = [0,100], pad_range = [0,180])
         df_iono = hresflg == 1 ? df_hres : df_lres
         
         # Select energy channels
-        n_e = length(df_iono)
-        indx = collect(1:n_e) .+ (64 - n_e)
+        n_e = 52 # Number of model energy channels
+        indx = collect(13:64)
         e = energy[indx]
         # Take the first derivative of log(eflux) w.r.t. log(E)
         f = log10.(fin[:,indx])
@@ -691,33 +688,71 @@ function SWEA_calc_shape_arr(dat;energy_range = [0,100], pad_range = [0,180])
         emin, emax = energy_range[1], energy_range[2]
         endx = findall(x -> emin <= x <= emax, e)
         f = f[:, endx]
+        df_ion = df_iono[endx]
         n_e = length(endx)
         
-        # Filter out bad spectra (such as hot electron voids)
-        gndx = [ !(false in isfinite.(x)) for x in eachrow(f[:, :])]
-        # Initialize df
-        df = copy(f)
-        df .= NaN  # Initialize with NaN for invalid entries
-        for (i,bool) in enumerate(gndx)
-            df[i, :] .= deriv(1:n_e,f[i, :]) # First derivative
+        # Filter out bad spectra (such as hot electron voids,if finite exit, if not, set to false) 
+        gndx = findall(x -> !(false in isfinite.(x)) ,eachrow(f[:, :]))
+        par = Vector{Float64}(undef,npts)
+        par .= NaN
+        @inbounds for i in gndx
+            df = deriv(1:n_e,f[i, :]) # First derivative
+            par[i] = sum(abs.(df .- df_ion))
         end
-    
-        # Calculate electron energy shape parameter over [emin, emax]
-        df_iono = reshape(df_iono,1,52)
-        par = sum(abs.(df .- df_iono[:,endx]), dims=2)[:,1]
         return par
     end
+    ntimes = dat["num_dists"]
+    if time_i == nothing
+        time_i = 1:ntimes
+    end
+    npts = length(time_i)
     hresflg = 1
-    flux = dat["diff_en_fluxes"]
+    flux = dat["diff_en_fluxes"][time_i,:,:]
     flux[isnan.(flux)] .= 0
     energy = dat["energy"]
-    npts = dat["num_dists"]
-    hresflg = data["filename"][end-26:end-24] == "arc"
-    pad = dat["pa"]
+    hresflg = dat["filename"][end-26:end-24] == "arc"
+    pad = dat["pa"][time_i,:,:]
+    d_pad = dat["d_pa"][time_i,:,:]
+
     mask_pad = pad_range[1] .<= pad .<= pad_range[2]
-    flux_pad_mean = sum(flux .* mask_pad,dims=2)[:,1,:] ./ sum(mask_pad,dims=2)[:,1,:]
+    flux_pad_mean = sum(flux .* mask_pad .* d_pad,dims=2)[:,1,:] ./ sum(mask_pad.* d_pad,dims=2)[:,1,:]
     par = mvn_swe_calc_shape_arr(npts,flux_pad_mean,energy; energy_range=energy_range, hresflg=hresflg)
     return par
+end
+function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],time_i = nothing,pa_width =30)#将sp计算为指向和指出火星,需要同时导入磁场,建议pc,ss理论上也可,pa_width为PAD角度范围,设置time_i后可以计算指定时间段的数据以增加运行速度; 指向和指出单纯由磁场Br的正负和平行或反平行决定.
+    # ref projects\maven\swea\mvn_swe_shape_par_pad_l2.pro
+    ntimes = SWEA_dat["num_dists"]
+    if time_i == nothing
+        time_i = 1:ntimes
+    end
+    npts = length(time_i)
+    tb = MAG_dat["epoch"]
+    pb = MAG_dat["position"]
+    b = MAG_dat["B"]
+    b_total = MAG_dat["B_total"]
+    te = SWEA_dat["epoch"][time_i]
+    #计算磁场方向
+    tb_i = zeros(Int64,npts)
+    for i in 1:npts
+        tb_i[i] = findmin(x->abs(x - te[i]),tb)[2]
+    end
+    norm_b = b[tb_i,:] ./ reshape(b_total[tb_i],:,1)
+    norm_p = pb[tb_i,:] ./ sqrt.(sum(pb[tb_i,:].^2,dims=2))
+    B_angle = acos.(sum(norm_b .* norm_p,dims=2))[:,1]
+    B_out = B_angle .> 0
+
+    par_antipara  = SWEA_calc_shape_arr(SWEA_dat;pad_range=[180-pa_width,180],energy_range=energy_range,time_i = time_i)
+    par_para = SWEA_calc_shape_arr(SWEA_dat;pad_range=[0,pa_width],energy_range=energy_range,time_i = time_i)
+    par_mid = SWEA_calc_shape_arr(SWEA_dat;pad_range=[pa_width,180-pa_width],energy_range=energy_range,time_i = time_i)
+
+    par_twd = zeros(npts)
+    par_away = zeros(npts)
+    par_twd[B_out] .= par_antipara[B_out]
+    par_twd[.!B_out] .= par_para[.!B_out]
+
+    par_away[B_out] .= par_para[B_out]
+    par_away[.!B_out] .= par_antipara[.!B_out]
+    return par_twd,par_away,par_mid
 end
 const EV = 1.602176487e-19
 const C = 3.0e8

@@ -291,7 +291,7 @@ end
     if "MAGF" in pannel_name
         np = pannels["MAGF"]
         axs[np] = Axis(fig[np, pannel_ind], limits=(x_range_unix, nothing), ylabel=L"\textbf{\text{B}} \; (\; \text{nT} \;)")
-        timeB, _, B0, _ = datas_dict["MAG_ss1s_l3"]["Vars"]
+        # timeB, _, B0, _ = datas_dict["MAG_ss1s_l3"]["Vars"]
         timeB = datas_dict["MAG_ss1s_l3"]["epoch"]
         B0 = datas_dict["MAG_ss1s_l3"]["B"]
         timeB_unix, time_i = MAVEN_plot.time2x(timeB, x_range)
