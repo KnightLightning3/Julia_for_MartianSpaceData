@@ -98,3 +98,7 @@ IGRF_calculate.jl
 - 衰减器 衰减器 attenuator 会根据具体情况对小于 15eV 的低能量段 STA 数据乘以(1., 1/10, 1/100, 1/1000)以防止过饱和,官方宣称其更换时间不会小于 5min,然而一些数据可以用临时的过饱和解释,而且有切换 attenuator
 - STATIC 返回的 theta 和 phi,对应球坐标系的 90-theta 和 phi,处于仪器参考系下. 文件中的 quat_mso 和 quat_sc 为四元数,可以用于将仪器参考系投影到 mso 和 sc 参考系.
 - STATIC, SWEA, SWIA 使用的参考系为对应球坐标系的 90-theta 和 phi, ref:spedas_6_1\general\science\sphere_to_cart.pro
+
+## VSC 数据:
+
+vsc数据本身可以由spice程序包计算. 但是其存在学习门槛. 此程序包中包含直接使用mag中以1秒为精度的位置数据通过计算二次函数拟合取得的vsc数据, 保存于MAG/vsc/

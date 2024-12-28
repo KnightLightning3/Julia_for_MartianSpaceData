@@ -1,6 +1,6 @@
 # 将ngi的l3数据的一天多份整合成一天一份
 
-include("../MAVEN_data/MAVEN_load.jl")
+include("../MAVEN_load.jl")
 import .MAVEN_load
 using Dates
 using Base.Filesystem

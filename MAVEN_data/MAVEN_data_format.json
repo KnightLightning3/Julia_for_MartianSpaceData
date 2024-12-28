@@ -64,6 +64,12 @@
             "MAG/l3/",
             "load_mag_l3"
         ],
+        "MAG_ss1s_vsc": [
+            ["MAG/vsc/","None","None"],
+            "mvn_mag_vsc_ss1s_\\d{8}_v\\d{2}\\.f77_unformatted",
+            "MAG/vsc/",
+            "load_mag_vsc"
+        ],
         "SWEA_spec": [
             ["SWEA/l2/","maven-swea-calibrated/data/svy_spec/","swe/l2/"],
             "mvn_swe_l2_svyspec_.+\\.cdf",

@@ -185,6 +185,22 @@ function load_mag_l3(file::String)
     )
     return data
 end
+function load_mag_vsc(file::String)
+    f = FortranFile(file, "r")
+    n_time = read(f, Int64)
+    time_unix = read(f, (Float64, n_time))
+    vsc = read(f, (Float32, n_time, 3))
+    close(f)
+
+    times = Dates.unix2datetime.(time_unix)
+    coodinate = file[end-32:end-29]
+    data = Dict{String,Any}(
+        "epoch" => times,
+        "coodinate" => coodinate,
+        "vsc" => vsc,
+    )
+    return data
+end
 function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
     function kp_indicate(n)
         m = n * 16 - 16 .+ (4:19)

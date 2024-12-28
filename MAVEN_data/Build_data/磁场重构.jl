@@ -1,5 +1,5 @@
 # 将MAVEN 的MAG 数据转为f77二进制格式
-include("../MAVEN_data/MAVEN_load.jl")
+include("../MAVEN_load.jl")
 import .MAVEN_load
 using Dates
 using Base.Filesystem
