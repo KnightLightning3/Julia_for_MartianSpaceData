@@ -124,6 +124,12 @@
             "STATIC/l2/",
             "load_cdf"
         ],
+        "STATIC_d1_v4d": [
+            ["STATIC/l3/","None","None"],
+            "mvn_sta_l3_d1_vel_flux_den_.+\\.f77_unformatted",
+            "STATIC/l3/",
+            "load_d1_v4d"
+        ],
         "LPW_wave": [
             ["LPW/l2/","maven-lpw-derived/data/w-specpas/","lpw/l2/"],
             "mvn_lpw_l2_wspecpas_.+\\.cdf",

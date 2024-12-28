@@ -350,6 +350,34 @@ function load_NGIMS_sht_l3(file::String) # L3 resampled scale height table of NG
     end
     return data_out_dict
 end
+function load_d1_v4d(file::String) # build using STATIC d1 data. already been corrected by sc_pot(static) and vsc by MAG_ss1s
+    f = FortranFile(file, "r")
+    Ntime = read(f, Int64)
+    time_unix = read(f, (Float64, Ntime))
+    H_vel = read(f, (Float32, Ntime, 3))
+    O_vel = read(f, (Float32, Ntime, 3))
+    O2_vel = read(f, (Float32, Ntime, 3))
+    H_f = read(f, (Float32, Ntime, 3))
+    O_f = read(f, (Float32, Ntime, 3))
+    O2_f = read(f, (Float32, Ntime, 3))
+    H_den = read(f, (Float32, Ntime))
+    O_den = read(f, (Float32, Ntime))
+    O2_den = read(f, (Float32, Ntime))
+    close(f)
+    data = Dict(
+        "epoch" => unix2datetime.(time_unix),
+        "H_vel" => H_vel,
+        "O_vel" => O_vel,
+        "O2_vel" => O2_vel,
+        "H_f" => H_f, # flux
+        "O_f" => O_f,
+        "O2_f" => O2_f,
+        "H_den" => H_den,
+        "O_den" => O_den,
+        "O2_den" => O2_den
+    )
+    return data
+end
 ## ------------------------------数据处理--------------------------------
 function Bpc2sphere(x, y, z, bx, by, bz)
     r = sqrt(x^2 + y^2 + z^2)

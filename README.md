@@ -3,6 +3,14 @@
 
 <h1 align="center">Julia Pkg for Mars</h1>
 
+# 索引
+- [介绍](#介绍)
+- [下载数据](#下载数据)
+- [读取数据](#读取数据)
+- [火星磁场模型](#火星磁场模型)
+- [自建数据说明](#自建数据说明)
+- [MAVEN数据Tips](#maven-数据-tips)
+- [ToDo List](#todo-list)
 # 介绍
 
 [English](README_EN.md) / 简体中文
@@ -12,26 +20,6 @@
 主要数据处理程序以 Julia 代码为主
 
 下载程序以 Python 为主
-
-# 读取数据
-
-MAVEN 数据读取 MAVEN_data_load.jl,
-
-```
-Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
-```
-
-此程序需要特定的读取文件树格式,  
-与下载部分共用文件树格式
-
-Julia 中的引用方式:
-
-```
-include("path/MAVEN_data_load.jl")
-include("path/IGRF_calculate.jl")
-import .MAVEN_data_load
-import .IGRF_calculate
-```
 
 # 下载数据
 
@@ -60,6 +48,26 @@ pip install -r requirements.txt
 
 其中https://pds-ppi.igpp.ucla.edu/data/的文件树与后两者不同,且没有NGIM数据
 
+# 读取数据
+
+MAVEN 数据读取 MAVEN_data_load.jl,
+
+```
+Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+```
+
+此程序需要特定的读取文件树格式,  
+与下载部分共用文件树格式
+
+Julia 中的引用方式:
+
+```
+include("path/MAVEN_data_load.jl")
+include("path/IGRF_calculate.jl")
+import .MAVEN_data_load
+import .IGRF_calculate
+```
+
 # 火星磁场模型
 
 IGRF_calculate.jl
@@ -67,13 +75,50 @@ IGRF_calculate.jl
 
 模型来源: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combining Data Sets of MAVEN and MGS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021EA001860)
 
-# ToDo list
+# 自建数据说明
+
+为部分数据做了额外调整以方便使用
+
+## KP_l3数据
+以JLD2格式将KP数据保存为字典模式, epoch对应时间, 变量序号为数字对于kp说明文档中的序号, 同时额外将坐标变换矩阵martrix专门保存为3 $\times$ 3的矩阵的列表.
+
+保存于KP/l3/
+
+## MAG_l3数据
+将磁场数据以Fortran77无格式形式保存, 减少原数据的空间占用, 提高读取速度, 保存于MAG/l3/
+
+## VSC 数据:
+飞行器速度, vsc数据本身可以由spice程序包计算. 但是其存在学习门槛. 
+
+此数据集通过使用mag中以1秒为精度的位置数据计算二次函数拟合取得vsc数据.
+
+保存于MAG/vsc/, 单位km/s
+
+## STATIC_d1_v4d 数据
+基于SPEDAS库中的v_4d程序编写和计算, 使用mag取得的vsc和STATIC自带的电势修正. 
+
+计算了全能量, 角度域的 $\textsf H^+$,$\textsf O^+$,$\textsf O_2^+$ 的速度vel(km/s), 
+密度den( $\textsf{cm}^{-3}$ ), 流量flux.
+
+保存于STATIC/l3/
+
+# MAVEN 数据 Tips
+
+## STATIC 数据:
+
+- STATIC 会返回每个时刻的(方位角,能量,离子质量数)的三维矩阵数据, 对应其中的 energy,phi,theta,mass_arr 矩阵
+- 扫描模式: STATIC 有多个不同的扫描模式,对应不同的能量范围,由 swd_ind 参数[0-26]决定,对应 energy,phi,theta,mass_arr 矩阵中的最后一个维度. 在 julia 这种以 1 开始计数的语言中,要将 swd_ind 参数加一
+- 衰减器 衰减器 attenuator 会根据具体情况对小于 15eV 的低能量段 STA 数据乘以(1., 1/10, 1/100, 1/1000)以防止过饱和,官方宣称其更换时间不会小于 5min,然而一些数据可以用临时的过饱和解释,而且有切换 attenuator
+- STATIC 返回的 theta 和 phi,对应球坐标系的 90-theta 和 phi,处于仪器参考系下. 文件中的 quat_mso 和 quat_sc 为四元数,可以用于将仪器参考系投影到 mso 和 sc 参考系.
+- STATIC, SWEA, SWIA 使用的参考系为对应球坐标系的 90-theta 和 phi. ref:spedas_6_1\general\science\sphere_to_cart.pro
+
+# ToDo List
 
 - [x] 云 MAVEN 数据
 - [ ] 利用SPEDAS包的spice核计算各个仪器的坐标变换矩阵并保存为文件
 - [ ] 利用SPEDAS包的spice核计算飞行器的速度, 加速度, 轨道参数等并保存为文件
 - [ ] 全仪器读取
-- [ ] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
+- [X] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
 - [X] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
@@ -87,18 +132,4 @@ IGRF_calculate.jl
 - [x] MAVEN STATIC
 - [X] 增加项目初始化和文件处理流程的流程图
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
-      随缘更新
-
-# MAVEN 数据 Tips
-
-## STATIC 数据:
-
-- STATIC 会返回每个时刻的(方位角,能量,离子质量数)的三维矩阵数据, 对应其中的 energy,phi,theta,mass_arr 矩阵
-- 扫描模式: STATIC 有多个不同的扫描模式,对应不同的能量范围,由 swd_ind 参数[0-26]决定,对应 energy,phi,theta,mass_arr 矩阵中的最后一个维度. 在 julia 这种以 1 开始计数的语言中,要将 swd_ind 参数加一
-- 衰减器 衰减器 attenuator 会根据具体情况对小于 15eV 的低能量段 STA 数据乘以(1., 1/10, 1/100, 1/1000)以防止过饱和,官方宣称其更换时间不会小于 5min,然而一些数据可以用临时的过饱和解释,而且有切换 attenuator
-- STATIC 返回的 theta 和 phi,对应球坐标系的 90-theta 和 phi,处于仪器参考系下. 文件中的 quat_mso 和 quat_sc 为四元数,可以用于将仪器参考系投影到 mso 和 sc 参考系.
-- STATIC, SWEA, SWIA 使用的参考系为对应球坐标系的 90-theta 和 phi, ref:spedas_6_1\general\science\sphere_to_cart.pro
-
-## VSC 数据:
-
-vsc数据本身可以由spice程序包计算. 但是其存在学习门槛. 此程序包中包含直接使用mag中以1秒为精度的位置数据通过计算二次函数拟合取得的vsc数据, 保存于MAG/vsc/
+      随作者需求更新
