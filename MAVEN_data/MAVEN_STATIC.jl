@@ -180,6 +180,25 @@ function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得�
     dat["df"] = scale .* tmp
     return dat
 end
+function STA_count2df_no_m_int(dat) #计算df,需要导入static_slip取得的切片, 结果需要times 质量数的平方
+    nbins   = dat["nbins"]
+    nenergy = dat["nenergy"]
+    energy = dat["energy"]
+
+    gf = reshape(dat["gf"], 1, nbins,nenergy)
+    eff = dat["eff"]
+    G = dat["geom_factor"].*eff.*gf
+    dt = dat["time_integ"]
+    mass = dat["mass"]
+    dead = dat["dead"]						# dead time array usec for STATIC
+    bkg = dat["bkg"]					# background array usec for STATIC
+    tmp = dat["data"]
+
+    tmp = (tmp .- bkg ).*dead
+    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
+    dat["df/mass_mass"] = scale .* tmp
+    return dat
+end
 function STA_count2df_all(dat) #计算df,对非时间切片数据
     ntime   = dat["num_dists"]
 
@@ -342,7 +361,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     return dat_slip
 end
 # 速度计算
-function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
+function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = "eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
     if dat["valid"] == 0
         println("Invalid Data")
         return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
@@ -357,9 +376,12 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = 
     #         dat = STA_count2df(dat;m_int=m_int)
     #     end
     # end
-    dat = STA_count2df(dat;m_int=m_int)
-    data=dat["df"]
-
+    if unit_cover
+        dat = STA_count2df(dat;m_int=m_int)
+        data=dat["df"]
+    else
+        data=dat["df/mass_mass"] .*m_int^2  #需要提前用STA_count2df_no_m_int处理之
+    end
     energy = dat["energy"] 
     denergy = dat["denergy"] 
     theta = dat["theta"]./RADG
