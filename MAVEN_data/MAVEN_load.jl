@@ -1,6 +1,6 @@
 # 读取和计算MAVEN数据
-# data_get_from_date 返回字典dates_dict["数据类型"]["数据内容"]
-# dates_dict["数据类型"]["data_load_flag"]表示读取是否成功
+# data_get_from_date 返回字典dates_dict[:数据类型"][:数据内容"]
+# dates_dict[:数据类型"][:data_load_flag]表示读取是否成功
 # 所有的CDF文件统一读取为cdf对应的字典,并去除PyObjects
 # STATIC中的theta值在球坐标系下,应当为90-Theta.
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
@@ -66,14 +66,15 @@ function data_get_from_date(date::DateTime; model_index=[], show_filename=false)
         file_flag, filename = find_file_of_data(model, date)
         function_name = read_models[model][2]
         if !file_flag
-            datas_dict[model] = Dict("data_load_flag" => false)
+            datas_dict[model] = Dict(:data_load_flag => false)
         else
             if show_filename
                 println("\033[0;32mloading\033[0m $model from $filename")
             end
             datas_dict[model] = function_name(filename)
             # println(keys(datas_dict[model]))
-            datas_dict[model]["data_load_flag"] = true
+            datas_dict[model][:filename] = filename
+            datas_dict[model][:data_load_flag] = true
         end
     end
     return datas_dict
@@ -108,19 +109,58 @@ function load_cdf(file::String)  # 将CDF文件读为字典
     catch e
         println("Error: ", file)
         println(e)
-        return Dict("data_load_flag" => false)
+        return Dict(:data_load_flag => false)
     end
 
-    local data_dict = Dict{String,Any}()
+    local data_dict = Dict{Symbol,Any}()
     local var_list = data.cdf_info()["zVariables"]
     local vars = get.(Ref(data), var_list)
     for (var_name, var) in zip(var_list, vars)
-        if typeof(var) != PyObject
-            data_dict[var_name] = var
+        if typeof(var) == PyObject || var_name == "epoch"
+            # println(var_name)
+            continue
         end
+        data_dict[Symbol(var_name)] = var
     end
-    data_dict["epoch"] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
-    data_dict["filename"] = file
+
+    data_dict[:epoch] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
+    return data_dict
+end
+function load_STATIC(file::String)
+    local data = []
+    try
+        data = cdflib.cdfread.CDF(file)
+    catch e
+        println("Error: ", file)
+        println(e)
+        return Dict(:data_load_flag => false)
+    end
+    local data_dict = Dict{Symbol,Any}()
+    local var_list = [
+        "time_unix", "time_start", "time_end", "time_delta", "time_integ", "eprom_ver", "header", "valid", "mode", "rate", "swp_ind", "mlut_ind", "eff_ind", "att_ind", "sc_pot", "magf", "quat_sc", "quat_mso", "bins_sc", "pos_sc_mso", "bkg", "dead", "data", "eflux", "quality_flag", "project_name", "spacecraft", "data_name", "apid", "units_name", "units_procedure", "num_dists", "nenergy", "nbins", "nmass", "ndef", "nanode", "natt", "nswp", "neff", "nmlut", "bins", "energy", "denergy", "theta", "dtheta", "phi", "dphi", "domega", "gf", "eff", "mass_arr", "tof_arr", "twt_arr", "geom_factor", "mass", "charge", 
+        # "compno_3", "compno_4", "compno_8", "compno_32", "compno_64",
+        # "dead_time_1", "dead_time_2", "dead_time_3"
+        ]
+        var_tpyes = Dict(
+            "CDF_FLOAT" => Float64,
+            "CDF_DOUBLE" => Float64,
+            "CDF_INT2" => Int64,
+            "CDF_INT4" => Int64,
+            "CDF_CHAR" => String,
+        )
+    for var_name in var_list
+        var = data.varget(var_name)
+        var_s = Symbol(var_name)
+        if typeof(var) == PyObject
+            data_dict[var_s] = convert(
+                var_tpyes[convert(String,data.varinq(var_name)["Data_Type_Description"])],
+                var
+                )
+            continue
+        end
+        data_dict[var_s] = var
+    end
+    data_dict[:epoch] = unix2datetime.(get(data, "time_unix"))
     return data_dict
 end
 function load_mag_l2(file::String)
@@ -152,14 +192,14 @@ function load_mag_l2(file::String)
     B_total = B_total[:, 1]
 
     type = file[end-24:end-21]
-    data = Dict{String,Any}(
+    data = Dict{Symbol,Any}(
         # "Var name" => "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
         # "Vars" => [times, B_total, B, position],
-        "epoch" => times,
-        "type" => type,
-        "B_total" => B_total,
-        "B" => B,
-        "position" => position,
+        :epoch => times,
+        :type => type,
+        :B_total => B_total,
+        :B => B,
+        :position => position,
     )
     return data
 end
@@ -174,14 +214,14 @@ function load_mag_l3(file::String)
 
     times = Dates.julian2datetime.(timeB)
     coodinate = file[end-36:end-33]
-    data = Dict{String,Any}(
+    data = Dict{Symbol,Any}(
         # "Var name" => "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
         # "Vars" => [times, B_total, B, position],
-        "epoch" => times,
-        "coodinate" => coodinate,
-        "B_total" => BB,
-        "B" => B,
-        "position" => position,
+        :epoch => times,
+        :coodinate => coodinate,
+        :B_total => BB,
+        :B => B,
+        :position => position,
     )
     return data
 end
@@ -194,10 +234,10 @@ function load_mag_vsc(file::String)
 
     times = Dates.unix2datetime.(time_unix)
     coodinate = file[end-32:end-29]
-    data = Dict{String,Any}(
-        "epoch" => times,
-        "coodinate" => coodinate,
-        "vsc" => vsc,
+    data = Dict{Symbol,Any}(
+        :epoch => times,
+        :coodinate => coodinate,
+        :vsc => vsc,
     )
     return data
 end
@@ -213,7 +253,7 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
     Ntime = length(time)
 
     result_dict = Dict{String,Any}()
-    result_dict["version"] = filename[end-10:end-8]
+    result_dict[:version] = filename[end-10:end-8]
 
     if str_model
         for (key, value) in kp_dict
@@ -231,7 +271,7 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
             #     var_float = replace.(var_str, "O" => 0)
             # end
             var_float = parse.(Float64, var)
-            result_dict[key] = var_float
+            result_dict[Symbol(key)] = var_float
         end
     end
     # if NaN2missing
@@ -242,7 +282,7 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
     #         result_dict[key] = var
     #     end
     # end
-    result_dict["time"] = time_dt
+    result_dict[:time] = time_dt
 
     if pc2ss_Matrix_load == false
         return result_dict
@@ -260,16 +300,20 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
             j = rem(key - 1, 3) + 1
             pc2ss_Matrix[:, i, j] = var
         end
-        result_dict["pc2ss_Matrix"] = pc2ss_Matrix
+        result_dict[:pc2ss_Matrix] = pc2ss_Matrix
         return result_dict
     end
 end
 function load_kp_l3(file::String)
     f = jldopen(file, "r")
     data_out_dict = f["KP_jld2_data"]
+    data_out_dict_ss = Dict()
+    for (key, value) in data_out_dict
+        data_out_dict_ss[key] = value
+    end
     # "pc2ss_Matrix" "sc2ss_Matrix"
     close(f)
-    return data_out_dict
+    return data_out_dict_ss
 end
 function load_swea_pad(file::String; mean_PA=true)
     # 默认将360°的数据投影到180°
@@ -299,14 +343,14 @@ function load_NGIMS_den_l3(file::String)
     unique_elements = unique(species)
     for element in unique_elements
         indices = findall(x -> x == element, species)
-        data_out_dict[element] = Dict{String,Any}(
-            "epoch" => t_datetime[indices],
-            "orbit" => parse.(Int32, str_vars[indices, 6]),
-            "focusmode" => str_vars[indices, 7],
-            "alt" => parse.(Float64, str_vars[indices, 8]),
-            "mass" => parse.(Float64, str_vars[indices, 9]),
-            "density_bins" => parse.(Float64, str_vars[indices, 11]),
-            "quality" => str_vars[indices, 12],
+        data_out_dict[element] = Dict{Symbol,Any}(
+            :epoch => t_datetime[indices],
+            :orbit => parse.(Int32, str_vars[indices, 6]),
+            :focusmode => str_vars[indices, 7],
+            :alt => parse.(Float64, str_vars[indices, 8]),
+            :mass => parse.(Float64, str_vars[indices, 9]),
+            :density_bins => parse.(Float64, str_vars[indices, 11]),
+            :quality => str_vars[indices, 12],
         )
     end
     return data_out_dict
@@ -334,18 +378,18 @@ function load_NGIMS_sht_l3(file::String) # L3 resampled scale height table of NG
     unique_elements = unique(species)
     for element in unique_elements
         indices = findall(x -> x == element, species)
-        data_out_dict[element] = Dict{String,Any}(
-            "epoch" => t_datetime[indices],
-            "orbit" => parse.(Int32, str_vars[indices, 6]),
-            "exo_alt" => parse.(Float64, str_vars[indices, 7]),
-            "mass" => parse.(Float64, str_vars[indices, 8]),
-            "species" => parse.(Float64, str_vars[indices, 9]),
-            "scale_height" => parse.(Float64, str_vars[indices, 10]),
-            "scale_height_error" => parse.(Float64, str_vars[indices, 11]),
-            "Temperature" => parse.(Float64, str_vars[indices, 12]),
-            "Temperature_error" => parse.(Float64, str_vars[indices, 13]),
-            "fit_residual" => parse.(Float64, str_vars[indices, 14]),
-            "quality" => str_vars[indices, 15]
+        data_out_dict[element] = Dict{Symbol,Any}(
+            :epoch => t_datetime[indices],
+            :orbit => parse.(Int32, str_vars[indices, 6]),
+            :exo_alt => parse.(Float64, str_vars[indices, 7]),
+            :mass => parse.(Float64, str_vars[indices, 8]),
+            :species => parse.(Float64, str_vars[indices, 9]),
+            :scale_height => parse.(Float64, str_vars[indices, 10]),
+            :scale_height_error => parse.(Float64, str_vars[indices, 11]),
+            :Temperature => parse.(Float64, str_vars[indices, 12]),
+            :Temperature_error => parse.(Float64, str_vars[indices, 13]),
+            :fit_residual => parse.(Float64, str_vars[indices, 14]),
+            :quality => str_vars[indices, 15]
         )
     end
     return data_out_dict
@@ -365,16 +409,16 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     O2_den = read(f, (Float32, Ntime))
     close(f)
     data = Dict(
-        "epoch" => unix2datetime.(time_unix),
-        "H_vel" => H_vel,
-        "O_vel" => O_vel,
-        "O2_vel" => O2_vel,
-        "H_f" => H_f, # flux
-        "O_f" => O_f,
-        "O2_f" => O2_f,
-        "H_den" => H_den,
-        "O_den" => O_den,
-        "O2_den" => O2_den
+        :epoch => unix2datetime.(time_unix),
+        :H_vel => H_vel,
+        :O_vel => O_vel,
+        :O2_vel => O2_vel,
+        :H_f => H_f, # flux
+        :O_f => O_f,
+        :O2_f => O2_f,
+        :H_den => H_den,
+        :O_den => O_den,
+        :O2_den => O2_den
     )
     return data
 end
@@ -395,7 +439,7 @@ function Bpc2sphere(x, y, z, bx, by, bz)
 
     return Br, Bθ, Bϕ
 end
-function caculate_mag(position; models=["alt"])
+function caculate_mag(position; models=[:alt])
     function c_alt(position)
         alt = sqrt.(sum(position .^ 2, dims=2)) .- 3393.5
         alt = alt[:, 1]
@@ -409,19 +453,19 @@ function caculate_mag(position; models=["alt"])
         latitude = atan.(position[:, 3], sqrt.(sum(position[:, 1:2] .^ 2, dims=2))) ./ π .* 180.0
         return latitude
     end
-    funcs = Dict{String,Any}(
-        "alt" => c_alt,
-        "local_time" => c_local_time,
-        "latitude" => c_latitude,
+    funcs = Dict{Symbol,Any}(
+        :alt => c_alt,
+        :local_time => c_local_time,
+        :latitude => c_latitude,
     )
     for model in models
         data[model] = funcs[model](position)
     end
 end
 function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典,将其角度做平均. pad数据返回360°的16个方向的数据,可以做平均,使其变为180°的8个数据点
-    flux = data_dict["diff_en_fluxes"]
-    pitch_angle = data_dict["pa"]
-    g_pa = data_dict["g_pa"]
+    flux = data_dict[:diff_en_fluxes]
+    pitch_angle = data_dict[:pa]
+    g_pa = data_dict[:g_pa]
 
     pitch_angle_mean = (pitch_angle[:, 1:8, :] .+ pitch_angle[:, 16:-1:9, :]) ./ 2
     g_pa_mean = (g_pa[:, 1:8, :] .+ g_pa[:, 16:-1:9, :]) ./ 2
@@ -435,9 +479,9 @@ function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典,将其角度�
 
     flux_mean = (flux1 + flux2) ./ 2
 
-    data_dict["diff_en_fluxes_mean"] = flux_mean
-    data_dict["g_pa_mean"] = g_pa_mean
-    data_dict["pa_mean"] = pitch_angle_mean
+    data_dict[:diff_en_fluxes_mean] = flux_mean
+    data_dict[:g_pa_mean] = g_pa_mean
+    data_dict[:pa_mean] = pitch_angle_mean
     return data_dict
 end
 function static_c6_mass_mean(data; mass_range=[0, 200])  # static 3d数据处理(不包括角度信息)
@@ -445,17 +489,17 @@ function static_c6_mass_mean(data; mass_range=[0, 200])  # static 3d数据处理
     # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
     # mass_range单位AMU
     # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
-    epoch = data["epoch"]
-    energy = data["energy"]
-    denergy = data["denergy"]
-    eflux = data["eflux"]
-    swp_ind = data["swp_ind"]
-    apid = data["apid"]
-    mass_arr = data["mass_arr"]
-    ntime = data["num_dists"]
-    nmass = data["nmass"]
-    nswp = data["nswp"]
-    nenergy = data["nenergy"]
+    epoch = data[:epoch]
+    energy = data[:energy]
+    denergy = data[:denergy]
+    eflux = data[:eflux]
+    swp_ind = data[:swp_ind]
+    apid = data[:apid]
+    mass_arr = data[:mass_arr]
+    ntime = data[:num_dists]
+    nmass = data[:nmass]
+    nswp = data[:nswp]
+    nenergy = data[:nenergy]
 
     eflux_mass = zeros(ntime, nenergy)
     energy_mass = zeros(nenergy, nswp)
@@ -478,14 +522,14 @@ function static_c6_mass_mean(data; mass_range=[0, 200])  # static 3d数据处理
     eflux_mass[:, :] = sum(eflux .* mask, dims=2)
     # end
 
-    return_data = Dict{String,Any}(
+    return_data = Dict{Symbol,Any}(
         # "Var name"=> "time,energy[Nenergy,Nswp], eflux[Ntime,Nenergy], nswp[Nswp]",
-        "apid" => apid,
-        "epoch" => epoch,
-        "energy" => energy_mass,
-        "eflux" => eflux_mass,
-        "swp_ind" => swp_ind,
-        "data_load_flag" => true
+        :apid => apid,
+        :epoch => epoch,
+        :energy => energy_mass,
+        :eflux => eflux_mass,
+        :swp_ind => swp_ind,
+        :data_load_flag => true
     )
     return return_data
 end
@@ -493,16 +537,16 @@ function static_c6_energy_mean(data; energy_range=[0, 1e6])  # static 3d数据�
     # 在energy维度做求和,得到eflux,mass谱
     # energy_range单位energy,不设置时默认计算所有energy的值
     # "time,energy[Nmass,Nenergy,Nswp], denergy[Nmass,Nenergy,Nswp], eflux[ Ntime,Nmass,Nenergy ], nswp[Nswp], AMU_arr[Nmass,Nenergy,Nswp]"
-    epoch = data["epoch"]
-    energy = data["energy"]
-    eflux = data["eflux"]
-    swp_ind = data["swp_ind"]
-    apid = data["apid"]
-    mass_arr = data["mass_arr"]
-    ntime = data["num_dists"]
-    nmass = data["nmass"]
-    nswp = data["nswp"]
-    nenergy = data["nenergy"]
+    epoch = data[:epoch]
+    energy = data[:energy]
+    eflux = data[:eflux]
+    swp_ind = data[:swp_ind]
+    apid = data[:apid]
+    mass_arr = data[:mass_arr]
+    ntime = data[:num_dists]
+    nmass = data[:nmass]
+    nswp = data[:nswp]
+    nenergy = data[:nenergy]
 
     eflux_out = zeros(ntime, nmass)
     mass_out = zeros(nmass, nswp)
@@ -526,26 +570,25 @@ function static_c6_energy_mean(data; energy_range=[0, 1e6])  # static 3d数据�
     eflux_out[:, :] = sum(eflux .* mask, dims=3)
     # end
 
-    return_data = Dict{String,Any}(
+    return_data = Dict{Symbol,Any}(
         # "Var name"=> "time,energy[Nenergy,Nswp], eflux[ Ntime,Nenergy], nswp[Nswp]",
-        "apid" => apid,
-        "epoch" => epoch,
-        "mass" => mass_out,
-        "eflux" => eflux_out,
-        "swp_ind" => swp_ind,
-        "data_load_flag" => true
+        :apid => apid,
+        :epoch => epoch,
+        :mass => mass_out,
+        :eflux => eflux_out,
+        :swp_ind => swp_ind,
+        :data_load_flag => true
     )
     return return_data
 end
 
-function carclu_SWEA_pad(data; energy_range=[])
-    # time, pitch_angle,energy_arr, flux_arr, g_pa, g_engy = data["Vars"]
-    time = data["epoch"]
-    pitch_angle = data["pa"]
-    energy_arr = data["energy"]
-    flux_arr = data["diff_en_fluxes"]
-    g_pa = data["g_pa"]
-    g_engy = data["g_engy"]
+function carclu_SWEA_pad(data; energy_range=[])  # SWEA PAD数据处理
+    time = data[:epoch]
+    pitch_angle = data[:pa]
+    energy_arr = data[:energy]
+    flux_arr = data[:diff_en_fluxes]
+    g_pa = data[:g_pa]
+    g_engy = data[:g_engy]
     if size(energy_range)[1] == 1
         _, index = findmin(abs.(energy_arr .- energy_range))
         index = index[1]
@@ -554,11 +597,11 @@ function carclu_SWEA_pad(data; energy_range=[])
         flux_PAD = flux_arr[:, :, index]
         flux_PAD = [isnan(t) ? 1e-10 : t for t in flux_PAD]
         return_data = Dict(
-            "epoch" => time,
-            "pa" => pitch_angle_PAD,
-            "diff_en_fluxes" => flux_PAD,
-            "energy" => energy_single,
-            "data_load_flag" => true
+            :epoch => time,
+            :pa => pitch_angle_PAD,
+            :diff_en_fluxes => flux_PAD,
+            :energy => energy_single,
+            :data_load_flag => true
         )
         return return_data #[time,pitch_angle_PAD,flux_PAD,energy_single]
     else
@@ -583,11 +626,11 @@ function carclu_SWEA_pad(data; energy_range=[])
         #     "flag"     => true
         # )
         return_data = Dict(
-            "epoch" => time,
-            "pa" => pitch_angle_PAD,
-            "diff_en_fluxes" => flux_PAD,
-            "energy" => energy_double,
-            "data_load_flag" => true
+            :epoch => time,
+            :pa => pitch_angle_PAD,
+            :diff_en_fluxes => flux_PAD,
+            :energy => energy_double,
+            :data_load_flag => true
         )
         return return_data #[time,pitch_angle_PAD,flux_PAD,energy_double]
     end
@@ -745,18 +788,18 @@ function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time
         end
         return par
     end
-    ntimes = dat["num_dists"]
+    ntimes = dat[:num_dists]
     if time_i == nothing
         time_i = 1:ntimes
     end
     npts = length(time_i)
     hresflg = 1
-    flux = dat["diff_en_fluxes"][time_i,:,:]
+    flux = dat[:diff_en_fluxes][time_i,:,:]
     flux[isnan.(flux)] .= 0
-    energy = dat["energy"]
-    hresflg = dat["filename"][end-26:end-24] == "arc"
-    pad = dat["pa"][time_i,:,:]
-    d_pad = dat["d_pa"][time_i,:,:]
+    energy = dat[:energy]
+    hresflg = dat[:filename][end-26:end-24] == "arc"
+    pad = dat[:pa][time_i,:,:]
+    d_pad = dat[:d_pa][time_i,:,:]
 
     mask_pad = pad_range[1] .<= pad .<= pad_range[2]
     flux_pad_mean = sum(flux .* mask_pad .* d_pad,dims=2)[:,1,:] ./ sum(mask_pad.* d_pad,dims=2)[:,1,:]
@@ -765,16 +808,16 @@ function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time
 end
 function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],time_i = nothing,pa_width =30)#将sp计算为指向和指出火星,需要同时导入磁场,建议pc,ss理论上也可,pa_width为PAD角度范围,设置time_i后可以计算指定时间段的数据以增加运行速度; 指向和指出单纯由磁场Br的正负和平行或反平行决定.
     # ref projects\maven\swea\mvn_swe_shape_par_pad_l2.pro
-    ntimes = SWEA_dat["num_dists"]
+    ntimes = SWEA_dat[:num_dists]
     if time_i == nothing
         time_i = 1:ntimes
     end
     npts = length(time_i)
-    tb = MAG_dat["epoch"]
-    pb = MAG_dat["position"]
-    b = MAG_dat["B"]
-    b_total = MAG_dat["B_total"]
-    te = SWEA_dat["epoch"][time_i]
+    tb = MAG_dat[:epoch]
+    pb = MAG_dat[:position]
+    b = MAG_dat[:B]
+    b_total = MAG_dat[:B_total]
+    te = SWEA_dat[:epoch][time_i]
     #计算磁场方向
     tb_i = zeros(Int64,npts)
     for i in 1:npts
