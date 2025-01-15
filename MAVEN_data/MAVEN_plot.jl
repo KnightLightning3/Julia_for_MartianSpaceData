@@ -43,8 +43,7 @@ function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
     vspan!(ax, segments1, segments2; krawg...)
     return ax
 end
-function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
-    ax.ylabel = ylabel
+function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
     swp_ind = sta_data["swp_ind"]; unique_swp_ind = unique(swp_ind)
     epoch = sta_data["epoch"] ; x, time_i = time2x(x0, x_range)
     eflux = sta_data["eflux"]
@@ -66,8 +65,7 @@ function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabe
     end
     return ax
 end
-function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,sc_pot = nothing, krawg...)
-    ax.ylabel = ylabel
+function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,sc_pot = nothing, krawg...)
     unique_elements = unique(swp_ind)
     if !sc_correction
         nenergy = length(y[:, 1])
@@ -274,8 +272,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     end
     return ax
 end
-function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10), ylabel="Pitch Angle [deg]")
-    ax.ylabel = ylabel
+function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10))
     ntime = length(time)
     for i = 1:3:ntime-3
         heatmap!(ax, time[i:i+3], pa[i, :], eflux[i:i+3, :], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
@@ -303,16 +300,26 @@ function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9), ylabel
     heatmap!(ax, x, y, c, colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
-function Orbit(ax, position_ss; xlimit=(-5, 4), ylimit=(0, 3), obs_position=[-0.5, 0, 0], times=([], []), frame="x-yz")
+function Orbit(ax, position_ss; xlimit=(-3, 3), ylimit=(0, 3), obs_position=[-100*Rm, 0, 0], times=([], []), frame="x-yz")
+    #绘制半球
+    theta = LinRange(pi, 2pi, 100)
+    x = sin.(theta)
+    y = cos.(theta)
+    half_circle = [Point2f(x[i], y[i]) for i in eachindex(x)]
+    poly!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
+    poly!(ax, half_circle, color=:black)
+
     ax.limits = (xlimit, ylimit)
     ax.xreversed = true
     p_mso = position_ss ./ Rm
-    x = p_mso[:, 1]
     if frame == "x-yz"
+        x = p_mso[:, 1]
         y = sqrt.(p_mso[:, 2] .^ 2 .+ p_mso[:, 3] .^ 2)
     elseif frame == "x-y"
+        x = p_mso[:, 1]
         y = p_mso[:, 2]
     elseif frame == "x-z"
+        x = p_mso[:, 1]
         y = p_mso[:, 3]
     end
 
@@ -342,18 +349,16 @@ function Orbit(ax, position_ss; xlimit=(-5, 4), ylimit=(0, 3), obs_position=[-0.
 
     poly!(ax, Circle(Point2f(x, y), 0.1), color=:red)
 
-    theta = LinRange(pi, 2pi, 100)
-    x = sin.(theta)
-    y = cos.(theta)
-    half_circle = [Point2f(x[i], y[i]) for i in eachindex(x)]
-    poly!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
-    poly!(ax, half_circle, color=:black)
-
     # bowshock
-    x = -10:0.01:2
-    lines!(ax, x, bowshock.(x); linestyle=:dash)#label="bowshock"
+    x = -10:0.005:2
+    yb = bowshock.(x)
+    ym = magnetopause.(x)
+    x1 = vcat(x, reverse(x))
+    yb1 = vcat(yb, reverse(-yb))
+    ym1 = vcat(ym, reverse(-ym))
+    lines!(ax, x1, yb1; linestyle=:dash)#label="bowshock"
     # magnetopause
-    lines!(ax, x, magnetopause.(x); linestyle=:dash)#label="magnetopause",
+    lines!(ax, x1, ym1; linestyle=:dash)#label="magnetopause",
     return ax
 end
 function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit=(1e-17, 1e-11), xlabel="pitch angle", ylabel="PSD", n=4)
@@ -520,8 +525,10 @@ function time2x(time, range;model = "unix")
     x = time[time_i]
     if model == "unix"
         x = Dates.datetime2unix.(x)
-    else
+    elseif model == "julian"
         x = Dates.datetime2julian.(x)
+    elseif model == "no_convert"
+        return x, time_i
     end
     return x, time_i
 end
@@ -529,7 +536,7 @@ function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS",model =
     xd = range(time_range[1], time_range[2], step=step)
     if model == "unix"
         x_i = Dates.datetime2unix.(xd)
-    else
+    elseif model == "julian"
         x_i = Dates.datetime2julian.(xd)
     end
     xtimes = (x_i,Dates.format.(xd, format))

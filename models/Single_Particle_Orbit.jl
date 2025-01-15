@@ -124,8 +124,8 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     )
     return return_data
 end
-function cyclotron_radius(B_in::Real,v::Real;nM=1,nQ=-1)
-    B1=B_in*1e-9  # 输入nT，转T
+function cyclotron_radius(B_in::Real,v::Real;nM=1,nQ=-1) # 国际单位
+    B1=B_in  # 输入T
     if nQ == -1
         cc = me /(B1*e)
     else
@@ -138,6 +138,28 @@ function cyclotron_radius(B_in::Real,v::Real;nM=1,nQ=-1)
     rc = cc * v
     return f,rc,v
 end
+function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, IS单位制
+    E0 = 938313.53 * AMU  # 质子静止能量 MeV
+    γ= energy*1e-3/E0 + 1.0
+    β=sqrt(1.0 - 1.0 / γ^2)
+    v = β * 3e8
+    return v
+end
+function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制
+    E0 = 938313.53 * AMU
+    β  = v / 3e8
+    γ = 1.0 / sqrt(1.0 - β^2)
+    energy = (γ - 1.0) * E0 * 1e3
+    return energy
+end
+function energy2v(energy) # 电子能量对应速度(相对论)
+    E0 = 511.0
+    γ = (energy * 1e-3 / E0 + 1)
+    β = sqrt(1.0 - 1.0 / γ^2)
+    v = β .* 3e8
+    return v
+end
+
 # 定义电场和磁场函数
 E(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设电场沿x轴方向
 B(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设磁场沿z轴方向

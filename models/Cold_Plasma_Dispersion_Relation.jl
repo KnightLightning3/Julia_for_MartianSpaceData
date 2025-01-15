@@ -5,6 +5,7 @@ const mp=1.672621637e-27
 const RAD=1.0 / 180 * π
 const eV=1.602176487e-19
 const c=3e8
+const μ_0 = 4 * π * 1e7
 global Nparticles
 global Ω_n
 global Π_2
@@ -90,6 +91,10 @@ function carculate_minimum_energy(θ,freq,Πe,Ωe,n)
   v_para = (freq-n*Ωe)/wave_vector/cos(θ)
   Emin   = 0.5 * me * v_para^2 / eV
   return Emin
+end
+function alfven_weve(B,ρ)
+  v = B/sqrt(μ_0*ρ)
+  return v
 end
 
 end # module Cold_Plasma_Dispersion_Relation

@@ -426,7 +426,7 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit = 
     
     mass=dat["mass"]*m_int
     
-    Const = 2.0/mass/mass*1e5
+    # Const = 2.0/mass/mass*1e5
     energy=energy.+pot		# energy/charge analyzer, require positive energy
     energy[energy .< 0.0] .=0.0
 
