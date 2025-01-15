@@ -45,12 +45,12 @@ function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
 end
 function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), ylabel="energy", colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
     ax.ylabel = ylabel
-    swp_ind = sta_data["swp_ind"]; unique_swp_ind = unique(swp_ind)
-    epoch = sta_data["epoch"] ; x, time_i = time2x(x0, x_range)
-    eflux = sta_data["eflux"]
-    energy = sta_data["energy"]
-    sc_pot = sta_data["sc_pot"]
-    nenergy = length(sta_data["energy"][:, 1])
+    swp_ind = sta_data[:swp_ind]; unique_swp_ind = unique(swp_ind)
+    epoch = sta_data[:epoch] ; x, time_i = time2x(x0, x_range)
+    eflux = sta_data[:eflux]
+    energy = sta_data[:energy]
+    sc_pot = sta_data[:sc_pot]
+    nenergy = length(sta_data[:energy][:, 1])
     
     y = energy
     c = eflux[time_i,:,:]
@@ -188,7 +188,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
         rot = inv(rotinv)
         return rot
     end
-    bvec = dat["magf"]
+    bvec = dat[:magf]
     vvec = vbluk
     rot = zeros(3, 3)
     if frame == "xy"
@@ -217,11 +217,11 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     ax.ylabel = ylabel
     ax.xlabel = xlabel
     ax.limits = (plot_range, plot_range)
-    df_data = dat["dF"]
-    v0 = dat["v"]
-    nenergy = dat["nenergy"]
-    nbins = dat["nbins"]
-    energy0 = dat["energy"]
+    df_data = dat[:dF]
+    v0 = dat[:v]
+    nenergy = dat[:nenergy]
+    nbins = dat[:nbins]
+    energy0 = dat[:energy]
 
     V = reshape(v0, nbins * nenergy, 3)
     df = reshape(df_data, nbins * nenergy)
@@ -515,7 +515,7 @@ function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:viridis, colorrange=c_range , colorscale=log10)
     return ax
 end
-function time2x(time, range;model = "unix")
+function time2x(time, range;model = "unix",t0 = 0.0)
     time_i = findall(t -> range[1] <= t <= range[2], time)
     x = time[time_i]
     if model == "unix"
@@ -523,15 +523,17 @@ function time2x(time, range;model = "unix")
     else
         x = Dates.datetime2julian.(x)
     end
+    x = x .- t0
     return x, time_i
 end
-function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS",model = "unix") # 取得time_range 对应步长的时间刻度
+function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS",model = "unix",t0 = 0.0) # 取得time_range 对应步长的时间刻度
     xd = range(time_range[1], time_range[2], step=step)
     if model == "unix"
         x_i = Dates.datetime2unix.(xd)
     else
         x_i = Dates.datetime2julian.(xd)
     end
+    x_i = x_i .- t0
     xtimes = (x_i,Dates.format.(xd, format))
     return xtimes, x_i
 end

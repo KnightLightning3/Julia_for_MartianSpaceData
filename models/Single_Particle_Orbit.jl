@@ -114,13 +114,13 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     end
 
     return_data = Dict(
-        "discription" => "velocity,position,B_field,distence",
-        "vel" => v_data,
-        "r" => r_data,
-        "pos" => x_data,
-        "mag" => b_data,
-        "s" => s_data,
-        "time" => t_data
+        :discription => "velocity,position,B_field,distence",
+        :vel => v_data,
+        :r => r_data,
+        :pos => x_data,
+        :mag => b_data,
+        :s => s_data,
+        :time => t_data
     )
     return return_data
 end

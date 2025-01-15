@@ -9,12 +9,11 @@ using Base.Threads
 include("../MAVEN_load.jl")
 include("../MAVEN_STATIC.jl")
 import .MAVEN_load;
-import .MAVEN_plot;
 import .MAVEN_STATIC;
 
 @inline function get_ion_vel(vsc_data,ion_data)
-    sta_epoch = ion_data["epoch"]
-    time = ion_data["epoch"]
+    sta_epoch = ion_data[:epoch]
+    time = ion_data[:epoch]
     ntime = length(time)
     H_vel = zeros(ntime, 3)
     O_vel = zeros(ntime, 3)
@@ -26,8 +25,8 @@ import .MAVEN_STATIC;
     O_f = zeros(ntime, 3)
     O2_f = zeros(ntime,3)
 
-    time_vsc = vsc_data["epoch"]
-    vsc = vsc_data["vsc"]
+    time_vsc = vsc_data[:epoch]
+    vsc = vsc_data[:vsc]
 
     @inbounds @showprogress for time_ind in 1:ntime
         dt,time_vsc_ind = findmin(x -> abs(x - sta_epoch[time_ind]), time_vsc)
@@ -61,37 +60,37 @@ import .MAVEN_STATIC;
         H_f[time_ind,1:3] = flux
         H_den[time_ind] = den
     end
-    datas_dict = Dict{String,Any}(
-        "epoch" => time,
-        "H_vel" => H_vel,
-        "O_vel" => O_vel,
-        "O2_vel" => O2_vel,
-        "H_den" => H_den,
-        "O_den" => O_den,
-        "O2_den" => O2_den,
-        "H_f" => H_f,
-        "O_f" => O_f,
-        "O2_f" => O2_f
+    datas_dict = Dict{Symbol,Any}(
+        :epoch => time,
+        :H_vel => H_vel,
+        :O_vel => O_vel,
+        :O2_vel => O2_vel,
+        :H_den => H_den,
+        :O_den => O_den,
+        :O2_den => O2_den,
+        :H_f => H_f,
+        :O_f => O_f,
+        :O2_f => O2_f
     )
     return datas_dict
 end
 @inline function data2bi(datas_dict,filename)
-    time = datetime2unix.(datas_dict["epoch"])
+    time = datetime2unix.(datas_dict[:epoch])
     Ntime = length(time)
 
     time_unix = convert(Vector{Float64},time)
 
-    O_vel = convert(Array{Float32,2},datas_dict["O_vel"])
-    O2_vel = convert(Array{Float32,2},datas_dict["O2_vel"])
-    H_vel = convert(Array{Float32,2},datas_dict["H_vel"])
+    O_vel = convert(Array{Float32,2},datas_dict[:O_vel])
+    O2_vel = convert(Array{Float32,2},datas_dict[:O2_vel])
+    H_vel = convert(Array{Float32,2},datas_dict[:H_vel])
 
-    O_f = convert(Array{Float32,2},datas_dict["O_f"])
-    O2_f = convert(Array{Float32,2},datas_dict["O2_f"])
-    H_f = convert(Array{Float32,2},datas_dict["H_f"])
+    O_f = convert(Array{Float32,2},datas_dict[:O_f])
+    O2_f = convert(Array{Float32,2},datas_dict[:O2_f])
+    H_f = convert(Array{Float32,2},datas_dict[:H_f])
 
-    O_den = convert(Vector{Float32},datas_dict["O_den"])
-    O2_den = convert(Vector{Float32},datas_dict["O2_den"])
-    H_den = convert(Vector{Float32},datas_dict["H_den"])
+    O_den = convert(Vector{Float32},datas_dict[:O_den])
+    O2_den = convert(Vector{Float32},datas_dict[:O2_den])
+    H_den = convert(Vector{Float32},datas_dict[:H_den])
 
     f = FortranFile(filename,"w")
     write(f, Ntime)
@@ -121,7 +120,6 @@ common_dates = [
     for (j, (date2, _)) in enumerate(dates_vsc)
     if date == date2
 ]
-
 for (date, file_ion, file_vsc) in common_dates
     ion_version = match(r"_v([0-9]{2})_", file_ion).captures[1]
     new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/mvn_sta_l3_d1_vel_flux_den_$(date)_v$(ion_version).f77_unformatted"
@@ -132,7 +130,7 @@ for (date, file_ion, file_vsc) in common_dates
     if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
         vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
-        ion_data = MAVEN_load.load_cdf(file_ion)
+        ion_data = MAVEN_load.load_STATIC(file_ion)
         datas_dict = get_ion_vel(vsc_data,ion_data)
         touch(new_path)
         try
@@ -145,3 +143,41 @@ for (date, file_ion, file_vsc) in common_dates
         print("\033[0;33mSKIP $(date)\033[0m \r")
     end
 end
+# using PyCall
+# cdflib = pyimport("cdflib")
+# @time data = cdflib.cdfread.CDF(files_ion[1])
+# var_list = data.cdf_info()["zVariables"]
+# data.varget("mass")
+# convert(Int,data.varget("num_dists"))
+# data.varinq("mass")
+# data.vdr_info("mass")["pad"].dtype.name
+# convert(String,data.varinq("mass")["Data_Type_Description"])
+# convert(Float64,data.varget("mass"))
+# dii = data.varattsget("nmass")
+# for key in keys(dii)
+#     println(key,dii[key])
+# end
+
+# var_tpyes = Dict(
+#             "CDF_FLOAT" => Float32,
+#             "CDF_DOUBLE" => Float64,
+#             "CDF_INT2" => Int32,
+#             "CDF_INT4" => Int64,
+#             "CDF_CHAR" => String,
+#         )
+# var_name = "units_name"
+# convert(var_tpyes[convert(String,data.varinq(var_name)["Data_Type_Description"])],data.varget(var_name))
+# get.(Ref(data),"mass")
+
+# include("../MAVEN_load.jl")
+# import .MAVEN_load;
+# ion_data = MAVEN_load.load_STATIC(files_ion[1])
+
+# test_ion_data = MAVEN_STATIC.static_slip(ion_data, 100)
+# test_ion_data = MAVEN_STATIC.static_rotation(test_ion_data; frame="MSO")
+# test_ion_data = MAVEN_STATIC.STA_count2df_no_m_int(test_ion_data)
+# vel, flux, den = MAVEN_STATIC.sta_v_4d(test_ion_data; energy_range=[0, 1e5], mass_range=[20, 40], m_int=32,unit_cover=false)
+
+# nbins   = test_ion_data[:nbins]
+# nenergy = test_ion_data[:nenergy]
+# gf = reshape(test_ion_data[:gf], 1, nbins,nenergy)
