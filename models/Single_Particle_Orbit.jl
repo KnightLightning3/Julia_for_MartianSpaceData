@@ -146,17 +146,20 @@ function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, 
     u0 = vcat(x0, v0)
     prob = ODEProblem(ODE!, u0, tspan)
     sol = solve(prob, Tsit5(); dt=dt)
-
     Nt = length(sol.t)
     x_data = sol[1:3, :]'
     v_data = sol[4:6, :]'
     t_data = sol.t
 
+    r_data = [norm(x) for x in eachrow(x_data)]
+    b_data = [B(x) for x in eachrow(x_data)]
     return_data = Dict(
         :discription => "velocity,position,time",
         :vel => v_data,
         :pos => x_data,
-        :time => t_data
+        :time => t_data,
+        :r => r_data,
+        :mag => b_data,
     )
     return return_data
 end
@@ -206,7 +209,7 @@ E(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设电场沿x轴方向
 B(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设磁场沿z轴方向
 end
 
-# # 测试
+# # # 测试
 # using .Single_Particle_Orbit
 # using GLMakie
 # EnvironmentPath = "D:/CODE/Package_for_Julia/"

@@ -11,66 +11,49 @@ using Quaternions
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d
 # export ion_energy2v,ion_v2energy
-function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 需要切片
+function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
     # general/science/n_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考
+    ntime = length(time_ind)
+    nanode = 16
+    ndeflect = 4
+    nbins = 64
+    nenergy = 48
 
-    data = dat[:diff_en_fluxes]
-    energy= dat[:energy_coarse]
-    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-    data[:,ind,:,:] .= 0.0
-    denergy = energy .* dat[:de_over_e_coarse]
+    data = dat[:diff_en_fluxes][time_ind,:,:,:]
+    energy = dat[:energy_coarse]
+    ind = findall(x->!(energy_range[2] >= x >= energy_range[1]),energy)
+    data[:,:,:,ind] .= 0.0
+    energy= reshape(dat[:energy_coarse],1,48)
+    denergy = energy .* 0.15 #dat[:de_over_e_coarse]
 
+    # phi = dat[:phi_coarse]
+    dphi = 22.5/180*π
+    atten = dat[:atten_state][time_ind]
+    theta_coarse =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
+    theta_atten_coarse = dat[:theta_atten_coarse]
 
-    # if atten <= 1
-    #     theta_0 = info_str[infind].theta_coarse
-    #     g_th_0 = info_str[infind].g_th_coarse
-    #     gf_0 = info_str[infind].geom_coarse 
-    # else
-    #     theta_0 = info_str[infind].theta_coarse_atten
-    #     g_th_0 = info_str[infind].g_th_coarse_atten
-    #     gf_0 = info_str[infind].geom_coarse_atten 
-    # end
-    # dtheta_0 = (shift(theta_0,0,-1) - shift(theta_0,0,1))/2.
-    # dtheta_0[*,0] = (theta_0[*,1]-theta_0[*,0])
-    # dtheta_0[*,ndeflect-1] = (theta_0[*,ndeflect-1]-theta_0[*,ndeflect-2])
-    
-    # geom_factor = info_str[infind].geom
-    
-    # gf = reform(replicate(1,ndeflect)#gf_0,nbins)
-    # gf = replicate(1,nenergy)#gf
-    
-    # theta = fltarr(nenergy,ndeflect,nanode)
-    # dtheta = fltarr(nenergy,ndeflect,nanode)
-    # eff = fltarr(nenergy,ndeflect,nanode)
-    
-    # for k = 0,nanode-1 do begin
-    #     theta[*,*,k] = theta_0
-    #     dtheta[*,*,k] = dtheta_0
-    #     eff[*,*,k] = g_th_0
-    # endfor
-    
-    # theta = reform(theta,nenergy,nbins)
-    # dtheta = reform(dtheta,nenergy,nbins)
-    # eff = reform(eff,nenergy,nbins)
-    
-    # domega=2.*(dphi/!radeg)*cos(theta/!radeg)*sin(.5*dtheta/!radeg)
-    
-    # scpot = 0.
+    theta = zeros(ntime,ndeflect,nenergy)
 
-    data = dat[:diff_en_fluxes]
-    energy = dat[:energy]
-    denergy = dat[:denergy]
-    theta = dat[:theta]/RADG
-    phi = dat[:phi]/RADG
-    dtheta = dat[:dtheta]/RADG
-    dphi = dat[:dphi]/RADG
-    mass = 5.68566e-06*1836. * 1.6e-22
-    Const = (mass/(2.0*1.6e-12))^(0.5)
+    for i in 1:ntime
+        if atten[i] <= 1
+            theta[i,:,:] = theta_coarse[:,:]
+        else
+            theta[i,:,:] = theta_atten_coarse[:,:]
+        end
+    end
 
-    domega = 2.0*dphi*cos(theta)*sin(0.5*dtheta)
+    dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
+    dtheta[:,1,:] = theta[:,2,:] - theta[:,1,:]
+    dtheta[:,end,:] = theta[:,end,:] - theta[:,end-1,:]
 
-    sumdata = sum(data.*domega,dims=2)
-    density = Const*sum(denergy*(energy^(-1.5))*sumdata)
+    domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
+    domega = reshape(domega,ntime,1,ndeflect,nenergy)
+    sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
+
+    # mass = 5.68566e-06*1836. * 1.6e-22
+    # Const = (mass/(2.0*1.6e-12))^(0.5)
+    Const = 7.224566339926571e-7
+    density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
     return density
 end
 function n_1d(dat;energy_range=[0.1,1e8],time_ind=1:10)# 计算SWIA的密度, SWIA假设所有离子为质子,需要SWIA svy spec data 3D
@@ -125,10 +108,11 @@ end
 
 
 
-# # -------------------------Test parts-------------------------
+# -------------------------Test parts-------------------------
 # EnvironmentPath = "D:/CODE/Package_for_Julia/"
 # include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl")
 # import .MAVEN_load;
+# import .MAVEN_SWIA;
 # using Dates
 # using CairoMakie
 # # data_swia = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["SWIA_svy_spec","SWIA_coarse_svy_3d","SWIA_mom"])
@@ -155,48 +139,48 @@ end
 
 
 # dat = data_swia["SWIA_coarse_svy_3d"]
-# energy_range = [0.1,1e8]
+# energy_range = [500,1e8]
 # time_ind = findall(x-> DateTime(2015 ,10,29,11,40,40) >= x >= DateTime(2015 ,10,29,11,20,40),dat[:epoch])
-
+# # time_ind = findfirst(x-> x>= DateTime(2015 ,10,29,11,32,42),dat[:epoch])
+# # time_ind = [time_ind,time_ind+1]
 # nanode = 16
 # ndeflect = 4
 # nbins = 64
 # nenergy = 48
 
 # data = dat[:diff_en_fluxes][time_ind,:,:,:]
+# energy = dat[:energy_coarse]
+# ind = findall(x-> !(energy_range[2] >= x >= energy_range[1]),energy)
+# data[:,:,:,ind] .= 0.0
 # energy= reshape(dat[:energy_coarse],1,48)
 # denergy = energy .* 0.15 #dat[:de_over_e_coarse]
-# ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-# data[:,:,ind] .= 0.0
 
-# phi = dat[:phi_coarse]
-# dphi = 22.5
+# # phi = dat[:phi_coarse]
+# dphi = 22.5/180*π
 # atten = dat[:atten_state][time_ind]
-# theta =  dat[:theta_coarse]# : dat[:theta_atten_coarse]
-# function compute_dtheta(theta_0)
-#     nrows, ncols = 4,48
-#     dtheta_0 = zeros(nrows, ncols)
-#     for j in 2:ncols-1
-#         dtheta_0[:, j] = (theta_0[:, j+1] - theta_0[:, j-1]) / 2
-#     end
-#     dtheta_0[:, 1] = theta_0[:, 2] - theta_0[:, 1]
-#     dtheta_0[:, end] = theta_0[:, end] - theta_0[:, end-1]
+# theta =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
 
-#     return dtheta_0
-# end
-# dtheta = compute_dtheta(theta)
+# dtheta = (circshift(theta,(-1,0)) - circshift(theta,(1,0)))/2
+# dtheta[1,:] = theta[2,:] - theta[1,:]
+# dtheta[end,:] = theta[end,:] - theta[end-1,:]
 
 # domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
 # domega = reshape(domega,1,1,4,48)
-# sumdata = sum(data./8,dims=2:3)[:,1,1,:]
+# sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
 
-# mass = 5.68566e-06*1836. * 1.6e-22
-# Const = (mass/(2.0*1.6e-12))^(0.5)
+# # mass = 5.68566e-06*1836. * 1.6e-22
+# # Const = (mass/(2.0*1.6e-12))^(0.5)
+# Const = 7.224566339926571e-7
 # density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
 
-# lines!(ax,density,dat[:epoch][time_ind],label="n_3d")
+# density = MAVEN_SWIA.n_3d(dat,time_ind;energy_range=energy_range)
+# x= dat[:epoch][time_ind]
+# @show findmax(density)
+
+# @show Int(round(datetime2unix(x[findmax(density)[2]])))
+# lines!(ax,density,x,label="n_3d")
 # axislegend(ax)
 # fig
-# # # MAVEN_SWIA.n_3d(data_swia["SWIA_coarse_svy_3d"])
+# # MAVEN_SWIA.n_3d(data_swia["SWIA_coarse_svy_3d"])
 
-# # # 要用idl测试一下
+# # # idl验证完毕,可以证明n_3d
