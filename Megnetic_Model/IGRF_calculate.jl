@@ -20,8 +20,8 @@ export trace_mag_line
 function pc2sphere(x::Real, y::Real, z::Real)
     r = norm([x, y, z])
     # θ = π/2 - atan(z,sqrt(x^2+y^2))
-    θ = acos(z / r)
-    ϕ = atan(y, x)
+    θ = acos(z / r) # [0,π]
+    ϕ = atan(y, x)  # (-π/2, π/2)
     return r, θ, ϕ
 end
 function sphere2pc(r::Real, θ::Real, ϕ::Real)

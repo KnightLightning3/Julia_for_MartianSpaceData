@@ -230,14 +230,16 @@ function load_mag_vsc(file::String)
     n_time = read(f, Int64)
     time_unix = read(f, (Float64, n_time))
     vsc = read(f, (Float32, n_time, 3))
+    position = read(f, (Float32, n_time, 3))
     close(f)
 
     times = Dates.unix2datetime.(time_unix)
-    coodinate = file[end-32:end-29]
+    # coodinate = file[end-32:end-29]
     data = Dict{Symbol,Any}(
         :epoch => times,
-        :coodinate => coodinate,
+        # :coodinate => coodinate,
         :vsc => vsc,
+        :position => position,
     )
     return data
 end
@@ -252,7 +254,7 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
     time_dt = Dates.DateTime.(time, "yyyy-mm-ddTHH:MM:SS")
     Ntime = length(time)
 
-    result_dict = Dict{String,Any}()
+    result_dict = Dict{Symbol,Any}()
     result_dict[:version] = filename[end-10:end-8]
 
     if str_model

@@ -46,25 +46,25 @@ import .MAVEN_STATIC;
     
         return dy
     end
-    time = datetime2unix.(mag["epoch"])
-    position = mag["position"]
+    time = datetime2unix.(mag[:epoch])
+    position = mag[:position]
     # 通过二次函数拟合获取速度
     vsc = zeros(size(position))
     for i in 1:3
         vsc[:,i] = quadratic_fitted_derivative(time.-time[1], position[:, i])
     end
-    return (time, vsc)
+    return (time, vsc,position)
 end
-@inline function data2bi(time,vsc,filename)
+@inline function data2bi(time,vsc,position,filename)
     N_time = length(time)
     time_unix = convert(Vector{Float64},time)
     vsc = convert(Array{Float32,2},vsc)
-
+    position = convert(Array{Float32,2},position)
     f = FortranFile(filename,"w")
     write(f, N_time)
     write(f, time_unix)
     write(f, vsc)
-    
+    write(f, position)
     close(f)
 end
 # #获取所有文件和对应的mag文件
@@ -72,8 +72,9 @@ files_mag = MAVEN_load.file_list("MAG_ss1s_l3")
 dates_mag = [(m.captures[1] ,s) for s in files_mag for m in eachmatch(r"_([0-9]{8})_", s)]
 
 for (date, file) in dates_mag
-    version = match(r"_v([0-9]{2})_", file).captures[1]
-    new_path = dirname(replace(file, "/l3/" => "/vsc/"))*"/mvn_mag_vsc_ss1s_$(date)_v$(version).f77_unformatted"
+    version = match(r"_v([0-9]{2})", file).captures[1]
+    r_version = match(r"_r([0-9]{2})", file).captures[1]
+    new_path = dirname(replace(file, "/l3/" => "/vsc/"))*"/mvn_mag_vsc_ss1s_$(date)_v$(version)_r$(r_version).f77_unformatted"
     dir = dirname(new_path)
     if !isdir(dir)
         mkpath(dir)
@@ -81,10 +82,10 @@ for (date, file) in dates_mag
     if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
         mag = MAVEN_load.load_mag_l3(file)
-        time, vsc = get_vsc(mag)
+        time, vsc,position = get_vsc(mag)
         touch(new_path)
         try
-            data2bi(time, vsc,new_path)
+            data2bi(time, vsc,position,new_path)
         catch e
             print("\033[0;31m$(date)ERROR: $(e)\033[0m \n")
             rm(new_path)

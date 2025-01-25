@@ -1,8 +1,8 @@
 module Single_Particle_Orbit
 using LinearAlgebra
 using Dates
-
-export solve_orbit, cyclotron_radius
+using DifferentialEquations
+export solve_orbit, cyclotron_radius, solve_orbit_ode
 
 function TimeFormat(time1, time2)
     elapsed_time_ms = Dates.value(time2 - time1)
@@ -15,6 +15,7 @@ end
 const e    = 1.6e-19
 const me   = 9.1093837e-31
 const mp   = 1.67262192e-27
+const μ0   = 4e-7 * π
 const q2me = -e / me
 const q2mp = e / mp
 # mq # 比荷
@@ -36,7 +37,7 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     elseif particle == "electron"
         mq = q2me
     end
-
+    # f_b = mq * 1.0 / (2.0 * π) # 此参数乘以磁场得到回旋频率
     v = v0
     x = x0
     s = 0.0
@@ -63,6 +64,10 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     @inbounds for i in 2:Nt
         b0 = B(x)
 
+        # b_total = norm(b0)
+        # fc = f_b * b_total # 回旋频率
+        # dt = 
+
         k1v = dvdt(v, E(x), b0, mq)
         k1x = v
 
@@ -80,8 +85,8 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
         k3v = dvdt(v + kv, E_in, B_in, mq)
         k3x = v + kv
 
-        kv = 0.5 * dt * k3v
-        kx = 0.5 * dt * k3x
+        kv = dt * k3v
+        kx = dt * k3x
         B_in = B(x + kx)
         E_in = E(x + kx)
         k4v = dvdt(v + kv, E_in, B_in, mq)
@@ -124,6 +129,37 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     )
     return return_data
 end
+function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, dt; AMU=1, particle="ion")
+    if particle == "ion"
+        mq = q2mp / AMU
+    elseif particle == "electron"
+        mq = q2me
+    end
+
+    function ODE!(du, u, p, t)
+        x = u[1:3]
+        v = u[4:6]
+        du[1:3] = v
+        du[4:6] = dvdt(v, E(x), B(x), mq)
+    end
+
+    u0 = vcat(x0, v0)
+    prob = ODEProblem(ODE!, u0, tspan)
+    sol = solve(prob, Tsit5(); dt=dt)
+
+    Nt = length(sol.t)
+    x_data = hcat(sol[1:3, :]...)'
+    v_data = hcat(sol[4:6, :]...)'
+    t_data = sol.t
+
+    return_data = Dict(
+        :discription => "velocity,position,time",
+        :vel => v_data,
+        :pos => x_data,
+        :time => t_data
+    )
+    return return_data
+end
 function cyclotron_radius(B_in::Real,v::Real;nM=1,nQ=-1) # 国际单位
     B1=B_in  # 输入T
     if nQ == -1
@@ -159,7 +195,12 @@ function energy2v(energy) # 电子能量对应速度(相对论)
     v = β .* 3e8
     return v
 end
+function ion_alvfen(n::Real,B::Real;amu=1) # 阿尔文速度,输入T,m-3,输出m/s
 
+    ρ = n *amu* 1.67262192e-27
+    vA = B / sqrt( 4e-7 * π * ρ)
+    return vA
+end
 # 定义电场和磁场函数
 E(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设电场沿x轴方向
 B(x::Vector{Float64}) = [0.0, 0.0, 0.0]  # 假设磁场沿z轴方向

@@ -4,7 +4,7 @@ using Makie.GeometryBasics
 using LaTeXStrings
 using TimesDates, Dates
 using DataFrames
-using Interpolations
+using DataInterpolations
 using LinearAlgebra
 using Statistics
 using DelaunayTriangulation
@@ -300,7 +300,7 @@ function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9), ylabel
     heatmap!(ax, x, y, c, colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
-function Orbit(ax, position_ss; xlimit=(-3, 3), ylimit=(0, 3), obs_position=[-100*Rm, 0, 0], times=([], []), frame="x-yz")
+function Orbit(ax, position_ss; frame="x-yz",line_krawg...)
     #绘制半球
     theta = LinRange(pi, 2pi, 100)
     x = sin.(theta)
@@ -309,45 +309,16 @@ function Orbit(ax, position_ss; xlimit=(-3, 3), ylimit=(0, 3), obs_position=[-10
     poly!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
     poly!(ax, half_circle, color=:black)
 
-    ax.limits = (xlimit, ylimit)
-    ax.xreversed = true
-    p_mso = position_ss ./ Rm
     if frame == "x-yz"
-        x = p_mso[:, 1]
-        y = sqrt.(p_mso[:, 2] .^ 2 .+ p_mso[:, 3] .^ 2)
+        func_trans = (x,y,z) -> Point2f(x/ Rm,sqrt(y ^2 + z ^ 2)/ Rm)
     elseif frame == "x-y"
-        x = p_mso[:, 1]
-        y = p_mso[:, 2]
+        func_trans = (x,y,z) -> Point2f(x / Rm,y / Rm)
     elseif frame == "x-z"
-        x = p_mso[:, 1]
-        y = p_mso[:, 3]
+        func_trans = (x,y,z) -> Point2f(x / Rm,z / Rm)
     end
 
-    lines!(ax, x, y, label="Orbit", overdraw=true)
-
-    # if times != ([],[])
-    #     times_t = times[2]
-    #     time_index = times[1]
-    #     colormap = :tab10
-    #     n_colors = length(time_index)
-    #     colors = resample_cmap(colormap, n_colors)
-    #     for (it,i) in enumerate(time_index)
-    #         poly!(ax,Circle(Point2f(x[i], y[i]), 0.1),color=colors[it],label = times_t[it])
-    #         # text!(ax, 0.98, 0.95-it*0.95/(n_colors+1), text = times_t[it], font = :bold, align = (:center, :center), space = :relative, fontsize = 15, color=colors[it])
-    #     end
-    # end
-
-    p_obs = obs_position ./ Rm
-    x = p_obs[1]
-    if frame == "x-yz"
-        y = sqrt.(p_obs[2] .^ 2 .+ p_obs[3] .^ 2)
-    elseif frame == "x-y"
-        y = p_obs[2]
-    elseif frame == "x-z"
-        y = p_obs[3]
-    end
-
-    poly!(ax, Circle(Point2f(x, y), 0.1), color=:red)
+    trace_points = func_trans.(position_ss[:,1], position_ss[:,2], position_ss[:,3])
+    lines!(ax, trace_points; label="Orbit", overdraw=true,line_krawg...)
 
     # bowshock
     x = -10:0.005:2
@@ -359,7 +330,7 @@ function Orbit(ax, position_ss; xlimit=(-3, 3), ylimit=(0, 3), obs_position=[-10
     lines!(ax, x1, yb1; linestyle=:dash)#label="bowshock"
     # magnetopause
     lines!(ax, x1, ym1; linestyle=:dash)#label="magnetopause",
-    return ax
+    return ax,func_trans
 end
 function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit=(1e-17, 1e-11), xlabel="pitch angle", ylabel="PSD", n=4)
     colormap = :viridis  # 可以选择任何Makie支持的颜色图
@@ -544,21 +515,57 @@ function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS",model =
     xtimes = (x_i,Dates.format.(xd, format))
     return xtimes, x_i
 end
-function x_ticks(ax, x, var, x_i; xticklabelpad=3)
-    ax.xticklabelpad = xticklabelpad
-    hidespines!(ax)
-    hideydecorations!(ax)
-    if typeof(var[1]) == String
-        ax.xticks = (x_i, var)
-        return ax
+function interpolate_x_ticks(xd,x,y;format_func = x -> convert(Int64,round(x;digits=0)))
+    """
+    interpolate_x_ticks(xd,x,y;format_func = x -> round(x;digits=1) )
+    xd: 插值后的x, 对应要替代的原x值
+    将y通过插值映射到xd上
+    """
+    # 初始化结果
+    yd = zeros(length(xd))  # 用 0 初始化，表示未插值的点
+    #单调区间分解
+    function find_monotonic_intervals(x)
+        intervals = []
+        n = length(x)
+        start_idx = 1
+        for i in 1:n-2
+            # 判断单调性是否改变
+            if (x[i+1] - x[i])*(x[i+2] - x[i+1]) < 0
+                push!(intervals, start_idx:i+1)
+                start_idx = i+1
+            end
+        end
+        push!(intervals, start_idx:n)  # 添加最后一个区间
+        return intervals
     end
-    y_i = [var[argmin(abs.(x .- xi))[1]] for xi in x_i]
-
-    y_i = convert(Vector{Int64}, round.(y_i))
-    y_i = string.(y_i)
-    ax.xticks = (x_i, y_i)
-    return ax
+    intervals = find_monotonic_intervals(x)
+    # 对每个单调区间进行插值
+    for interval in intervals
+        x_interval = x[interval]
+        y_interval = y[interval]
+        # 找到当前区间中包含的 xd
+        xd_in_interval = findall(xdi -> xdi >= minimum(x_interval) && xdi <= maximum(x_interval), xd)
+        if isempty(xd_in_interval)
+            continue
+        end
+        func = CubicSpline(y_interval, x_interval)
+        yd[xd_in_interval] = func.(xd[xd_in_interval])
+    end
+    ym = string.(format_func.(yd))
+    return (xd,ym)
 end
+function logticks(num_list;tick_func = x -> rich("10",superscript("$(round(x))")))
+    x_i = 10 .^num_list
+    ticks = [tick_func(x) for x in num_list]
+    return (x_i,ticks)
+end
+# function x_ticks(ax, xticks; xticklabelpad=3)
+#     ax.xticklabelpad = xticklabelpad
+#     hidespines!(ax)
+#     hideydecorations!(ax)
+#     ax.xticks = xticks
+#     return ax
+# end
 function vector_angle(a, b)
     a1 = normalize(a)
     b1 = normalize(b)
