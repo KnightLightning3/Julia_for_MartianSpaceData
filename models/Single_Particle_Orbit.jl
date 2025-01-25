@@ -148,8 +148,8 @@ function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, 
     sol = solve(prob, Tsit5(); dt=dt)
 
     Nt = length(sol.t)
-    x_data = hcat(sol[1:3, :]...)'
-    v_data = hcat(sol[4:6, :]...)'
+    x_data = sol[1:3, :]'
+    v_data = sol[4:6, :]'
     t_data = sol.t
 
     return_data = Dict(
@@ -215,15 +215,19 @@ end
 
 # v0 = [18.00650385330508,-12.447101833421216,-12.513798039815253] .* 1e3 .*(-1)
 # x0 = [-2278.430908203125,-126.21499633789062,-2851.4990234375] .*1e3
-# dt = 0.1
-# t = 0:dt:10
+# dt = 0.001
+# t = 10
 # function B_field(x) 
 #     BB = IGRF_calculate.IGRF_pc(x[1]/1e3,x[2]/1e3,x[3]/1e3).*1e-9
 #     return [BB[1],BB[2],BB[3]] # 返回磁场值，单位nT
 # end
-# _,_,x = Single_Particle_Orbit.solve_orbit(v0, x0, Single_Particle_Orbit.E, B_field, t, dt,mq=Single_Particle_Orbit.q2mp/16.0)
+# data_1 = Single_Particle_Orbit.solve_orbit(v0, x0, Single_Particle_Orbit.E, B_field, t, dt;)
+# data_2 = Single_Particle_Orbit.solve_orbit_ode(v0, x0, Single_Particle_Orbit.E, B_field, t, dt;)
 
 # fig = Figure()
 # ax = Axis3(fig[1, 1])
+# x = data_1[:pos]
+# x2 = data_2[:pos]
 # lines!(ax, x[:, 1]./1e3./3393.5, x[:, 2]./1e3./3393.5, x[:, 3]./1e3./3393.5, color = :blue)
+# lines!(ax, x2[:, 1]./1e3./3393.5, x2[:, 2]./1e3./3393.5, x2[:, 3]./1e3./3393.5, color = :red)
 # fig
