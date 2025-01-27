@@ -515,7 +515,7 @@ function time_ticks(time_range; step=Dates.Minute(20), format="HH:MM:SS",model =
     xtimes = (x_i,Dates.format.(xd, format))
     return xtimes, x_i
 end
-function interpolate_x_ticks(xd,x,y;format_func = x -> convert(Int64,round(x;digits=0)))
+function interpolate_x_ticks(xd,x,y;format_func = x -> convert(Int64,round(x;digits=0)),output_func=false)
     """
     interpolate_x_ticks(xd,x,y;format_func = x -> round(x;digits=1) )
     xd: 插值后的x, 对应要替代的原x值
@@ -548,10 +548,20 @@ function interpolate_x_ticks(xd,x,y;format_func = x -> convert(Int64,round(x;dig
         if isempty(xd_in_interval)
             continue
         end
-        func = CubicSpline(y_interval, x_interval)
+        sort_xd_in_interval = sortperm(x_interval)
+        y_interval = y_interval[sort_xd_in_interval]
+        x_interval = x_interval[sort_xd_in_interval]
+        if length(x_interval) == 2
+            func = LinearInterpolation(y_interval, x_interval)
+        else
+            func = CubicSpline(y_interval, x_interval)
+        end
         yd[xd_in_interval] = func.(xd[xd_in_interval])
     end
     ym = string.(format_func.(yd))
+    if output_func
+        return (xd,ym),format_func
+    end
     return (xd,ym)
 end
 function logticks(num_list;tick_func = x -> rich("10",superscript("$(round(x))")))
