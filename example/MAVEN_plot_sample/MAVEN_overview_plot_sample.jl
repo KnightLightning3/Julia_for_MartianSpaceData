@@ -12,17 +12,17 @@ import .MAVEN_load;
 import .MAVEN_plot;
 import .MAVEN_STATIC;
 
+@inline function mag2sphere(datas_dict)
+    position = datas_dict["MAG_ss1s_l3"][:position]
+    b = datas_dict["MAG_ss1s_l3"][:B]
+    data = MAVEN_load.Bpc2sphere.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
+    br = [x[1] for x in data]
+    bθ = [x[2] for x in data]
+    bϕ = [x[3] for x in data]
+    datas_dict["MAG_ss1s_l3"][:SphereB] = (br, bθ, bϕ)
+    return datas_dict
+end
 @inline function get_data(date; time_range=time_range)
-    @inline function mag2sphere(datas_dict)
-        position = datas_dict["MAG_ss1s_l3"][:position]
-        b = datas_dict["MAG_ss1s_l3"][:B]
-        data = MAVEN_load.Bpc2sphere.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
-        br = [x[1] for x in data]
-        bθ = [x[2] for x in data]
-        bϕ = [x[3] for x in data]
-        datas_dict["MAG_ss1s_l3"][:SphereB] = (br, bθ, bϕ)
-        return datas_dict
-    end
     model_index = [
         "MAG_ss1s_l3",
         "MAG_ss1s_vsc",
@@ -60,6 +60,18 @@ import .MAVEN_STATIC;
     for key in keys(KP_data_name_replace)
         datas_dict[:KP][key] = datas_dict["KP_l3"][KP_data_name_replace[key]]
     end
+    return datas_dict
+end
+
+yyyy = 2015
+mm = 10
+dd = 29
+save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
+@time if isfile(save_file_name)
+    datas_dict = load(save_file_name)["data"]
+    println("Read Done")
+else
+    datas_dict = get_data(DateTime(yyyy, mm, dd); time_range=[DateTime(yyyy, mm, dd, 11, 20), DateTime(yyyy, mm, dd, 11, 45)])
     sta_data = datas_dict["STATIC_c6"]
     if sta_data[:data_load_flag] == false
         sta_total = Dict(:data_load_flag => false)
@@ -90,22 +102,7 @@ import .MAVEN_STATIC;
     datas_dict["swea_pad_low"] = swea_pad_low
     datas_dict["swea_pad_high"] = swea_pad_high
 
-    # datas_dict = mag2sphere(datas_dict)
-
-    time_range = time_range
-
-    return datas_dict
-end
-
-yyyy = 2015
-mm = 10
-dd = 29
-save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
-@time if isfile(save_file_name)
-    datas_dict = load(save_file_name)["data"]
-    println("Read Done")
-else
-    datas_dict = get_data(DateTime(yyyy, mm, dd); time_range=[DateTime(yyyy, mm, dd, 11, 20), DateTime(yyyy, mm, dd, 11, 45)])
+    # datas_dict = mag2sphere(datas_dict)    time_range = time_range
     save(save_file_name, "data", datas_dict)
     println("Loading Done")
 end

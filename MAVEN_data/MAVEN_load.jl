@@ -69,10 +69,9 @@ function data_get_from_date(date::DateTime; model_index=[], show_filename=false)
             datas_dict[model] = Dict(:data_load_flag => false)
         else
             if show_filename
-                println("\033[0;32mloading\033[0m $model from $filename")
+                println("\033[0;32mloading\033[0m $model from $filename\r")
             end
             datas_dict[model] = function_name(filename)
-            # println(keys(datas_dict[model]))
             datas_dict[model][:filename] = filename
             datas_dict[model][:data_load_flag] = true
         end
@@ -215,8 +214,6 @@ function load_mag_l3(file::String)
     times = Dates.julian2datetime.(timeB)
     coodinate = file[end-36:end-33]
     data = Dict{Symbol,Any}(
-        # "Var name" => "time[Ntime], B_total[Ntime],B[Ntime,3],position[Ntime,3]",
-        # "Vars" => [times, B_total, B, position],
         :epoch => times,
         :coodinate => coodinate,
         :B_total => BB,
@@ -230,6 +227,7 @@ function load_mag_vsc(file::String)
     n_time = read(f, Int64)
     time_unix = read(f, (Float64, n_time))
     vsc = read(f, (Float32, n_time, 3))
+    position = read(f, (Float32, n_time, 3))
     close(f)
 
     times = Dates.unix2datetime.(time_unix)
@@ -238,6 +236,7 @@ function load_mag_vsc(file::String)
         :epoch => times,
         :coodinate => coodinate,
         :vsc => vsc,
+        :position => position,
     )
     return data
 end
@@ -252,7 +251,7 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
     time_dt = Dates.DateTime.(time, "yyyy-mm-ddTHH:MM:SS")
     Ntime = length(time)
 
-    result_dict = Dict{String,Any}()
+    result_dict = Dict{Symbol,Any}()
     result_dict[:version] = filename[end-10:end-8]
 
     if str_model
@@ -307,13 +306,8 @@ end
 function load_kp_l3(file::String)
     f = jldopen(file, "r")
     data_out_dict = f["KP_jld2_data"]
-    data_out_dict_ss = Dict()
-    for (key, value) in data_out_dict
-        data_out_dict_ss[key] = value
-    end
-    # "pc2ss_Matrix" "sc2ss_Matrix"
     close(f)
-    return data_out_dict_ss
+    return data_out_dict
 end
 function load_swea_pad(file::String; mean_PA=true)
     # 默认将360°的数据投影到180°
@@ -408,7 +402,7 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     O_den = read(f, (Float32, Ntime))
     O2_den = read(f, (Float32, Ntime))
     close(f)
-    data = Dict(
+    data = Dict{Symbol,Any}(
         :epoch => unix2datetime.(time_unix),
         :H_vel => H_vel,
         :O_vel => O_vel,
