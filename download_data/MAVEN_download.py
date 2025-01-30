@@ -404,34 +404,14 @@ if __name__ == '__main__':
                     os.makedirs(save_path+yyyymm)
                 url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
                 time_now = datetime.datetime.now()
-                v_new = re.findall(r"_v\d{2}_", filename)[0][0:4]
-                r_new = re.findall(r"_r\d{2}", filename)[0][0:4]
-                if logic:
-                    try:
-                        download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                        download_time = str(round(progress_data["elapsed"],2))
-                    except:
-                        download_speed = "ERROR"
-                        download_time = "ERROR"
-                    print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                            f'Status: \033[0;32m{logic}\033[0m ' +
-                            f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
-                            f'Time spend: \033[1;34m{download_time}\033[0m s '+
-                            f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
-                    nums_downloaded = nums_downloaded+1
-                else:
-                    print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                            f'Status: \033[0;31m{logic}\033[0m ' +
-                            f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ')
-                    nums_failed = nums_failed+1
-                if not os.path.exists(save_path+yyyymm):
-                    os.makedirs(save_path+yyyymm)
-                url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                time_now = datetime.datetime.now()
-                v_new = re.findall(r"_v\d{2}_", filename)[0][0:4]
-                r_new = re.findall(r"_r\d{2}", filename)[0][0:4]
+                try: # 尝试读取v和r
+                    v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
+                except:
+                    v_new = "_vXX"
+                try:
+                    r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
+                except:
+                    r_new = "_rXX"
                 if logic:
                     try:
                         download_speed = str(round(progress_data["rate"]/1024/1024,2))

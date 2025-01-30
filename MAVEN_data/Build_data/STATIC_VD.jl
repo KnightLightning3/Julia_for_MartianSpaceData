@@ -109,20 +109,20 @@ end
     write(f, O2_den)
     close(f)
 end
-#获取所有文件和对应的vsc文件
+#获取所有文件和对应的mag文件
 files_ion = MAVEN_load.file_list("STATIC_d1")
-files_vsc = MAVEN_load.file_list("MAG_ss1s_vsc")
+files_mag = MAVEN_load.file_list("MAG_ss1s_l3")
 dates_ion = [(m.captures[1] ,s) for s in files_ion for m in eachmatch(r"_([0-9]{8})_", s)]
-dates_vsc = [(m.captures[1] ,s) for s in files_vsc for m in eachmatch(r"_([0-9]{8})_", s)]
+dates_mag = [(m.captures[1] ,s) for s in files_mag for m in eachmatch(r"_([0-9]{8})_", s)]
 common_dates = [
-    (date, files_ion[i], files_vsc[j]) 
+    (date, files_ion[i], files_mag[j]) 
     for (i, (date, _)) in enumerate(dates_ion) 
-    for (j, (date2, _)) in enumerate(dates_vsc)
+    for (j, (date2, _)) in enumerate(dates_mag)
     if date == date2
 ]
 for (date, file_ion, file_vsc) in common_dates
     ion_version = match(r"_v([0-9]{2})_", file_ion).captures[1]
-    new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/mvn_sta_l3_d1_vel_flux_den_$(date)_v$(ion_version).f77_unformatted"
+    new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/mvn_sta_l3_vfd_$(date)_v$(ion_version).f77_unformatted"
     dir = dirname(new_path)
     if !isdir(dir)
         mkpath(dir)
@@ -136,9 +136,10 @@ for (date, file_ion, file_vsc) in common_dates
         try
             data2bi(datas_dict,new_path)
         catch e
-            print("\033[0;31m $(date)ERROR: $(e)\033[0m \n")
+            print("\033[0;31mERROR: $(e)\033[0m \n")
             rm(new_path)
         end
+        
     else
         print("\033[0;33mSKIP $(date)\033[0m \r")
     end

@@ -69,8 +69,9 @@ files_mag = MAVEN_load.file_list("MAG_ss1s_l3")
 dates_mag = [(m.captures[1] ,s) for s in files_mag for m in eachmatch(r"_([0-9]{8})_", s)]
 
 for (date, file) in dates_mag
-    version = match(r"_v([0-9]{2})_", file).captures[1]
-    new_path = dirname(replace(file, "/l3/" => "/vsc/"))*"/mvn_mag_vsc_ss1s_$(date)_v$(version).f77_unformatted"
+    version = match(r"_v([0-9]{2})", file).captures[1]
+    r_version = match(r"_r([0-9]{2})", file).captures[1]
+    new_path = dirname(replace(file, "/l3/" => "/vsc/"))*"/mvn_mag_vsc_ss1s_$(date)_v$(version)_r$(r_version).f77_unformatted"
     dir = dirname(new_path)
     if !isdir(dir)
         mkpath(dir)

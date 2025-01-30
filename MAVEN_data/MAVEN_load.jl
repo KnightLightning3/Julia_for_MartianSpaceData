@@ -231,10 +231,10 @@ function load_mag_vsc(file::String)
     close(f)
 
     times = Dates.unix2datetime.(time_unix)
-    coodinate = file[end-32:end-29]
+    # coodinate = file[end-32:end-29]
     data = Dict{Symbol,Any}(
         :epoch => times,
-        :coodinate => coodinate,
+        # :coodinate => coodinate,
         :vsc => vsc,
         :position => position,
     )

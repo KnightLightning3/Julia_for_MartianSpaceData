@@ -448,7 +448,7 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     
     mass=dat[:mass]*m_int
     
-    Const = 2.0/mass/mass*1e5
+    # Const = 2.0/mass/mass*1e5
     energy=energy.+pot		# energy/charge analyzer, require positive energy
     energy[energy .< 0.0] .=0.0
 
@@ -613,7 +613,7 @@ function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输�
     v = β * 3e8
     return v
 end
-function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制
+function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制,返回eV
     E0 = 938313.53 * AMU
     β  = v / 3e8
     γ = 1.0 / sqrt(1.0 - β^2)
