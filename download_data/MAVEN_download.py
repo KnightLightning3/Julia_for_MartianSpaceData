@@ -29,8 +29,8 @@ config_data.optionxform = str
 config_data.read(config_file_path, encoding='utf-8')
 
 save_dir = config_data['DEFAULT']['Save_dir']
-Server_ind = config_data.getint('DEFAULT','Server_ind')
-url_path_0 = json_data["server_url"][Server_ind]
+Server_ind = config_data.getint('Servers','Server_ind')
+url_path_0 = config_data['Servers'][Server_ind]
 sleep_time = config_data.getint('DEFAULT','sleep_time')
 step_time = config_data.getint('DEFAULT','step_time')
 timeout = None
@@ -47,22 +47,22 @@ update_file_version = config_data['Settings'].getboolean('update_file_version')
 session = requests.Session()
 if Server_ind == 0:  #自建服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
-    user_name = config_data['DEFAULT']['Username']
-    password = config_data['DEFAULT']['Password']
+    user_name = config_data['Servers']['Username']
+    password = config_data['Servers']['Password']
     session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
     models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
-    models_skip = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc"]  #批量下载的时候跳过的模块, 这些模块存在本地自制的二进制文件
+    models_skip = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc","KP"]  #批量下载的时候跳过的模块, 这些模块存在本地自制的二进制文件
     step_time = 0
-else:              # 外部服务器
-    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['MAVEN_server'])
-    models_pass = get_list_from_ini(config_data['Settings']['models_pass_MAVEN_server'])
-    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+else:       # 外部服务器
+    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
+    models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
+    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3","MAG_ss1s_vsc","STATIC_d1_v4d"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+print(f"Server: {url_path_0},vpn: {vpn_proxy}")
 if vpn_proxy != None:
     vpn_proxy = {
     "http": vpn_proxy[0],
     "https": vpn_proxy[0],
     }
-
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
         print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r")

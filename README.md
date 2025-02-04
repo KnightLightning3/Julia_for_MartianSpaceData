@@ -67,6 +67,8 @@ include("path/IGRF_calculate.jl")
 import .MAVEN_data_load
 import .IGRF_calculate
 ```
+具体读取方法: [MAVEN_data_format.md](MAVEN_data\MAVEN_data_format.md)
+
 
 # 火星磁场模型
 
@@ -132,4 +134,5 @@ IGRF_calculate.jl
 - [x] MAVEN STATIC
 - [X] 增加项目初始化和文件处理流程的流程图
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
-      随作者需求更新
+
+随作者需求更新

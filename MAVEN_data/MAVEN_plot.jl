@@ -65,18 +65,33 @@ function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), color
     end
     return ax
 end
-function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,sc_pot = nothing, krawg...)
+function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), colormap=:viridis, colorscale=log10, overdraw=true, sc_correction = false, sc_pot = nothing, krawg...)
     unique_elements = unique(swp_ind)
     if !sc_correction
         nenergy = length(y[:, 1])
         for element in unique_elements
             indices = findall(x -> x == element, swp_ind)
+            n_time = length(indices)
             if unit == "flux"
-                c1 = c[indices, :] ./ reshape(y[:, element+1], 1, nenergy)
+                scale= 1.0 ./ reshape(y[:, element+1], 1, nenergy)
             else
-                c1 = c[indices, :]
+                scale= 1.0
             end
-            heatmap!(ax, x[indices], y[:, element+1], c1; colormap=colormap, colorscale=colorscale, colorrange=c_range, overdraw=overdraw, krawg...)
+            
+            indices_sub = []
+            start_idx = 1
+            for i in 2:n_time
+                if indices[i] != indices[i-1] + 1
+                    push!(indices_sub, indices[start_idx:i-1])
+                    start_idx = i
+                end
+            end
+            push!(indices_sub, indices[start_idx:end])
+            for indices_i in indices_sub
+                x1 = x[indices_i]
+                c1 = c[indices_i, :]
+                heatmap!(ax, x1, y[:, element+1], c1.*scale; colormap=colormap, colorscale=colorscale, colorrange=c_range, krawg...)
+            end
         end
         return ax
     else

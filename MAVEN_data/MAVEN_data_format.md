@@ -62,3 +62,47 @@ data={
 
 ## SPADES问题
 2024-7-1的闰秒导致程序出错，暂时修改代码忽略它
+
+## 已支持数据类型
+MAVEN数据模块名列表
+|模型名|描述|读取函数|名称格式|
+|---|---|---|---|
+|KP|KP datas|load_kp|^mvn_kp_insitu_.+\.tab$|
+|KP_l3|KP Data (JL2D)|load_kp_l3|^mvn_kp_insitu_.+\.jld2$|
+|MAG_ss|mag 32 Hz data in MSO|load_mag_l2|mvn_mag_l2_\d{7}ss_\d{8}_v\d{2}_r\d{2}\.sts|
+|MAG_ss1s|mag 1 Hz data in MSO|load_mag_l2|mvn_mag_l2_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.sts|
+|MAG_pc|mag 32 Hz data in PC|load_mag_l2|mvn_mag_l2_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.sts|
+|MAG_pc1s|mag 1 Hz data in PC|load_mag_l2|mvn_mag_l2_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.sts|
+|MAG_ss_l3|mag 32 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|MAG_ss1s_l3|mag 1 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|MAG_pc_l3|mag 32 Hz data in PC (binary)|load_mag_l3|mvn_mag_l3_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|MAG_pc1s_l3|mag 1 Hz data in PC (binary)|load_mag_l3|mvn_mag_l3_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|MAG_ss1s_vsc|spacecraft velocity carculated from mag data (binary)|load_mag_vsc|mvn_mag_vsc_ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|SWEA_spec|SWEA l2 survey spectra|load_cdf|mvn_swe_l2_svyspec_.+\.cdf|
+|SWEA_pad_arc|SWEA l2 arc pad|load_swea_pad|mvn_swe_l2_arcpad_.+\.cdf|
+|SWEA_pad_svy|SWEA l2 survey pad|load_swea_pad|mvn_swe_l2_svypad_.+\.cdf|
+|STATIC_c6|STATIC c6 32e64m|load_STATIC|mvn_sta_l2_c6-32e64m_.+\.cdf|
+|STATIC_c8|STATIC c8 32e16d|load_STATIC|mvn_sta_l2_c8-32e16d_.+\.cdf|
+|STATIC_ca|STATIC ca 16e4d16a|load_STATIC|mvn_sta_l2_ca-16e4d16a_.+\.cdf|
+|STATIC_cf|STATIC cf 16e4d16a16m|load_STATIC|mvn_sta_l2_cf-16e4d16a16m_.+\.cdf|
+|STATIC_d0|STATIC d0 32e4d16a8m|load_STATIC|mvn_sta_l2_d0-32e4d16a8m_.+\.cdf|
+|STATIC_d1|STATIC d1 32e4d16a8m|load_STATIC|mvn_sta_l2_d1-32e4d16a8m_.+\.cdf|
+|STATIC_d1_v4d|STATIC d1 velocity flux density (binary)|load_d1_v4d|mvn_sta_l3_d1_vel_flux_den_.+\.f77_unformatted|
+|LPW_wave|LPW wave passitive spectra|load_cdf|mvn_lpw_l2_wspecpas_.+\.cdf|
+|LPW_wave_act|LPW wave active spectra|load_cdf|mvn_lpw_l2_wspecact_.+\.cdf|
+|LPW_mrgscpot|LPW merged spacecraft potential|load_cdf|mvn_lpw_l2_mrgscpot_.+\.cdf|
+|LPW_lpiv|LPW lp iv|load_cdf|mvn_lpw_l2_lpiv_.+\.cdf|
+|LPW_lpnt|LPW lp nt|load_cdf|mvn_lpw_l2_lpnt_.+\.cdf|
+|LPW_wn|LPW w n|load_cdf|mvn_lpw_l2_wn_.+\.cdf|
+|LPW_we12|LPW 1D wave|load_cdf|mvn_lpw_l2_we12_.+\.cdf|
+|LPW_bursthf| |load_cdf|mvn_lpw_l2_we12bursthf_.+\.cdf|
+|LPW_burstmf| |load_cdf|mvn_lpw_l2_we12burstmf_.+\.cdf|
+|LPW_burstlf| |load_cdf|mvn_lpw_l2_we12burstlf_.+\.cdf|
+|NGIMS_sht_l3|L3 resampled scale height table|load_NGIMS_sht_l3|mvn_ngi_l3_res-sht-.+\.csv|
+|NGIMS_sht_l4|combined resampled scale height table|load_NGIMS_sht_l3|mvn_ngi_l4_res-sht-.+\.csv|
+|NGIMS_den_l3|L3 resampled average denity table|load_NGIMS_den_l3|mvn_ngi_l3_res-den-.+\.csv|
+|NGIMS_den_l4| |load_NGIMS_den_l3|mvn_ngi_l4_res-den-.+\.csv|
+|SWIA_mom| |load_cdf|mvn_swi_l2_onboardsvymom_.+\.cdf|
+|SWIA_svy_spec| |load_cdf|mvn_swi_l2_onboardsvyspec_.+\.cdf|
+|SWIA_fine_svy_3d| |load_cdf|mvn_swi_l2_finesvy3d_.+\.cdf|
+|SWIA_coarse_svy_3d| |load_cdf|mvn_swi_l2_coarsesvy3d_.+\.cdf|

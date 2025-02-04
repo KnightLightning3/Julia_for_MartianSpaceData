@@ -16,7 +16,7 @@ function KP_rebuild(file_in, file_out, KP_vars)
     KP_jld2_data = Dict{Symbol,Any}()
     KP_jld2_data[:time] = time
     KP_jld2_data[:varsion] = varsion
-    Matrix_vars = Matrix{Any}(missing,ntime, 217)
+    KP_jld2_data[:vars] = Dict{Symbol,Any}()
     @inbounds for i in 2:217
         I = Symbol("var_$i")
         var_format = KP_vars_local["$i"][2]
@@ -29,8 +29,7 @@ function KP_rebuild(file_in, file_out, KP_vars)
         elseif var_format[1] == 'I'
             vars_out = parse.(Int64, vars)
         end
-        Matrix_vars[:, i] = vars_out
-        # KP_jld2_data[I] = vars_out
+        KP_jld2_data[:vars][I] = vars_out
     end
     pc2ss_Matrix = zeros(Float64, ntime, 3, 3)
     sc2ss_Matrix = zeros(Float64, ntime, 3, 3)
@@ -50,7 +49,6 @@ function KP_rebuild(file_in, file_out, KP_vars)
     end
     KP_jld2_data[:pc2ss_Matrix] = pc2ss_Matrix
     KP_jld2_data[:sc2ss_Matrix] = sc2ss_Matrix
-    KP_jld2_data[:vars] = Matrix_vars
     jldsave(file_out, KP_jld2_data=KP_jld2_data)
     return 0
 end;
@@ -69,10 +67,9 @@ f = open(raw"C:/Users/chengsw/Projects/Package_for_Julia_of_csw/MAVEN_data/MAVEN
 MAVEN_format = JSON.parse(f)
 close(f)
 
-
 files = MAVEN_load.file_list("KP")
 new_list = []
-for file in files  #@showprogress 1 "Computing..." 
+for file in files
     new_path = file[1:12] * "l3" * file[19:end-4] * ".jld2"
     dir = dirname(new_path)
     if !isdir(dir)
@@ -87,9 +84,13 @@ for file in files  #@showprogress 1 "Computing..."
         if yyyymmdd_old == yyyymmdd_new
             v_old = match(r"_v\d{2}",file_old).match
             r_old = match(r"_r\d{2}",file_old).match
-            if v_old < v_new || (v_old == v_new && r_old < r_new)
+            vv_old = parse(Int32, v_old[3:4])
+            vv_new = parse(Int32, v_new[3:4])
+            rr_old = parse(Int32, r_old[3:4])
+            rr_new = parse(Int32, r_new[3:4])
+            if vv_old < vv_new || (vv_old == vv_new && rr_old < rr_new)
                 rm(file_old)
-                println("\033[0;31mrm $yyyymmdd_old$v_old$r_old\033[0m")
+                println("\033[0;31mrm $yyyymmdd_old$v_old$r_old to_bulid $yyyymmdd_new$v_new$r_new\033[0m")
             end
         end
     end
@@ -97,5 +98,4 @@ for file in files  #@showprogress 1 "Computing..."
         dummy = KP_rebuild(file, new_path, KP_vars)
         println("\033[0;32mbuild $yyyymmdd_new$v_new$r_new\033[0m")
     end
-    # break
 end;
