@@ -294,10 +294,16 @@ function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10))
     end
     return ax
 end
-function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9), ylabel="freq")
-    ax.ylabel = ylabel
-    # ax.yscale=log10
-    x, y, c = time, freq, data
+function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range = (1,1e5)) #强制绘制为对数轴
+    ax.yscale = identity
+    f_range_log = log10.(f_range)
+    ylims!(ax,f_range_log)
+    tick_func = x -> rich("10",superscript("$(round(x))"))
+    num_list = 0:10
+    x_i = num_list
+    ticks = [tick_func(x) for x in num_list]
+    ax.yticks = (x_i,ticks)
+    x, y, c = time, log10.(freq), data
     nc = size(c)
     nx = nc[1]
     ny = nc[2]
@@ -306,13 +312,14 @@ function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9), ylabel
     x = vec(x)
     y = vec(y)
     c = vec(c)
-    y[y.<1] .= 1
+    y[y.<0] .= 0
     df = DataFrame(X=x, Y=y, C=c)
     df_unique = unique(df, [:X, :Y])
     x = df_unique.X
     y = df_unique.Y
     c = df_unique.C
-    heatmap!(ax, x, y, c, colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
+    bools = y .>= f_range_log[1] .&& y .<= f_range_log[2]
+    heatmap!(ax, x[bools], y[bools], c[bools], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
 function Orbit(ax, position_ss; frame="x-yz",line_krawg...)
@@ -506,15 +513,16 @@ function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:viridis, colorrange=c_range , colorscale=log10)
     return ax
 end
-function time2x(time, range;model = "unix",t0 = 0.0)
-    time_i = findall(t -> range[1] <= t <= range[2], time)
-    x = time[time_i]
-    if model == "unix"
+function time2x(time, range::Vector{DateTime};t0 = 0.0,convert = true) # 将时间转为unix时间戳并且range限制时间范围
+    if convert
+        range_data = range
+        time_i = findall(t -> range_data[1] <= t <= range_data[2], time)
+        x = time[time_i]
         x = Dates.datetime2unix.(x)
-    elseif model == "julian"
-        x = Dates.datetime2julian.(x)
-    elseif model == "no_convert"
-        return x, time_i
+    else
+        range_data = Dates.datetime2unix.(range)
+        time_i = findall(t -> range_data[1] <= t <= range_data[2], time)
+        x = time[time_i]
     end
     x = x .- t0
     return x, time_i

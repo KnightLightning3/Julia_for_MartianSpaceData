@@ -12,6 +12,14 @@ import .MAVEN_load;
 import .MAVEN_plot;
 import .MAVEN_STATIC;
 import .IGRF_calculate;
+function TimeFormat(time1, time2)
+    elapsed_time_ms = Dates.value(time2 - time1)
+    hours = div(elapsed_time_ms, 3600000)
+    minutes = div(mod(elapsed_time_ms, 3600000), 60000)
+    seconds = div(mod(elapsed_time_ms, 60000), 1000)
+    milliseconds = mod(elapsed_time_ms, 1000)
+    return "$(lpad(hours, 2, '0')):$(lpad(minutes, 2, '0')):$(lpad(seconds, 2, '0')).$(lpad(milliseconds, 3, '0'))"
+end
 @inline function mag2sphere(data_dict)
     position = data_dict["MAG_ss1s_l3"][:position]
     b = data_dict["MAG_ss1s_l3"][:B]
@@ -26,18 +34,20 @@ end
     model_index = [
         "STATIC_d1_v4d",
         "MAG_ss1s_l3","MAG_pc1s_l3",
-        "MAG_ss1s_vsc",
         "LPW_wave",
-        "KP_l3",
         "SWEA_spec",
         "STATIC_c6",
         "SWIA_svy_spec",
         "SWEA_pad_svy",
         "SWIA_mom",
     ]
-    data_dict = MAVEN_load.data_get_from_date(date, model_index=model_index, show_filename=true)
+    KP_data = MAVEN_load.data_get_from_date(date, model_index=["KP_l3"], show_filename=false)["KP_l3"]
+    if !KP_data[:data_load_flag]
+        return nothing,false
+    end
+    data_dict = MAVEN_load.data_get_from_date(date, model_index=model_index, show_filename=false)
     # 替换KP_l3数据中的数字标为元标签
-    KP_data_name_replace = Dict(
+    KP_data_name_replace = Dict{Symbol,Int32}(
         :Ne => 2,
         :Ne_quality_min => 3,
         :Ne_quality_max => 4,
@@ -57,13 +67,14 @@ end
         :O_ionTemperature => 62,
         :O2_ionTemperature => 64,
     )
-    data_dict["KP"] = Dict()
+    data_dict["KP_l3"] = KP_data
+    data_dict["KP"] = Dict{Symbol,Any}()
     data_dict["KP"][:data_load_flag] = data_dict["KP_l3"][:data_load_flag]
     for key in keys(KP_data_name_replace)
         symobl_i = Symbol("var_$(KP_data_name_replace[key])")
         data_dict["KP"][key] = data_dict["KP_l3"][:vars][symobl_i]
     end
-    return data_dict
+    return data_dict,true
 end
 @inline function get_B_model_ss(data_dict)
     B_times0 = data_dict["MAG_pc1s_l3"][:epoch]
@@ -95,8 +106,7 @@ end
     return data_dict
 end
 function remove_0_point!(y)
-    bools = y .== 0
-    y[bools] .= NaN
+    y[y .<= 0] .= NaN
     return y
 end
 function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
@@ -146,17 +156,17 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         ax1 = Axis(
             fig[0, panel_ind][1,1],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
             ylabel = rich("(Y",superscript("2"),subscript("MSO",offset=(-0.6,0))," + Z",superscript("2"),subscript("MSO",offset=(-0.6,0)),")",superscript("1/2")),
-            limits = ((-2, 2), (0,2)),xreversed = true
+            limits = ((-2, 2), (0,4)),xreversed = true
             )
         ax2 = Axis(
             fig[0, panel_ind][1,2],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
             ylabel = rich("Y",subscript("MSO")),
-            limits = ((-2, 2), (-2,2)),xreversed = true
+            limits = ((-3, 3), (-3,3)),xreversed = true
             )
         ax3 = Axis(
             fig[0, panel_ind][1,3],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
             ylabel = rich("Z",subscript("MSO")),
-            limits = ((-2, 2), (-2,2)),xreversed = true
+            limits = ((-3, 3), (-3,3)),xreversed = true
             )
         x = data_dict["KP"][:MSO_x][KP_time_i]
         y = data_dict["KP"][:MSO_y][KP_time_i]
@@ -270,12 +280,14 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
                 ]; 
             merge=true, padding=padding, framevisible=false, tellheight=false, tellwidth=false)
     end
+    c_range_lpw = (1e-14,1e-9)
     if "LPW_wave" in panel_name
         np = panels["LPW_wave"]
-        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (1, 1e5)), yscale=log10,ax_Dict...)
+        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (1, 1e5)), 
+        ylabel = rich("f ", font =:italic, rich("(Hz)",font = :regular)),
+        yscale=log10,ax_Dict...)
         if data_dict["LPW_wave"][:data_load_flag]
             timeSP, freq, wave_data = data_dict["LPW_wave"][:epoch], data_dict["LPW_wave"][:freq], data_dict["LPW_wave"][:data]
-            c_range = (1e-14, 1e-9)
             x, time_i = MAVEN_plot.time2x(timeSP, x_range;t0=t0)
             if time_i != []
                 MAVEN_plot.WaveSpactra_heatmap(axs[np], x, freq[time_i, :], wave_data[time_i, :])
@@ -291,7 +303,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         end
         text!(axs[np], 1, 0, text="LPW", font=:bold,color=:white, align=(:right, :bottom), offset=(-6, 6), strokewidth=5,space=:relative)
         Colorbar(
-            fig[np, color_ind], limits=c_range, 
+            fig[np, color_ind], limits=c_range_lpw, 
             label=rich("P",font =:italic,subscript("E", font = :regular)," ",rich("(V",superscript("2"),"/m",superscript("2"),"/Hz)",font = :regular)),
             colormap=:viridis, 
             scale=log10)
@@ -303,12 +315,13 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         np = panels["STATIC_c6"]
         axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, nothing), yscale=log10, ylabel=rich("E",font =:italic,subscript("k", font = :regular)," ",rich("(eV)",font = :regular)), ax_Dict...)
         if data_dict["STATIC_c6"][:data_load_flag]
-            x0, y, c, swp = data_dict["STATIC_c6"][:epoch], data_dict["STATIC_c6"][:energy], data_dict["STATIC_c6"][:eflux], data_dict["STATIC_c6"][:swp_ind]
-            # ind_tag = findfirst(x-> x>=DateTime(2015, 10, 29,11,33,12) ,times_ion)
-            # flux_ion[ind_tag,:] = flux_ion[ind_tag,:]./100
+            x0 = data_dict["STATIC_c6"][:epoch]
             x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
             if time_i != []
-                MAVEN_plot.sta_heatmap(axs[np], x, y, c[time_i, :], swp[time_i]; c_range=c_range_ion)
+                y = data_dict["STATIC_c6"][:energy]
+                c = data_dict["STATIC_c6"][:eflux][time_i, :]
+                swp = data_dict["STATIC_c6"][:swp_ind][time_i]
+                MAVEN_plot.sta_heatmap(axs[np], x, y, c, swp; c_range=c_range_ion)
             end
         end
         Colorbar(
@@ -324,10 +337,13 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
             ylabel=rich("M",subscript("i")," ",rich("(amu)")),
             yticks = [1,10,100],yscale=log10, ax_Dict...)
         if data_dict["STATIC_c6"][:data_load_flag]
-            x0, y, c, swp = data_dict["STATIC_mass"][:epoch], data_dict["STATIC_mass"][:mass], data_dict["STATIC_mass"][:eflux], data_dict["STATIC_mass"][:swp_ind]
+            x0 = data_dict["STATIC_mass"][:epoch]
             x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
             if time_i != []
-                MAVEN_plot.sta_heatmap(axs[np], x, y, c[time_i, :], swp[time_i]; c_range=c_range_ion)
+                y = data_dict["STATIC_mass"][:mass]
+                c = data_dict["STATIC_mass"][:eflux][time_i, :]
+                swp = data_dict["STATIC_mass"][:swp_ind][time_i]
+                MAVEN_plot.sta_heatmap(axs[np], x, y, c, swp; c_range=c_range_ion)
             end
             hlines!(axs[np], [1, 16, 32.0], color=:white)
         end
@@ -342,10 +358,11 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
             ylabel=rich("E",font =:italic,subscript("k", font = :regular)," ",rich("(eV)",font = :regular)), 
             yscale=log10, ax_Dict...)
         if data_dict["SWEA_spec"][:data_load_flag]
-            times_electorn, energy_e, flux_e = data_dict["SWEA_spec"][:epoch], data_dict["SWEA_spec"][:energy], data_dict["SWEA_spec"][:diff_en_fluxes]
-            x, time_i = MAVEN_plot.time2x(times_electorn, x_range;t0=t0)
+            times_electorn = data_dict["SWEA_spec"][:time_unix]
+            x, time_i = MAVEN_plot.time2x(times_electorn, x_range;t0=t0,convert = false)
             if time_i != []
-                heatmap!(axs[np], x, energy_e, flux_e[time_i, :], colorscale=log10, colorrange=c_range_e, colormap=:viridis,overdraw=true)
+                energy_e, flux_e = data_dict["SWEA_spec"][:energy], data_dict["SWEA_spec"][:diff_en_fluxes][time_i, :]
+                heatmap!(axs[np], x, energy_e, flux_e, colorscale=log10, colorrange=c_range_e, colormap=:viridis,overdraw=true)
                 # hlines!(axs[np], [22,27], color=:red, linestyle=:dash,overdraw=true,linewidth=1)
             end
         end
@@ -412,19 +429,25 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     if "SWIA_svy_spec" in panel_name
         np = panels["SWIA_svy_spec"]
         axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, nothing), ylabel=rich("E",font =:italic,subscript("k", font = :regular)," ",rich("(eV)",font = :regular)), yscale=log10, ax_Dict...)
-        if data_dict["SWEA_spec"][:data_load_flag]
-            x0, y, c = data_dict["SWIA_svy_spec"][:epoch], data_dict["SWIA_svy_spec"][:energy_spectra], data_dict["SWIA_svy_spec"][:spectra_diff_en_fluxes]
-            x, time_i = MAVEN_plot.time2x(x0, x_range; t0=t0)
-            c[c.==0] .= 1e-20
+        if data_dict["SWIA_svy_spec"][:data_load_flag]
+            x0 = data_dict["SWIA_svy_spec"][:time_unix]
+            x, time_i = MAVEN_plot.time2x(x0, x_range; t0=t0,convert = false)
             if time_i != []
-                heatmap!(axs[np], x, y, c[time_i, :]; colorscale=log10, colorrange=c_range_ion, colormap=:viridis)
+                y = data_dict["SWIA_svy_spec"][:energy_spectra]
+                c = data_dict["SWIA_svy_spec"][:spectra_diff_en_fluxes][time_i, :]
+                c[c.==0] .= 1e-20
+                heatmap!(axs[np], x, y, c; colorscale=log10, colorrange=c_range_ion, colormap=:viridis)
             end
         end
         if data_dict["STATIC_c6"][:data_load_flag]
-            x0, y, swp = data_dict["STATIC_c6"][:epoch], data_dict["STATIC_c6"][:energy], data_dict["STATIC_c6"][:swp_ind]
+            x0 = data_dict["STATIC_c6"][:epoch]
             x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
-            y1 = [maximum(y[:,swp1+1]) for (i,swp1) in enumerate(swp[time_i])]
-            lines!(axs[np], x,y1, color=:white, linestyle=:dash)
+            if time_i != []
+                y = data_dict["STATIC_c6"][:energy]
+                swp = data_dict["STATIC_c6"][:swp_ind][time_i]
+                y1 = [maximum(y[:,swp1+1]) for swp1 in swp]
+                lines!(axs[np], x,y1, color=:white, linestyle=:dash)
+            end
         end
         text!(axs[np], 1, 0, text="SWIA", font=:bold,color=:white, align=(:right, :bottom), offset=(-6, 6),strokewidth=5, space=:relative)
         Colorbar(fig[np, color_ind], limits=(1e4, 1e9), label="swi_ion_eflux", colormap=:viridis, scale=log10)
@@ -458,57 +481,48 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     return fig,t0,xtimes
 end;
 
-
-
-
-yyyy = 2015
-mm = 10
-dd = 29
-time_range = [DateTime(yyyy, mm, dd, 11, 20), DateTime(yyyy, mm, dd, 11, 45)]
+yyyy = 2014
+mm = 11
+dd = 2
+time_range = [DateTime(yyyy, mm, dd, 22, 0), DateTime(yyyy, mm, dd, 23,59)]
 save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
-@time try 
-    typeof(data_dict)
-catch e
-    global data_dict
-    if isfile(save_file_name)
-        data_dict = load(save_file_name)["data"]
-        println("Read Done")
+if isfile(save_file_name)
+    data_dict = load(save_file_name)["data"]
+    println("Read Done")
+else
+    data_dict,_ = get_data(DateTime(yyyy, mm, dd))
+    sta_data = data_dict["STATIC_c6"]
+    if sta_data[:data_load_flag] == false
+        sta_total = Dict(:data_load_flag => false)
+        sta_mass = Dict(:data_load_flag => false)
     else
-        data_dict = get_data(DateTime(yyyy, mm, dd))
-        sta_data = data_dict["STATIC_c6"]
-        if sta_data[:data_load_flag] == false
-            sta_total = Dict(:data_load_flag => false)
-            sta_mass = Dict(:data_load_flag => false)
-        else
-            sta_data = MAVEN_STATIC.STA_count2df_all(sta_data)
-            sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
-            sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
-        end
-        data_dict["STATIC_c6_orign"] = sta_data
-        data_dict["STATIC_c6"] = sta_total
-        data_dict["STATIC_mass"] = sta_mass
-
-        x1, y1, z1 = data_dict["KP"][:GEO_x], data_dict["KP"][:GEO_y], data_dict["KP"][:GEO_z]
-        alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- 3393.5
-        data_dict["KP"][:alt] = alt
-        swea_pad = data_dict["SWEA_pad_svy"]
-        if swea_pad[:data_load_flag] == false
-            swea_pad_low = Dict(:data_load_flag => false)
-            swea_pad_high = Dict(:data_load_flag => false)
-        else
-            swea_pad_low = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
-            swea_pad_high = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
-        end
-        data_dict["swea_pad_low"] = swea_pad_low
-        data_dict["swea_pad_high"] = swea_pad_high
-        data_dict = get_B_model_ss(data_dict)
-        # data_dict = mag2sphere(data_dict)
-        save(save_file_name, "data", data_dict)
-        println("Loading Done")
+        sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
+        sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
     end
+    data_dict["STATIC_c6_orign"] = sta_data
+    data_dict["STATIC_c6"] = sta_total
+    data_dict["STATIC_mass"] = sta_mass
+
+    x1, y1, z1 = data_dict["KP"][:GEO_x], data_dict["KP"][:GEO_y], data_dict["KP"][:GEO_z]
+    alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- 3393.5
+    data_dict["KP"][:alt] = alt
+    swea_pad = data_dict["SWEA_pad_svy"]
+    if swea_pad[:data_load_flag] == false
+        swea_pad_low = Dict(:data_load_flag => false)
+        swea_pad_high = Dict(:data_load_flag => false)
+    else
+        swea_pad_low = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
+        swea_pad_high = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
+    end
+    data_dict["swea_pad_low"] = swea_pad_low
+    data_dict["swea_pad_high"] = swea_pad_high
+    data_dict = get_B_model_ss(data_dict)
+    # data_dict = mag2sphere(data_dict)
+    save(save_file_name, "data", data_dict)
+    println("Loading Done")
 end
 
-x_range = [DateTime(2015, 10, 29, 11), DateTime(2015, 10, 29, 13)]
+x_range = time_range
 date_str = Dates.format(DateTime(yyyy, mm, dd), "yyyy-mm-dd")
 kp_x = data_dict["KP_l3"][:time]
 i = [findfirst(x -> x >= x_range1, kp_x) for x_range1 in x_range]
