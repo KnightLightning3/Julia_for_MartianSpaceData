@@ -12,6 +12,13 @@ import .MAVEN_load;
 import .MAVEN_plot;
 import .MAVEN_STATIC;
 import .IGRF_calculate;
+function TimeFormat(time1, time2)
+    elapsed_time_ms = Dates.value(time2 - time1)
+    minutes = div(mod(elapsed_time_ms, 3600000), 60000)
+    seconds = div(mod(elapsed_time_ms, 60000), 1000)
+    milliseconds = mod(elapsed_time_ms, 1000)
+    return "$(lpad(minutes, 2, '0')):$(lpad(seconds, 2, '0')).$(lpad(milliseconds, 3, '0'))"
+end
 @inline function mag2sphere(data_dict)
     position = data_dict["MAG_ss1s_l3"][:position]
     b = data_dict["MAG_ss1s_l3"][:B]
@@ -28,14 +35,17 @@ end
         "MAG_ss1s_l3","MAG_pc1s_l3",
         "MAG_ss1s_vsc",
         "LPW_wave",
-        "KP_l3",
         "SWEA_spec",
         "STATIC_c6",
         "SWIA_svy_spec",
         "SWEA_pad_svy",
         "SWIA_mom",
     ]
-    data_dict = MAVEN_load.data_get_from_date(date, model_index=model_index, show_filename=true)
+    KP_data = MAVEN_load.data_get_from_date(date, model_index=["KP_l3"], show_filename=false)["KP_l3"]
+    if !KP_data[:data_load_flag]
+        return nothing,false
+    end
+    data_dict = MAVEN_load.data_get_from_date(date, model_index=model_index, show_filename=false)
     # 替换KP_l3数据中的数字标为元标签
     KP_data_name_replace = Dict(
         :Ne => 2,
@@ -57,13 +67,14 @@ end
         :O_ionTemperature => 62,
         :O2_ionTemperature => 64,
     )
+    data_dict["KP_l3"] = KP_data
     data_dict["KP"] = Dict()
     data_dict["KP"][:data_load_flag] = data_dict["KP_l3"][:data_load_flag]
     for key in keys(KP_data_name_replace)
         symobl_i = Symbol("var_$(KP_data_name_replace[key])")
         data_dict["KP"][key] = data_dict["KP_l3"][:vars][symobl_i]
     end
-    return data_dict
+    return data_dict,true
 end
 @inline function get_B_model_ss(data_dict)
     B_times0 = data_dict["MAG_pc1s_l3"][:epoch]
@@ -93,6 +104,10 @@ end
         :p_ss => pos_ss,
     )
     return data_dict
+end
+function remove_0_point!(y)
+    y[y .<= 0] .= NaN
+    return y
 end
 function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     colors = Makie.wong_colors()
@@ -209,7 +224,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     end
     if "density" in panel_name 
         np = panels["density"]
-        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix,(0.1,1e5)), 
+        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix,nothing), 
             ylabel=rich("N",font =:italic,subscript("e", font = :regular)," ",rich("(cm",superscript("-3"),")",font = :regular)), 
         yscale=log10, ax_Dict...)
         y = convert.(Float64,data_dict["KP"][:Ne][KP_time_i,1])
@@ -217,9 +232,9 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         if data_dict["STATIC_d1_v4d"][:data_load_flag]
             x0 = data_dict["STATIC_d1_v4d"][:epoch]
             x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
-            y1 = data_dict["STATIC_d1_v4d"][:O_den][time_i]
-            y2 = data_dict["STATIC_d1_v4d"][:O2_den][time_i]
-            y3 = data_dict["STATIC_d1_v4d"][:H_den][time_i]
+            y1 = remove_0_point!(data_dict["STATIC_d1_v4d"][:O_den][time_i])
+            y2 = remove_0_point!(data_dict["STATIC_d1_v4d"][:O2_den][time_i])
+            y3 = remove_0_point!(data_dict["STATIC_d1_v4d"][:H_den][time_i])
             lines!(axs[np], x, y1, linewidth=3, label="O+",color=colors[1])
             lines!(axs[np], x, y2, linewidth=3, label="O2+",color=colors[2])
             lines!(axs[np], x, y3, linewidth=3, label="H+",color=colors[3])
@@ -227,7 +242,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         if data_dict["SWIA_mom"][:data_load_flag]
             x0 = data_dict["SWIA_mom"][:epoch]
             x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
-            y = data_dict["SWIA_mom"][:density][time_i]
+            y = remove_0_point!(data_dict["SWIA_mom"][:density][time_i])
             lines!(axs[np], x, y, linewidth=3, label="SWIA",color=colors[4])
         end
         text!(axs[np], 1, 0, text="LPW-STATIC-SWIA", font=:bold,color=:black,align=(:right, :bottom), offset=(-6, 6), strokewidth=5,space=:relative)
@@ -245,7 +260,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     end
     if "H_vel" in panel_name
         np = panels["H_vel"]
-        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (0, 1000)), ylabel="H+ V (km/s)", ax_Dict...)
+        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, nothing), ylabel="H+ V (km/s)", ax_Dict...)
         if data_dict["SWIA_mom"][:data_load_flag]
             x0 = data_dict["SWIA_mom"][:epoch]
             x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
@@ -265,6 +280,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
                 ]; 
             merge=true, padding=padding, framevisible=false, tellheight=false, tellwidth=false)
     end
+    c_range_lpw = (1e-14,1e-9)
     if "LPW_wave" in panel_name
         np = panels["LPW_wave"]
         axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (1, 1e5)), yscale=log10,ax_Dict...)
@@ -286,7 +302,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         end
         text!(axs[np], 1, 0, text="LPW", font=:bold,color=:white, align=(:right, :bottom), offset=(-6, 6), strokewidth=5,space=:relative)
         Colorbar(
-            fig[np, color_ind], limits=c_range, 
+            fig[np, color_ind], limits=c_range_lpw, 
             label=rich("P",font =:italic,subscript("E", font = :regular)," ",rich("(V",superscript("2"),"/m",superscript("2"),"/Hz)",font = :regular)),
             colormap=:viridis, 
             scale=log10)
@@ -452,61 +468,133 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     linkxaxes!(axs..., axs_xtick...)
     return fig,t0,xtimes
 end;
-yyyy = 2015
-mm = 10
-dd = 29
-time_range = [DateTime(yyyy, mm, dd, 11, 20), DateTime(yyyy, mm, dd, 11, 45)]
-save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
-@time try 
-    typeof(data_dict)
-catch e
-    global data_dict
-    if isfile(save_file_name)
-        data_dict = load(save_file_name)["data"]
-        println("Read Done")
-    else
-        data_dict = get_data(DateTime(yyyy, mm, dd))
-        sta_data = data_dict["STATIC_c6"]
-        if sta_data[:data_load_flag] == false
-            sta_total = Dict(:data_load_flag => false)
-            sta_mass = Dict(:data_load_flag => false)
-        else
-            sta_data = MAVEN_STATIC.STA_count2df_all(sta_data)
-            sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
-            sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
-        end
-        data_dict["STATIC_c6_orign"] = sta_data
-        data_dict["STATIC_c6"] = sta_total
-        data_dict["STATIC_mass"] = sta_mass
 
-        x1, y1, z1 = data_dict["KP"][:GEO_x], data_dict["KP"][:GEO_y], data_dict["KP"][:GEO_z]
-        alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- 3393.5
-        data_dict["KP"][:alt] = alt
-        swea_pad = data_dict["SWEA_pad_svy"]
-        if swea_pad[:data_load_flag] == false
-            swea_pad_low = Dict(:data_load_flag => false)
-            swea_pad_high = Dict(:data_load_flag => false)
-        else
-            swea_pad_low = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
-            swea_pad_high = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
-        end
-        data_dict["swea_pad_low"] = swea_pad_low
-        data_dict["swea_pad_high"] = swea_pad_high
-        data_dict = get_B_model_ss(data_dict)
-        # data_dict = mag2sphere(data_dict)
-        save(save_file_name, "data", data_dict)
-        println("Loading Done")
+#初始设置
+dt = Hour(2)
+T_start = DateTime(2014, 10, 1)
+T_end   = DateTime(2018, 10, 2)
+Days = range(T_start, T_end, step=Day(1))
+time0 = Dates.now()
+for day in Days
+    yyyymm = Dates.format(day,"yyyy/mm")
+    date_str = Dates.format(day, "yyyy-mm-dd")
+    parent_dir = "E:/MAVEN/MAVEN_plot/overview/$yyyymm/"
+    if !isdir(parent_dir)
+        mkpath(parent_dir)
     end
-end
+    # load data
+    time1 = Dates.now()
+    print("loading data of "*date_str*"\r")
+    data_dict,data_flag = get_data(day)
+    if !data_flag
+        println("No data in ---- "*date_str)
+        continue
+    end
+    sta_data = data_dict["STATIC_c6"]
+    if sta_data[:data_load_flag] == false
+        sta_total = Dict(:data_load_flag => false)
+        sta_mass = Dict(:data_load_flag => false)
+    else
+        sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
+        sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
+    end
+    data_dict["STATIC_c6_orign"] = sta_data
+    data_dict["STATIC_c6"] = sta_total
+    data_dict["STATIC_mass"] = sta_mass
 
-x_range = [DateTime(2015, 10, 29, 11), DateTime(2015, 10, 29, 13)]
-date_str = Dates.format(DateTime(yyyy, mm, dd), "yyyy-mm-dd")
-kp_x = data_dict["KP_l3"][:time]
-i = [findfirst(x -> x >= x_range1, kp_x) for x_range1 in x_range]
-orbit = data_dict["KP"][:Orbit_Number][i]
-fig_title = date_str*" Orbit = $(orbit[1])-$(orbit[2])"
-fig = Figure(; size=(2500, 2500))
-@time fig,t0,xtimes = plot_module(fig, x_range, data_dict; time_step=Dates.Minute(5))
-Label(fig[-1,:]; text=fig_title, halign=:center, valign=:top, padding=(0, 0, 0, 0))
-rowsize!(fig.layout, 0, Relative(0.2))
-save("example/MAVEN_plot_sample/MAVEN_case_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * ".png", fig)
+    x1, y1, z1 = data_dict["KP"][:GEO_x], data_dict["KP"][:GEO_y], data_dict["KP"][:GEO_z]
+    alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- 3393.5
+    data_dict["KP"][:alt] = alt
+    swea_pad = data_dict["SWEA_pad_svy"]
+    if swea_pad[:data_load_flag] == false
+        ata_dict["swea_pad_low"] = Dict(:data_load_flag => false)
+        data_dict["swea_pad_high"] = Dict(:data_load_flag => false)
+    else
+        ata_dict["swea_pad_low"] = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
+        data_dict["swea_pad_high"] = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
+    end
+    if data_dict["MAG_pc1s_l3"][:data_load_flag]
+        data_dict = get_B_model_ss(data_dict)
+    end
+    time2 = Dates.now()
+    elapsed_time = TimeFormat(time1, time2)
+    total_time = TimeFormat(time0, time2)
+    println("loading done of "*date_str*" dtime = \033[32m$elapsed_time\033[0m, Total_Time = \033[36m$total_time\033[0m")
+    # range plot
+    plots_time = range(day, day+Day(1), step=dt)
+    for time_range1 in plots_time
+        x_range = [time_range1, time_range1+Hour(2)]
+        kp_x = data_dict["KP_l3"][:time]
+        i = [findmin(x -> abs(x - x_range1), kp_x)[2] for x_range1 in x_range]
+        orbit = data_dict["KP"][:Orbit_Number][i]
+        fig_title = date_str*" Orbit = $(orbit[1])-$(orbit[2])"
+        fig = Figure(; size=(2500, 2500))
+        fig,t0,xtimes = plot_module(fig, x_range, data_dict; time_step=Dates.Minute(5))
+        Label(fig[-1,:]; text=fig_title, halign=:center, valign=:top, padding=(0, 0, 0, 0))
+        rowsize!(fig.layout, 0, Relative(0.2))
+        save(parent_dir* Dates.format(time_range1, "yyyy_mm_dd_HH") * ".png", fig)
+        time2 = Dates.now()
+        elapsed_time = TimeFormat(time1, time2)
+        total_time = TimeFormat(time0, time2)
+        println("-> ploting done of "*Dates.format(time_range1, "yyyy_mm_dd_HH")*" dtime = \033[32m$elapsed_time\033[0m, Total_Time = \033[36m$total_time\033[0m")
+    end
+
+end
+# yyyy = 2015
+# mm = 10
+# dd = 29
+# time_range = [DateTime(yyyy, mm, dd, 11, 20), DateTime(yyyy, mm, dd, 11, 45)]
+# save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
+# @time try 
+#     typeof(data_dict)
+# catch e
+#     global data_dict
+#     if isfile(save_file_name)
+#         data_dict = load(save_file_name)["data"]
+#         println("Read Done")
+#     else
+#         data_dict = get_data(DateTime(yyyy, mm, dd))
+#         sta_data = data_dict["STATIC_c6"]
+#         if sta_data[:data_load_flag] == false
+#             sta_total = Dict(:data_load_flag => false)
+#             sta_mass = Dict(:data_load_flag => false)
+#         else
+#             sta_data = MAVEN_STATIC.STA_count2df_all(sta_data)
+#             sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
+#             sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
+#         end
+#         data_dict["STATIC_c6_orign"] = sta_data
+#         data_dict["STATIC_c6"] = sta_total
+#         data_dict["STATIC_mass"] = sta_mass
+
+#         x1, y1, z1 = data_dict["KP"][:GEO_x], data_dict["KP"][:GEO_y], data_dict["KP"][:GEO_z]
+#         alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- 3393.5
+#         data_dict["KP"][:alt] = alt
+#         swea_pad = data_dict["SWEA_pad_svy"]
+#         if swea_pad[:data_load_flag] == false
+#             swea_pad_low = Dict(:data_load_flag => false)
+#             swea_pad_high = Dict(:data_load_flag => false)
+#         else
+#             swea_pad_low = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
+#             swea_pad_high = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
+#         end
+#         data_dict["swea_pad_low"] = swea_pad_low
+#         data_dict["swea_pad_high"] = swea_pad_high
+#         data_dict = get_B_model_ss(data_dict)
+#         # data_dict = mag2sphere(data_dict)
+#         save(save_file_name, "data", data_dict)
+#         println("Loading Done")
+#     end
+# end
+
+# x_range = [DateTime(2015, 10, 29, 11), DateTime(2015, 10, 29, 13)]
+# date_str = Dates.format(DateTime(yyyy, mm, dd), "yyyy-mm-dd")
+# kp_x = data_dict["KP_l3"][:time]
+# i = [findfirst(x -> x >= x_range1, kp_x) for x_range1 in x_range]
+# orbit = data_dict["KP"][:Orbit_Number][i]
+# fig_title = date_str*" Orbit = $(orbit[1])-$(orbit[2])"
+# fig = Figure(; size=(2500, 2500))
+# @time fig,t0,xtimes = plot_module(fig, x_range, data_dict; time_step=Dates.Minute(5))
+# Label(fig[-1,:]; text=fig_title, halign=:center, valign=:top, padding=(0, 0, 0, 0))
+# rowsize!(fig.layout, 0, Relative(0.2))
+# save("example/MAVEN_plot_sample/MAVEN_case_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * ".png", fig)

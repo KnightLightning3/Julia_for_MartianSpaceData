@@ -367,7 +367,7 @@ function combina_two_dir_trace(B_data_1, B_data_2; to_pc=false) # 翻转第二�
     return B_data
 end
 function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力线数据结构
-    position = data["position"]
+    position = data[:position]
     mag_line_num = length(position[:, 1])
     s = zeros(mag_line_num)
     s[1] = 0
@@ -376,9 +376,9 @@ function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力
         x2 = position[i, 1:3]
         s[i] = s[i-1] + norm(x2 - x1)
     end
-    data["S"] = s
-    data["alt"] = [norm(x) for x in eachrow(position)] .- 3393.5
-    data["B_strenth"] = [norm(x) for x in eachrow(data["B"])]
+    data[:S] = s
+    data[:alt] = [norm(x) for x in eachrow(position)] .- 3393.5
+    data[:B_total] = [norm(x) for x in eachrow(data["B"])]
     return data
 end
 function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, input_frame="pc", output_frame="pc") #追踪磁力线
@@ -412,13 +412,13 @@ function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[Rm, Rm 
         end
         B_data = data
     end
-    result = Dict(
-        "position" => B_data[:, 1:3],
-        "B" => B_data[:, 4:6],
-        "num_steps" => mag_line_num,
-        "step" => step,
-        "frame" => output_frame,
-        "start_position" => n_source    # 起点的坐标
+    result = Dict{Symbol,Any}(
+        :position => B_data[:, 1:3],
+        :B => B_data[:, 4:6],
+        :num_steps => mag_line_num,
+        :step => step,
+        :frame => output_frame,
+        :start_position => n_source    # 起点的坐标
     )
     return result
 end
