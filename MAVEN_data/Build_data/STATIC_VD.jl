@@ -111,7 +111,7 @@ end
 end
 #获取所有文件和对应的mag文件
 files_ion = MAVEN_load.file_list("STATIC_d1")
-files_mag = MAVEN_load.file_list("MAG_ss1s_l3")
+files_mag = MAVEN_load.file_list("MAG_ss1s_vsc")
 dates_ion = [(m.captures[1] ,s) for s in files_ion for m in eachmatch(r"_([0-9]{8})_", s)]
 dates_mag = [(m.captures[1] ,s) for s in files_mag for m in eachmatch(r"_([0-9]{8})_", s)]
 common_dates = [
@@ -122,13 +122,14 @@ common_dates = [
 ]
 for (date, file_ion, file_vsc) in common_dates
     ion_version = match(r"_v([0-9]{2})_", file_ion).captures[1]
-    new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/mvn_sta_l3_vfd_$(date)_v$(ion_version).f77_unformatted"
+    new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/mvn_sta_l3_d1_vel_flux_den_$(date)_v$(ion_version).f77_unformatted"
     dir = dirname(new_path)
     if !isdir(dir)
         mkpath(dir)
     end
     if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
+        # println(file_vsc)
         vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
         ion_data = MAVEN_load.load_STATIC(file_ion)
         datas_dict = get_ion_vel(vsc_data,ion_data)
@@ -144,41 +145,3 @@ for (date, file_ion, file_vsc) in common_dates
         print("\033[0;33mSKIP $(date)\033[0m \r")
     end
 end
-# using PyCall
-# cdflib = pyimport("cdflib")
-# @time data = cdflib.cdfread.CDF(files_ion[1])
-# var_list = data.cdf_info()["zVariables"]
-# data.varget("mass")
-# convert(Int,data.varget("num_dists"))
-# data.varinq("mass")
-# data.vdr_info("mass")["pad"].dtype.name
-# convert(String,data.varinq("mass")["Data_Type_Description"])
-# convert(Float64,data.varget("mass"))
-# dii = data.varattsget("nmass")
-# for key in keys(dii)
-#     println(key,dii[key])
-# end
-
-# var_tpyes = Dict(
-#             "CDF_FLOAT" => Float32,
-#             "CDF_DOUBLE" => Float64,
-#             "CDF_INT2" => Int32,
-#             "CDF_INT4" => Int64,
-#             "CDF_CHAR" => String,
-#         )
-# var_name = "units_name"
-# convert(var_tpyes[convert(String,data.varinq(var_name)["Data_Type_Description"])],data.varget(var_name))
-# get.(Ref(data),"mass")
-
-# include("../MAVEN_load.jl")
-# import .MAVEN_load;
-# ion_data = MAVEN_load.load_STATIC(files_ion[1])
-
-# test_ion_data = MAVEN_STATIC.static_slip(ion_data, 100)
-# test_ion_data = MAVEN_STATIC.static_rotation(test_ion_data; frame="MSO")
-# test_ion_data = MAVEN_STATIC.STA_count2df_no_m_int(test_ion_data)
-# vel, flux, den = MAVEN_STATIC.sta_v_4d(test_ion_data; energy_range=[0, 1e5], mass_range=[20, 40], m_int=32,unit_cover=false)
-
-# nbins   = test_ion_data[:nbins]
-# nenergy = test_ion_data[:nenergy]
-# gf = reshape(test_ion_data[:gf], 1, nbins,nenergy)

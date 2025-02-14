@@ -67,7 +67,7 @@ include("path/IGRF_calculate.jl")
 import .MAVEN_data_load
 import .IGRF_calculate
 ```
-具体读取方法: [MAVEN_data_format.md](MAVEN_data\MAVEN_data_format.md)
+具体读取方法: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
 
 
 # 火星磁场模型

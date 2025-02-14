@@ -40,6 +40,7 @@ end
         "SWIA_svy_spec",
         "SWEA_pad_svy",
         "SWIA_mom",
+        "LPW_mrgscpot",
     ]
     KP_data = MAVEN_load.data_get_from_date(date, model_index=["KP_l3"], show_filename=false)["KP_l3"]
     if !KP_data[:data_load_flag]
@@ -118,12 +119,13 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         "B_xyz",
         "density",
         "H_vel",
+        "scpot",
         "SWEA_spec",
         "swea_pad_high","swea_pad_low",
         "SWIA_svy_spec",
         "STATIC_c6",
         "STATIC_mass",
-        "LPW_wave", 
+        "LPW_wave",
     ]
     panels = Dict(name => index for (index, name) in enumerate(panel_name))
     color_ind = 2
@@ -199,7 +201,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         axs[np] = Axis(
             fig[np, panel_ind]; limits=(x_range_unix, nothing), 
             ylabel=rich("B",font =:bold," ",rich("(nT)",font = :regular)), 
-            yticks=[-300,-150,0,150,300,450] ,ax_Dict...)
+            ax_Dict...)
         if data_dict["MAG_ss1s_l3"][:data_load_flag]
             timeB_ss = data_dict["MAG_ss1s_l3"][:epoch]
             B_ss = data_dict["MAG_ss1s_l3"][:B]
@@ -277,6 +279,35 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
                 rich("V",subscript("x", font = :regular),color=colors[1]),
                 rich("V",subscript("y", font = :regular),color=colors[2]),
                 rich("V",subscript("z", font = :regular),color=colors[3]),
+                ]; 
+            merge=true, padding=padding, framevisible=false, tellheight=false, tellwidth=false)
+    end
+    if "scpot" in panel_name
+        np = panels["scpot"]
+        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (-10,10)), ylabel="scpot (V)", ax_Dict...)
+        if data_dict["STATIC_c6_origin"][:data_load_flag]
+            x0 = data_dict["STATIC_c6_origin"][:epoch]
+            x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
+            if time_i != []
+                lines!(axs[np], x, data_dict["STATIC_c6_origin"][:sc_pot][time_i], linewidth=3,color=colors[1])
+            end
+        end
+        if data_dict["LPW_mrgscpot"][:data_load_flag]
+            x0 = data_dict["LPW_mrgscpot"][:epoch]
+            x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
+            if time_i != []
+                flag = data_dict["LPW_mrgscpot"][:flag][time_i]
+                data = data_dict["LPW_mrgscpot"][:data][time_i]
+                flag_ind = flag .>= 50
+                lines!(axs[np], x[flag_ind], data[flag_ind], linewidth=3,color=colors[2])
+            end
+        end
+        hlines!(axs[np], [0], color=:black)
+        Legend(
+            fig[np, color_ind], [[],[]],
+            [
+                rich("STATIC",color= colors[1]),
+                rich("LPW_mrgscpot",color=colors[2]),
                 ]; 
             merge=true, padding=padding, framevisible=false, tellheight=false, tellwidth=false)
     end
@@ -489,8 +520,8 @@ end;
 
 #初始设置
 dt = Hour(2)
-T_start = DateTime(2014, 10, 1)
-T_end   = DateTime(2018, 10, 2)
+T_start = DateTime(2016, 4, 24)
+T_end   = DateTime(2023, 3, 1)
 Days = range(T_start, T_end, step=Day(1))
 time0 = Dates.now()
 for day in Days
@@ -516,7 +547,7 @@ for day in Days
         sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
         sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
     end
-    data_dict["STATIC_c6_orign"] = sta_data
+    data_dict["STATIC_c6_origin"] = sta_data
     data_dict["STATIC_c6"] = sta_total
     data_dict["STATIC_mass"] = sta_mass
 
@@ -552,7 +583,7 @@ for day in Days
         Label(fig[-1,:]; text=fig_title, halign=:center, valign=:top, padding=(0, 0, 0, 0))
         rowsize!(fig.layout, 0, Relative(0.2))
         save(parent_dir* Dates.format(time_range1, "yyyy-mm-dd_HH") * ".png", fig)
-        # save("/example/MAVEN_plot_sample/"*Dates.format(time_range1, "yyyy-mm-dd_HH") * ".png", fig)
+        # save("C:/Users/chengsw/Projects/Package_for_Julia_of_csw/example/MAVEN_plot_sample/"*Dates.format(time_range1, "yyyy-mm-dd_HH") * ".png", fig)
         time2 = Dates.now()
         elapsed_time = TimeFormat(time1, time2)
         total_time = TimeFormat(time0, time2)
