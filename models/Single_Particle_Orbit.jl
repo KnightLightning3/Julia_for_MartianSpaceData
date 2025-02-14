@@ -31,7 +31,7 @@ function cross3(a::Vector{Float64}, b::Vector{Float64})::Vector{Float64}
          ]
     return ans
 end
-function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=1, hidde_progress=false, r_range=[0.0, 1e10], particle="ion") # mq: 反比荷
+function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=1, hide_progress=false, r_range=[0.0, 1e10], particle="ion") # mq: 反比荷
     if particle == "ion"
         mq = q2mp / AMU
     elseif particle == "electron"
@@ -56,7 +56,7 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     r_data[1] = norm(x)
     b_data[1, :] = B(x)
 
-    if !hidde_progress
+    if !hide_progress
         global time01 = Dates.now()
         println("\033[42mStart Tarcing\033[0m at (\033[33m$time01\033[0m) Step = \033[36m $dt\033[0m")
     end
@@ -112,14 +112,14 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     #     t_data = t_data[fliter_index]
     #     r_data = r_data[fliter_index]
     # end
-    if !hidde_progress
+    if !hide_progress
         time02 = Dates.now()
         total_time = TimeFormat(time01, time02)
         println("\033[42mEnd Tarcing\033[0m at (\033[33m$time02\033[0m) Step = \033[36m $dt\033[0m, Total_Time = \033[36m$total_time\033[0m")
     end
 
     return_data = Dict(
-        :discription => "velocity,position,B_field,distence",
+        :description => "velocity,position,B_field,distance",
         :vel => v_data,
         :r => r_data,
         :pos => x_data,
@@ -154,7 +154,7 @@ function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, 
     r_data = [norm(x) for x in eachrow(x_data)]
     b_data = [B(x) for x in eachrow(x_data)]
     return_data = Dict(
-        :discription => "velocity,position,time",
+        :description => "velocity,position,time",
         :vel => v_data,
         :pos => x_data,
         :time => t_data,
@@ -213,7 +213,7 @@ end
 # using .Single_Particle_Orbit
 # using GLMakie
 # EnvironmentPath = "D:/CODE/Package_for_Julia/"
-# include(EnvironmentPath*"Megnetic_Model/IGRF_calculate.jl")
+# include(EnvironmentPath*"Magnetic_Model/IGRF_calculate.jl")
 # import .IGRF_calculate;
 
 # v0 = [18.00650385330508,-12.447101833421216,-12.513798039815253] .* 1e3 .*(-1)

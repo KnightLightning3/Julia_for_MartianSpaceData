@@ -72,8 +72,8 @@ end
     data_dict["KP"] = Dict()
     data_dict["KP"][:data_load_flag] = data_dict["KP_l3"][:data_load_flag]
     for key in keys(KP_data_name_replace)
-        symobl_i = Symbol("var_$(KP_data_name_replace[key])")
-        data_dict["KP"][key] = data_dict["KP_l3"][:vars][symobl_i]
+        symbol_i = Symbol("var_$(KP_data_name_replace[key])")
+        data_dict["KP"][key] = data_dict["KP_l3"][:vars][symbol_i]
     end
     return data_dict,true
 end
@@ -325,7 +325,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
                 wave_data = data_dict["LPW_wave"][:data][time_i, :]
                 freq = data_dict["LPW_wave"][:freq][time_i, :]
                 if false in isnan.(wave_data)
-                    MAVEN_plot.WaveSpactra_heatmap(axs[np], x, freq, wave_data;c_range=c_range_lpw,f_range=f_range)
+                    MAVEN_plot.WaveSpectra_heatmap(axs[np], x, freq, wave_data;c_range=c_range_lpw,f_range=f_range)
                 end
             end
         end

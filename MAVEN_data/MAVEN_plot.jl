@@ -294,7 +294,7 @@ function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10))
     end
     return ax
 end
-function WaveSpactra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range = (1,1e5)) #强制绘制为对数轴
+function WaveSpectra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range = (1,1e5)) #强制绘制为对数轴
     ax.yscale = identity
     f_range_log = log10.(f_range)
     ylims!(ax,f_range_log)
@@ -513,7 +513,7 @@ function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7
     # heatmap!(ax, v_para_gridded,v_perp_gridded,c_interp, colormap=:viridis, colorrange=c_range , colorscale=log10)
     return ax
 end
-function time2x(time, range::Vector{DateTime};t0 = 0.0,convert = true) # 将时间转为unix时间戳并且range限制时间范围
+function time2x(time, range;t0 = 0.0,convert = true) # 将时间转为unix时间戳并且range限制时间范围
     if convert
         range_data = range
         time_i = findall(t -> range_data[1] <= t <= range_data[2], time)
