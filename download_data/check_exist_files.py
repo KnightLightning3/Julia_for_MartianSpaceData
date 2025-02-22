@@ -1,4 +1,4 @@
-# 检查本地所有存在的文件
+# 检查本地所有存在的文件,并且将文件名与对应hash值计算后保存到filehash_list.txt中
 import os
 import re
 import json
@@ -53,15 +53,36 @@ def search_downloaded_files(save_path,file_style):
             for filepath in filepaths:
                 filenames.append(filepath)
     return filenames
+# def get_filehashs(save_path,file_style):  HASH值计算时长过长，暂时不使用
+#       import hashlib
+#     # 计算文件hash值
+#     filehash_list = []
+#     yyyy = os.listdir(save_path)
+#     for iy in yyyy:
+#         mm   = os.listdir(save_path+iy+"/")
+#         for im in mm:
+#             files = os.listdir(save_path+iy+"/"+im+"/")
+#             filedirs = [save_path+iy+"/"+im+"/"+file for file in files if re.match(file_style,file)]
+#             for filedir in filedirs:
+#                 filehash = hashlib.new('sha256')
+#                 with open(filedir, 'rb') as f:
+#                     filehash.update(f.read())
+#                 filehash_list.append(filedir+","+filehash.hexdigest())
+#     return filehash_list
 if __name__ == '__main__':
     for model in json_data["data_model"].keys():
         save_path,file_style = download_model(model)
+        print(save_path)
         file_names = search_downloaded_files(save_path,file_style)
         if file_names is None:
             continue
         with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
+        # filehash_list = get_filehashs(save_path,file_style)
+        # with open(json_data["save_path"]+"filehash_list.csv", 'w', encoding='utf-8') as file:
+        #     for item in filehash_list:
+        #         file.write(str(item) + '\n')
     
     runpy.run_path(f'{project_path}/download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
     exit(0) # check download file mode do not download file

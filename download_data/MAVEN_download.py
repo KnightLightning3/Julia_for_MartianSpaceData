@@ -296,7 +296,6 @@ if __name__ == '__main__':
 
     for model in models:
         current_date = start_date
-
         nums_downloaded = 0
         nums_failed = 0
         bool_skip = False
@@ -312,8 +311,37 @@ if __name__ == '__main__':
                     file.write(str(item) + '\n') 
         while current_date <= end_date:
             date=str(current_date.strftime("%Y%m%d"))
-            if not update_file_version:
-                if find_downloaded_file(file_names, date):
+            booL_exist = find_downloaded_file(file_names, date) if not update_file_version else False
+            if booL_exist:
+                if bool_skip == False:
+                    skip_data_start = current_date.strftime("%Y-%m-%d")
+                bool_skip = True
+                current_date+=datetime.timedelta(days=1)
+                continue
+            else:
+                if bool_skip:
+                    print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
+                    bool_skip = False
+            year      = current_date.year
+            month     = current_date.month
+            yyyymm    = str(current_date.strftime("%Y/%m/"))
+            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
+            if not bool_urls:
+                # 移动到下个月的一号
+                month+=1
+                if month == 13:
+                    month=1
+                    year+=1
+                current_date = datetime.date(year, month, 1)
+                continue
+            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
+            for url in urls:
+                filename = str(url)
+                date=re.findall(r"\d{8}", filename)[0]
+                if start_date.strftime("%Y%m%d") > date or date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
+                    continue
+                booL_exist = find_downloaded_version(file_names,filename,date,save_path) if update_file_version else find_downloaded_file(file_names, date)
+                if booL_exist:
                     if bool_skip == False:
                         skip_data_start = current_date.strftime("%Y-%m-%d")
                     bool_skip = True
@@ -323,82 +351,6 @@ if __name__ == '__main__':
                     if bool_skip:
                         print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
                         bool_skip = False
-            year      = current_date.year
-            month     = current_date.month
-            yyyymm    = str(current_date.strftime("%Y/%m/"))
-            urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
-            if not bool_urls:
-                month+=1
-                if month == 13:
-                    month=1
-                    year+=1
-                current_date = datetime.date(year, month, 1)
-                continue
-            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
-            for url in urls:
-                filename = str(url)
-                date=re.findall(r"\d{8}", filename)[0]
-                if start_date.strftime("%Y%m%d") > date or date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
-                    continue
-                if not update_file_version:
-                    if find_downloaded_file(file_names, date):
-                        if bool_skip == False:
-                            skip_data_start = current_date.strftime("%Y-%m-%d")
-                        bool_skip = True
-                        current_date+=datetime.timedelta(days=1)
-                        continue
-                    else:
-                        if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
-                            bool_skip = False
-                else:
-                    if find_downloaded_version(file_names,filename,date,save_path):
-                        # 本地版本不需要更新
-                        if bool_skip == False:
-                            skip_data_start = current_date.strftime("%Y-%m-%d")
-                        bool_skip = True
-                        current_date+=datetime.timedelta(days=1)
-                        continue
-                    else:
-                        if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
-                            bool_skip = False
-            if not bool_urls:
-                month+=1
-                if month == 13:
-                    month=1
-                    year+=1
-                current_date = datetime.date(year, month, 1)
-                continue
-            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
-            for url in urls:
-                filename = str(url)
-                date=re.findall(r"\d{8}", filename)[0]
-                if start_date.strftime("%Y%m%d") > date or date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
-                    continue
-                if not update_file_version:
-                    if find_downloaded_file(file_names, date):
-                        if bool_skip == False:
-                            skip_data_start = current_date.strftime("%Y-%m-%d")
-                        bool_skip = True
-                        current_date+=datetime.timedelta(days=1)
-                        continue
-                    else:
-                        if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
-                            bool_skip = False
-                else:
-                    if find_downloaded_version(file_names,filename,date,save_path):
-                        # 本地版本不需要更新
-                        if bool_skip == False:
-                            skip_data_start = current_date.strftime("%Y-%m-%d")
-                        bool_skip = True
-                        current_date+=datetime.timedelta(days=1)
-                        continue
-                    else:
-                        if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
-                            bool_skip = False
 
                 if not os.path.exists(save_path+yyyymm):
                     os.makedirs(save_path+yyyymm)

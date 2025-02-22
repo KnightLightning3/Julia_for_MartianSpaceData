@@ -36,16 +36,14 @@ for mag_key in mag_keys
         if !isdir(dir)
             mkpath(dir)
         end
-        # if file in lists
-        #     println("skip $(new_path[25:end])")
-        #     continue
-        # end
-        # print("\033[0;32mREADing $(new_path[25:end])\033[0m")
-        # BData = MAVEN_load.load_mag_l2(file)["Vars"]
-        # push!(lists,file)
-        if !isfile(new_path)
+        if !isfile(new_path) || filesize(new_path) == 0
             print("\033[0;32mBuilding $(new_path[25:end])\033[0m \n")
-            BData = MAVEN_load.load_mag_l2(file)
+            try
+                BData = MAVEN_load.load_mag_l2(file)
+            catch e
+                print("\033[0;31mERROR $(new_path[25:end])\033[0m \n")
+                continue
+            end
             touch(new_path)
             data2bi(BData,new_path)
         else
