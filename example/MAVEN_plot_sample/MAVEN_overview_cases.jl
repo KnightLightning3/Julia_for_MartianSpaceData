@@ -158,7 +158,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         ax1 = Axis(
             fig[0, panel_ind][1,1],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
             ylabel = rich("(Y",superscript("2"),subscript("MSO",offset=(-0.6,0))," + Z",superscript("2"),subscript("MSO",offset=(-0.6,0)),")",superscript("1/2")),
-            limits = ((-2, 2), (0,4)),xreversed = true
+            limits = ((-3, 3), (0,4)),xreversed = true
             )
         ax2 = Axis(
             fig[0, panel_ind][1,2],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
@@ -520,7 +520,7 @@ end;
 
 #初始设置
 dt = Hour(2)
-T_start = DateTime(2016, 4, 24)
+T_start = DateTime(2020, 7, 21)
 T_end   = DateTime(2023, 3, 1)
 Days = range(T_start, T_end, step=Day(1))
 time0 = Dates.now()
