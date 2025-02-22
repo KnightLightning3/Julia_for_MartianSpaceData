@@ -267,6 +267,18 @@
             "mvn_swi_l2_coarsesvy3d_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"
+        ],
+        "EUV_l2_bands": [
+            ["EUV/l2/","None","euv/l2/"],
+            "mvn_euv_l2_bands_.+\\.cdf",
+            "EUV/l2/",
+            "load_cdf"
+        ],
+        "EUV_l3_daily": [
+            ["EUV/l3/","None","euv/l3/"],
+            "mvn_euv_l3_daily.+\\.cdf",
+            "EUV/l3/",
+            "load_cdf"
         ]
     },
     "kp_dict": {

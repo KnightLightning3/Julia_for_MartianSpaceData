@@ -3,30 +3,57 @@
 
 <h1 align="center">Julia Pkg for Mars</h1>
 
+# Table of Contents
+- [Introduction](#introduction)
+- [Downloading Data](#downloading-data)
+- [Reading Data](#reading-data)
+- [Mars Magnetic Field Model](#mars-magnetic-field-model)
+- [Custom Data Description](#custom-data-description)
+- [MAVEN Data Tips](#maven-data-tips)
+- [ToDo List](#todo-list)
+
 # Introduction
 
-[English](README_EN.md) / 简体中文
+English / [简体中文](README.md)
 
-Mars data processing package
+This package contains data processing programs for Mars, primarily written in Julia, with Python scripts for data downloading.
 
-The main data processing program is primarily in Julia code
+# Downloading Data
 
-The download program is primarily in Python
+The Python scripts are used for downloading data, following the same approach as in Julia. If you prefer not to manually install the required packages, it is recommended to use a virtual environment with `requirements.txt`.
+
+```
+pip install -r requirements.txt
+```
+
+
+For the first download, **you need to generate the initial configuration file**:
+
+Run `download_data\initialize_download_parameters.py`.
+
+After initializing the configuration file, modify `download_data\MAVEN_download_config.ini` to adjust the download settings. By default, it downloads all data from October 2014 to February 2023 from the USTC source.
+
+`download_data\MAVEN_download.py` will download the data files from the specified server. It is recommended to download from the USTC source (`Server_ind = 0`).
+
+Additionally, `download_data\磁场重构.jl` and `download_data\KP 重构.jl` can convert MAVEN's official magnetic field and KP files into Fortran binary and Julia binary formats for easier reading.
+
+Available MAVEN external servers (may require VPN):
+- USTC source, fast on-campus speed, server may not always be running, data may be incomplete: http://222.195.76.155:8000/MAVEN/
+- UCLA source, stable server, no NGIMS data: https://pds-ppi.igpp.ucla.edu/data/
+- LASP source, stable server: https://lasp.colorado.edu/maven/sdc/public/data/sci/
+- Berkeley source, similar format to LASP, default server for SPADES library, requires account credentials for a significant portion of the data, not directly accessible: http://sprg.ssl.berkeley.edu/data/maven/data/sci/
+
+Note that the file structure of https://pds-ppi.igpp.ucla.edu/data/ differs from the latter two, and it does not contain NGIM data.
 
 # Reading Data
-
-MAVEN data reading MAVEN_data_load.jl,
-
 
 ```
 Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
+This program requires a specific file tree structure, which is shared with the download section.
 
-This program requires a specific file tree format for reading,  
-which is shared with the download section
-
-In Julia, the import method is:
+To reference in Julia:
 
 ```
 include("path/MAVEN_data_load.jl")
@@ -35,50 +62,60 @@ import .MAVEN_data_load
 import .IGRF_calculate
 ```
 
-
-# Downloading Data
-
-Use the Python program, the method of downloading files is the same as in Julia  
-If you don't want to manually download the corresponding packages, it is recommended to use a virtual environment, requirements.txt
-
-```
-pip install -r requirements.txt
-```
-
-
-For the first download, **you need to generate the initialization settings file first**:
-
-Run 'download_data\initialize_download_parameters.py'
-
-After completing the initialization of the settings file, modify 'download_data\MAVEN_download_config.ini' to adjust the download mode. The default mode is to download all data from 2014-10 to 2023-02 from the USTC source
-
-'download_data\MAVEN_download.py' will download data files from the specified server. It is recommended to download from the USTC source (Server_ind = 0)
-
-In addition, 'download_data\磁场重构.jl' and 'download_data\KP 重构.jl' can convert MAVEN official magnetic field and KP files into Fortran binary and JULIA binary files for reading
-
-Available MAVEN external servers (may require VPN):
-- USTC source, fast on-campus speed, server may not be running, data may not be complete: http://222.195.76.155:8000/MAVEN/
-- UCLA source, stable server, no NGIMS data: https://pds-ppi.igpp.ucla.edu/data/
-- LASP source, stable server: https://lasp.colorado.edu/maven/sdc/public/data/sci/
-- Berkeley source, similar format to LASP, default server for SPADES library, a significant portion of the data requires an account and password, not directly accessible: http://sprg.ssl.berkeley.edu/data/maven/data/sci/
-
-The file tree of https://pds-ppi.igpp.ucla.edu/data/ is different from the latter two, and there is no NGIM data
+For specific reading methods, refer to: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
 
 # Mars Magnetic Field Model
 
-IGRF_calculate.jl
-Calculate Mars simulated magnetic field using the IGRF model
+`IGRF_calculate.jl` uses the IGRF model to calculate the simulated magnetic field of Mars.
 
 Model source: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combining Data Sets of MAVEN and MGS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021EA001860)
 
-# ToDo list
+# Custom Data Description
+
+Some data has been adjusted for ease of use.
+
+## KP_l3 Data
+KP data is saved in JLD2 format as a dictionary, where `epoch` corresponds to time, and variable indices correspond to the numbers in the KP documentation. Additionally, the coordinate transformation matrix is saved as a list of 3x3 matrices.
+
+Saved in `KP/l3/`.
+
+## MAG_l3 Data
+Magnetic field data is saved in Fortran77 unformatted format to reduce storage space and improve reading speed. Saved in `MAG/l3/`.
+
+## VSC Data:
+Spacecraft velocity, which can be calculated using the SPICE toolkit. However, there is a learning curve associated with it.
+
+This dataset is obtained by fitting a quadratic function to the position data from MAG with 1-second precision.
+
+Saved in `MAG/vsc/`, units in km/s.
+
+## STATIC_d1_v4d Data
+Based on the `v_4d` program in the SPEDAS library, using VSC data from MAG and potential corrections from STATIC.
+
+Calculates the velocity `vel` (km/s), density `den` (cm⁻³), and flux for $\textsf H^+$, $\textsf O^+$, and $\textsf O_2^+$ across the full energy and angular range.
+
+Saved in `STATIC/l3/`.
+
+# MAVEN Data Tips
+
+## STATIC Data:
+- STATIC returns a 3D matrix of (azimuth, energy, ion mass) for each time point, corresponding to the `energy`, `phi`, `theta`, and `mass_arr` matrices.
+- Scanning mode: STATIC has multiple scanning modes corresponding to different energy ranges, determined by the `swd_ind` parameter [0-26], which corresponds to the last dimension in the `energy`, `phi`, `theta`, and `mass_arr` matrices. In Julia, which uses 1-based indexing, the `swd_ind` parameter should be incremented by 1.
+- Attenuator: The attenuator adjusts the low-energy STA data (<15eV) by multiplying it by (1., 1/10, 1/100, 1/1000) to prevent saturation. Officially, the attenuator is not changed more frequently than every 5 minutes, but some data suggests temporary saturation and attenuator switching.
+- The `theta` and `phi` returned by STATIC correspond to 90-theta and phi in the spherical coordinate system, in the instrument reference frame. The `quat_mso` and `quat_sc` in the file are quaternions used to project the instrument reference frame to the MSO and SC reference frames.
+- STATIC, SWEA, and SWIA use the spherical coordinate system's 90-theta and phi. Ref: `spedas_6_1\general\science\sphere_to_cart.pro`.
+
+# ToDo List
 
 - [x] Cloud MAVEN data
-- [ ] Read all instruments
-- [ ] Overview event plotting example
-- [ ] Optimize CDF reading to instrument-specific mode (write the required variable list for each data package, remove unnecessary readings and PyObject judgments)
-- [X] Modify the download program to allow download_data\get_download_files.py to automatically read the file directory to generate a list file
-- [X] The download program can check the data version
+- [ ] Use SPEDAS's SPICE kernel to calculate coordinate transformation matrices for each instrument and save them as files
+- [ ] Use SPEDAS's SPICE kernel to calculate spacecraft velocity, acceleration, orbital parameters, etc., and save them as files
+- [ ] Full instrument reading
+- [X] Calculate shape parameter / `projects\maven\swea\mvn_swe_calc_shape_arr.pro`
+- [X] Example of overview event plotting
+- [ ] Optimize CDF reading for instrument-specific modes (write variable lists for each data package, remove unused variable reads and PyObject checks)
+- [X] Modify the download program so that `download_data\get_download_files.py` can automatically read the file directory to generate a list file
+- [X] Download program can check data versions
 - [x] Simple Julia plotting package
 - [x] External file tree reading
 - [ ] More magnetic field models
@@ -86,15 +123,7 @@ Model source: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combini
 - [x] Magnetic field line tracing
 - [x] Adapt file tree to SPEDAS structure
 - [x] MAVEN STATIC
-- [X] Add flowchart for project initialization and file processing flow
-- [ ] The processing function of STATIC currently only works for 4D data (time, mass, azimuth, energy), update to perform array operations after reshaping all values into the highest dimension array
-      Update as needed
+- [X] Add flowcharts for project initialization and file processing
+- [ ] STATIC processing functions currently only work on 4D data (time, mass, azimuth, energy). Update to reshape all values into the highest-dimensional array before performing array operations.
 
-# MAVEN Data Tips
-
-## STATIC Data:
-
-- STATIC returns a 3D matrix data of (azimuth, energy, ion mass number) for each moment, corresponding to the energy, phi, theta, mass_arr matrices
-- Scanning mode: STATIC has multiple different scanning modes, corresponding to different energy ranges, determined by the swd_ind parameter [0-26], corresponding to the last dimension of the energy, phi, theta, mass_arr matrices. In Julia, which starts counting from 1, the swd_ind parameter needs to be incremented by one
-- Attenuator: The attenuator will multiply the low energy segment STA data below 15eV by (1., 1/10, 1/100, 1/1000) to prevent saturation, the official claim is that the replacement time will not be less than 5 minutes, however, some data can be explained by temporary saturation, and there is a switch attenuator
-- The theta and phi returned by STATIC correspond to 90-theta and phi in spherical coordinates, in the instrument reference frame. The quaternions quat_mso and quat_sc in the file can be used to project the instrument reference frame to the mso and sc reference frames.
+Updated as per the author's needs.

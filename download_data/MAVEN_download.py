@@ -321,7 +321,7 @@ if __name__ == '__main__':
                     continue
                 else:
                     if bool_skip:
-                        print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                        print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
                         bool_skip = False
             year      = current_date.year
             month     = current_date.month
@@ -334,7 +334,7 @@ if __name__ == '__main__':
                     year+=1
                 current_date = datetime.date(year, month, 1)
                 continue
-            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K')
+            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
             for url in urls:
                 filename = str(url)
                 date=re.findall(r"\d{8}", filename)[0]
@@ -349,7 +349,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
                             bool_skip = False
                 else:
                     if find_downloaded_version(file_names,filename,date,save_path):
@@ -361,7 +361,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
                             bool_skip = False
             if not bool_urls:
                 month+=1
@@ -370,7 +370,7 @@ if __name__ == '__main__':
                     year+=1
                 current_date = datetime.date(year, month, 1)
                 continue
-            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K')
+            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
             for url in urls:
                 filename = str(url)
                 date=re.findall(r"\d{8}", filename)[0]
@@ -385,7 +385,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
                             bool_skip = False
                 else:
                     if find_downloaded_version(file_names,filename,date,save_path):
@@ -397,7 +397,7 @@ if __name__ == '__main__':
                         continue
                     else:
                         if bool_skip:
-                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.')
+                            print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
                             bool_skip = False
 
                 if not os.path.exists(save_path+yyyymm):
@@ -424,13 +424,13 @@ if __name__ == '__main__':
                             f'Responses: \033[0;32m{url_status_code}\033[0m '+
                             f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
                             f'Time spend: \033[1;34m{download_time}\033[0m s '+
-                            f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
+                            f'Speed: \033[1;34m{download_speed}\033[0m Mb/s',end='\n\n')
                     nums_downloaded = nums_downloaded+1
                 else:
                     print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
                             f'Status: \033[0;31m{logic}\033[0m ' +
                             f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ')
+                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ',end='\n\n')
                     nums_failed = nums_failed+1
             month+=1
             if month == 13:

@@ -6,7 +6,7 @@ using Base.Filesystem
 using ProgressMeter
 using FortranFiles
 function data2bi(data,file)
-    timeB,BB,B,position = data
+    timeB,BB,B,position = data[:epoch],data[:B_total],data[:B],data[:position]
     timeB_julian = datetime2julian.(timeB)
     n_time = Int64(length(timeB))
     timeB_in = convert(Vector{Float64},timeB_julian)
@@ -45,7 +45,7 @@ for mag_key in mag_keys
         # push!(lists,file)
         if !isfile(new_path)
             print("\033[0;32mBuilding $(new_path[25:end])\033[0m \n")
-            BData = MAVEN_load.load_mag_l2(file)["Vars"]
+            BData = MAVEN_load.load_mag_l2(file)
             touch(new_path)
             data2bi(BData,new_path)
         else
