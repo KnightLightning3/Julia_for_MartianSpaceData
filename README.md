@@ -4,12 +4,18 @@
 <h1 align="center">Julia Pkg for Mars</h1>
 
 # 索引
+- [索引](#索引)
 - [介绍](#介绍)
 - [下载数据](#下载数据)
 - [读取数据](#读取数据)
 - [火星磁场模型](#火星磁场模型)
 - [自建数据说明](#自建数据说明)
-- [MAVEN数据Tips](#maven-数据-tips)
+  - [KP\_l3数据](#kp_l3数据)
+  - [MAG\_l3数据](#mag_l3数据)
+  - [VSC 数据:](#vsc-数据)
+  - [STATIC\_d1\_v4d 数据](#static_d1_v4d-数据)
+- [MAVEN 数据 Tips](#maven-数据-tips)
+  - [STATIC 数据:](#static-数据)
 - [ToDo List](#todo-list)
 # 介绍
 
@@ -67,7 +73,7 @@ include("path/IGRF_calculate.jl")
 import .MAVEN_data_load
 import .IGRF_calculate
 ```
-具体读取方法: [MAVEN_data_format.md](MAVEN_data\MAVEN_data_format.md)
+具体读取方法: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
 
 
 # 火星磁场模型

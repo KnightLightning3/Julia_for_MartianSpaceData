@@ -45,9 +45,10 @@ function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假
     dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
     dtheta[:,1,:] = theta[:,2,:] - theta[:,1,:]
     dtheta[:,end,:] = theta[:,end,:] - theta[:,end-1,:]
+    theta = reshape(theta,ntime,1,4,48)
+    dtheta = reshape(dtheta,ntime,1,4,48)
 
     domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
-    domega = reshape(domega,ntime,1,ndeflect,nenergy)
     sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
 
     # mass = 5.68566e-06*1836. * 1.6e-22
@@ -55,6 +56,120 @@ function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假
     Const = 7.224566339926571e-7
     density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
     return density
+end
+function j_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 
+    # general/science/j_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考, 单位cm^-2s^-1
+    ntime = length(time_ind)
+    nanode = 16
+    ndeflect = 4
+    nbins = 64
+    nenergy = 48
+
+    data = dat[:diff_en_fluxes][time_ind,:,:,:]
+    energy = dat[:energy_coarse]
+    ind = findall(x->!(energy_range[2] >= x >= energy_range[1]),energy)
+    data[:,:,:,ind] .= 0.0
+    energy= reshape(dat[:energy_coarse],1,48)
+    denergy = energy .* 0.15 #dat[:de_over_e_coarse]
+
+    phi = dat[:phi_coarse]
+    dphi = 22.5/180*π
+    atten = dat[:atten_state][time_ind]
+    theta_coarse =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
+    theta_atten_coarse = dat[:theta_atten_coarse]
+
+    theta = zeros(ntime,ndeflect,nenergy)
+
+    for i in 1:ntime
+        if atten[i] <= 1
+            theta[i,:,:] = theta_coarse[:,:]
+        else
+            theta[i,:,:] = theta_atten_coarse[:,:]
+        end
+    end
+
+    dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
+    dtheta[:,1,:] = theta[:,2,:] - theta[:,1,:]
+    dtheta[:,end,:] = theta[:,end,:] - theta[:,end-1,:]
+
+    theta = reshape(theta,ntime,1,4,48)
+    dtheta = reshape(dtheta,ntime,1,4,48)
+    phi = reshape(phi,1,16,1,1)
+
+    Const = 1.0
+
+    domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
+    data.*cosd.(phi).*domega.*cosd.(theta)
+    sumdatax = sum(data.*cosd.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
+    sumdatay = sum(data.*sind.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
+    sumdataz = sum(data.*domega.*sind.(theta),dims=2:3)[:,1,1,:]
+    dnrg=Const.*denergy./energy
+
+    flux3dx = sum(dnrg.*sumdatax,dims=2)[:,1]
+    flux3dy = sum(dnrg.*sumdatay,dims=2)[:,1]
+    flux3dz = sum(dnrg.*sumdataz,dims=2)[:,1]
+    return hcat(flux3dx,flux3dy,flux3dz)
+end
+function v_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的速度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
+    # general/science/v_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考，已经经过检验，速度单位km/s
+    ntime = length(time_ind)
+    nanode = 16
+    ndeflect = 4
+    nbins = 64
+    nenergy = 48
+
+    data = dat[:diff_en_fluxes][time_ind,:,:,:]
+    energy = dat[:energy_coarse]
+    ind = findall(x->!(energy_range[2] >= x >= energy_range[1]),energy)
+    data[:,:,:,ind] .= 0.0
+    energy= reshape(dat[:energy_coarse],1,48)
+    denergy = energy .* 0.15 #dat[:de_over_e_coarse]
+
+    phi = dat[:phi_coarse]
+    dphi = 22.5/180*π
+    atten = dat[:atten_state][time_ind]
+    theta_coarse =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
+    theta_atten_coarse = dat[:theta_atten_coarse]
+
+    theta = zeros(ntime,ndeflect,nenergy)
+
+    for i in 1:ntime
+        if atten[i] <= 1
+            theta[i,:,:] = theta_coarse[:,:]
+        else
+            theta[i,:,:] = theta_atten_coarse[:,:]
+        end
+    end
+
+    dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
+    dtheta[:,1,:] = theta[:,2,:] - theta[:,1,:]
+    dtheta[:,end,:] = theta[:,end,:] - theta[:,end-1,:]
+    theta = reshape(theta,ntime,1,4,48)
+    dtheta = reshape(dtheta,ntime,1,4,48)
+
+    domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
+    sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
+
+    Const = 7.224566339926571e-7
+    density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)
+
+    phi = reshape(phi,1,16,1,1)
+
+    Const = 1.0
+
+    domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
+    data.*cosd.(phi).*domega.*cosd.(theta)
+    sumdatax = sum(data.*cosd.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
+    sumdatay = sum(data.*sind.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
+    sumdataz = sum(data.*domega.*sind.(theta),dims=2:3)[:,1,1,:]
+    dnrg=Const.*denergy./energy
+
+    flux3dx = sum(dnrg.*sumdatax,dims=2)[:,1]
+    flux3dy = sum(dnrg.*sumdatay,dims=2)[:,1]
+    flux3dz = sum(dnrg.*sumdataz,dims=2)[:,1]
+    flux = hcat(flux3dx,flux3dy,flux3dz)
+    vel = 1.e-5*flux./density
+    return vel,flux,density
 end
 function n_1d(dat;energy_range=[0.1,1e8],time_ind=1:10)# 计算SWIA的密度, SWIA假设所有离子为质子,需要SWIA svy spec data 3D
     flux = dat[:spectra_diff_en_fluxes][time_ind,:]
@@ -116,31 +231,26 @@ end
 # using Dates
 # using CairoMakie
 # # data_swia = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["SWIA_svy_spec","SWIA_coarse_svy_3d","SWIA_mom"])
-# energy_range = [500,1e8]
+# energy_range = [0,1e8]
 # data_mom = data_swia["SWIA_mom"]
 # data_spec = data_swia["SWIA_svy_spec"]
 # time_mom_ind  = findall(x-> DateTime(2015 ,10,29,11,40,40) >= x >= DateTime(2015 ,10,29,11,20,40),data_mom[:epoch])
-# time_ind = findall(x-> DateTime(2015 ,10,29,11,40,40) >= x >= DateTime(2015 ,10,29,11,20,40),data_spec[:epoch])
-# flux = data_spec[:spectra_diff_en_fluxes][time_ind,:]
-# energy = reshape(data_spec[:energy_spectra],1,48)
-# energy_ind = findall(x->x <= energy_range[1] || x >= energy_range[2],data_spec[:energy_spectra])
-# flux[:,energy_ind] .= 0.0
-# denergy = energy.*data_spec[:de_over_e_spectra]
-# mass = 5.68566e-6*1836. * 1.6e-22
-# Const = sqrt(mass/(2.0*1.6e-12)) *8.8
-
-# density = Const*sum(denergy.*(energy.^(-1.5)).*flux,dims=2)[:,1]
-
+# dat = data_swia["SWIA_coarse_svy_3d"]
+# energy_range = [0,1e8]
+# time_ind = findall(x-> DateTime(2015 ,10,29,11,40,40) >= x >= DateTime(2015 ,10,29,11,20,40),dat[:epoch])
+# density = MAVEN_SWIA.n_3d(dat,time_ind;energy_range=energy_range)
+# flux = MAVEN_SWIA.j_3d(dat,time_ind;energy_range=energy_range)
+# density = reshape(density,length(density),1)
+# # vel = 1e-5 .* flux ./ density
+# vel = MAVEN_SWIA.v_3d(dat,time_ind;energy_range=energy_range)
 # fig = Figure(;size=(500,1200))
 # ax  = Axis(fig[1,1])
-# lines!(ax,data_mom[:density][time_mom_ind],data_mom[:epoch][time_mom_ind],label="n_mom")
-# lines!(ax,density,data_spec[:epoch][time_ind],label="n_1d")
+# colors = [:red,:green,:blue]
+# for i in 1:3
+#     lines!(ax,data_mom[:velocity][time_mom_ind,i],data_mom[:epoch][time_mom_ind],label="n_mom",color = colors[i])
+#     lines!(ax,vel[:,i],dat[:epoch][time_ind],color=colors[i],linestyle = :dash)
+# end
 # fig
-
-
-# dat = data_swia["SWIA_coarse_svy_3d"]
-# energy_range = [500,1e8]
-# time_ind = findall(x-> DateTime(2015 ,10,29,11,40,40) >= x >= DateTime(2015 ,10,29,11,20,40),dat[:epoch])
 # # time_ind = findfirst(x-> x>= DateTime(2015 ,10,29,11,32,42),dat[:epoch])
 # # time_ind = [time_ind,time_ind+1]
 # nanode = 16
@@ -183,4 +293,4 @@ end
 # fig
 # # MAVEN_SWIA.n_3d(data_swia["SWIA_coarse_svy_3d"])
 
-# # # idl验证完毕,可以证明n_3d
+# # # idl验证完毕,可以证明n_3d,v_3d
