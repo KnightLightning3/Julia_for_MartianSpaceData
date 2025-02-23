@@ -106,3 +106,6 @@ MAVEN数据模块名列表
 |SWIA_svy_spec| |load_cdf|mvn_swi_l2_onboardsvyspec_.+\.cdf|
 |SWIA_fine_svy_3d| |load_cdf|mvn_swi_l2_finesvy3d_.+\.cdf|
 |SWIA_coarse_svy_3d| |load_cdf|mvn_swi_l2_coarsesvy3d_.+\.cdf|
+|EUV_l2_bands| |load_cdf|mvn_euv_l2_bands_.+\.cdf|
+|EUV_l3_daily| |load_cdf|mvn_euv_l3_daily.+\.cdf|
+|QL_overview|quik look for MAVEN overview data|load_cdf|\.png|

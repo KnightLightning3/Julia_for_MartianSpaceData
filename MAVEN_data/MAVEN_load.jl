@@ -864,3 +864,13 @@ open(dir * "/" * "filename_lists.json", "r") do f
     global filename_list = JSON.parse(f)
 end
 end # module
+
+
+
+# ----test
+# EnvironmentPath = "D:/CODE/Package_for_Julia/"
+# include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl")
+# import .MAVEN_load;
+# file = raw"C:\Users\Odysseus Lightning\Desktop\mvn_mag_l2_2015193pc_20150712_v01_r02.sts"
+# lines = readlines(file)
+# MAVEN_load.load_mag_l2(file)

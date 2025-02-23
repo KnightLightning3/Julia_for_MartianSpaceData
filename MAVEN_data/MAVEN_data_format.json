@@ -278,7 +278,8 @@
             ["EUV/l3/","None","euv/l3/"],
             "mvn_euv_l3_daily.+\\.cdf",
             "EUV/l3/",
-            "load_cdf"
+            "load_cdf",
+            "EUV daily averaged data"
         ]
     },
     "kp_dict": {

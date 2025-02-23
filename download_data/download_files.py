@@ -1,4 +1,4 @@
-# 给予网址,下载其下指定文件名格式的所有文件
+# 下载任意目录下的文件,可以遍历深度
 import datetime
 import os
 import requests
@@ -6,64 +6,58 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 import re
 from time import sleep
-import argparse
+import json
+import configparser
+from pathlib import Path
+def get_list_from_ini(input_string):
+    if input_string == 'Null':
+        return []
+    if input_string == 'None':
+        return None
+    stripped_string = input_string.replace(' ', '')
+    items = stripped_string.split(',')
+    return items
 
-def get_args():
-    parser = argparse.ArgumentParser(
-            description="这是一个下载程序，从指定url中下载指定名字的文件。"
-        )
-    parser.add_argument(
-        "-u","--url_path", 
-        type=str, 
-        default="", 
-        help="要访问的 URL 路径（默认为空）"
-    )
-    parser.add_argument(
-        "-s","--save_path", 
-        type=str, 
-        default="E:/下载/", 
-        help="要保存文件的地址,默认为下载文件夹"
-    )
-    parser.add_argument(
-        "-f","--file_style", 
-        type=str, 
-        default="csv",
-        help="指定要下载的文件格式"
-    )
-    parser.add_argument(
-        "-VPN","--use_VPN", 
-        action="store_true", 
-        help="是否使用VPN（默认不使用）"
-    )
-    parser.add_argument(
-        "--proxy", 
-        type=str,
-        default="7897",
-        help="VPN端口(默认7897端口)"
-    )
-    args = parser.parse_args()
-    if args.use_VPN:
-        vpn_proxy = {
-        "http": f"http://127.0.0.1:{args.proxy}",
-        "https":f"http://127.0.0.1:{args.proxy}",
-        }
-    else:
-        vpn_proxy =  None
-    print(f"URL路径: {args.url_path}")
-    print(f"保存路径: {args.save_path}")
-    print(f"文件格式: {args.file_style}")
-    print(f"是否使用VPN: {'是' if args.use_VPN else '否'}")
-    return args.url_path, args.save_path, args.file_style, vpn_proxy
-url_path,save_path,file_style,vpn_proxy = get_args()
-# http://atmos.nmsu.edu/PDS/data/PDS4/MAVEN/ngims_derivedL3_2024.tar.gz
-if url_path == "":
-    print("no url path")
-    exit(0)
-sleep_time = 60
-step_time = 3
+project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
+    json_data = json.load(file)
+data_model = json_data["data_model"]
+
+config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
+config_data = configparser.ConfigParser()
+config_data.optionxform = str
+config_data.read(config_file_path, encoding='utf-8')
+
+save_dir = config_data['DEFAULT']['Save_dir']
+Server_ind = config_data.getint('Servers','Server_ind')
+url_path_0 = config_data['Servers'][Server_ind]
+sleep_time = config_data.getint('DEFAULT','sleep_time')
+step_time = config_data.getint('DEFAULT','step_time')
 timeout = None
 
 session = requests.Session()
+if Server_ind == 0:  #自建服务器
+    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
+    user_name = config_data['Servers']['Username']
+    password = config_data['Servers']['Password']
+    session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
+    step_time = 0
+else:       # 外部服务器
+    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
+print(f"Server: {url_path_0},vpn: {vpn_proxy}")
+if vpn_proxy != None:
+    vpn_proxy = {
+    "http": vpn_proxy[0],
+    "https": vpn_proxy[0],
+    }
+
+# 设置区
+url_path_root = "http://222.195.76.155:8000/MAVEN/MAVEN_plot/overview/"
+file_style = ""
+save_path = save_dir+"MAVEN_plot/overview/"
+max_depth = 3
+# session = requests.Session()
+
 
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
@@ -72,10 +66,10 @@ def sleep_local(sleep_time_range):
     return None
 def test_proxies():
     global vpn_proxy
-    global url_path
+    global url_path_0
     global timeout
     try:
-        response = requests.get(url_path,proxies=vpn_proxy,timeout=timeout)
+        response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             print("\033[1;32m Connection Succeed\033[0m:"+vpn_proxy["http"])
         response.close()
@@ -99,7 +93,7 @@ def search_url(url,file_style):
     global timeout
     sleep_local(step_time)
     try:
-        print(f"Requesting:{url}...\033[K",end='\r')
+        # print(f"Requesting:{url}...\033[K",end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
@@ -149,10 +143,10 @@ def requests_download(url,save_path):
             progress_bar_data = progress_bar.format_dict
             # 如果路径不存在,创建路径
             if not os.path.exists(os.path.dirname(save_path)):
-                os.makedirs(save_path)
+                os.makedirs(os.path.dirname(save_path))
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
-                print(f"\033[FWriting into: {save_path}",end='\r')
+                print(f"\033[F\033[FWriting into: {save_path}",end='\r')
                 file.write(buffer)
             return response.status_code,True,progress_bar_data
         response.close()
@@ -161,10 +155,44 @@ def requests_download(url,save_path):
         sleep_local(sleep_time)
         return response.status_code,False,None
     return response.status_code,False,None
-
+def find_downloaded_file(file_names, element):
+    if file_names is None:
+        print("第一次下载")
+        return False
+    for file_name in file_names:
+        if element in file_name:
+            return True
+    return False
+def print_download_statue(url_status_code,logic,progress_data,filename):
+    time_now = datetime.datetime.now()
+    if logic:
+        try:
+            download_speed = str(round(progress_data["rate"]/1024/1024,2))
+            download_time = str(round(progress_data["elapsed"],2))
+        except:
+            download_speed = "ERROR"
+            download_time = "ERROR"
+        print(f'\033[1;34m{filename}\033[0m ' +
+                f'Status: \033[0;32m{logic}\033[0m ' +
+                f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
+                f'Time spend: \033[1;34m{download_time}\033[0m s '+
+                f'Speed: \033[1;34m{download_speed}\033[0m Mb/s',end='\n\n')
+    else:
+        print(f'\033[1;34m{filename}\033[0m ' +
+                f'Status: \033[0;31m{logic}\033[0m ' +
+                f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ',end='\n\n')
+def add_urls(urls_path,urls):
+    urls_return = []
+    for i in urls:
+        if "?" in i:
+            continue
+        if i[0] == "/":
+            continue
+        urls_return.append(url_path + i)
+    return urls_return
 if __name__ == '__main__':
-    nums_downloaded = 0
-    nums_failed = 0
     if vpn_proxy == None:
         print("\033[1;32m No VPN \033[0m")
     else:
@@ -172,46 +200,44 @@ if __name__ == '__main__':
         if(logic == False):
             print('\033[1;31m Connection Failed, Exit Program \033[0m')
             exit(0)
-    try:
-        urls_status_code,bool_urls,urls = search_url(url_path,file_style)
-    except requests.exceptions.RequestException as e:
-        print(f"failed_connect {url_path}, error:{e}")
-        urls = []
-        exit(0)
-    for url in urls:
-        filename = str(url)
-        if os.path.isfile(save_path+filename):
-            print(f"SKIP:{filename}")
+    model = []
+    
+    nums_downloaded = 0
+    nums_failed = 0
+
+    # 递归获取urls
+    url_paths = [url_path_root]
+    depth = max_depth
+    while depth > 0:
+        if depth != 0:
+            file_style_url = ""
+        else:
+            file_style_url = file_style
+        url_paths0 = []
+        print("当前深度:",depth)
+        for url_path in tqdm(url_paths):
+            urls_status_code,bool_urls,urls0 = search_url(url_path,file_style)
+            if bool_urls:
+                url_paths0.extend(add_urls(url_path,urls0))
+            else:
+                print(urls_status_code)
+                break
+        depth = depth - 1
+        url_paths = url_paths0
+    print("URLs获取完毕,共计",len(url_paths),"个URLs")
+    #下载内容
+    if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(save_path)
+    for url in url_paths:
+        path = Path(url)
+        filename = str(Path(*path.parts[-max_depth:]))
+        filename = filename.replace("\\", "/")
+        if os.path.exists(save_path+filename):
+            print(f"文件{filename}已存在")
             continue
-        try:
-            url_status_code,logic,progress_data = requests_download(url_path+filename,save_path+filename)
-        except:
-            logic = False
-        time_now = datetime.datetime.now()
+        url_status_code,logic,progress_data = requests_download(url,save_path+filename)
+        print_download_statue(url_status_code,logic,progress_data,filename)
         if logic:
-            try:
-                download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                download_time = str(round(progress_data["elapsed"],2))
-            except:
-                download_speed = "ERROR"
-                download_time = "ERROR"
-            print(f'{filename}: ' +
-                    f'Status: \033[0;32m{logic}\033[0m ' +
-                    f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                    f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
-                    f'Time spend: \033[1;34m{download_time}\033[0m s '+
-                    f'Speed: \033[1;34m{download_speed}\033[0m Mb/s')
             nums_downloaded = nums_downloaded+1
         else:
-            try:
-                print(f'{filename}: ' +
-                        f'Status: \033[0;31m{logic}\033[0m ' +
-                        f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                        f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ')
-            except:
-                print(f'{filename}: ' +
-                        f'Status: \033[0;31m{logic}\033[0m ' +
-                        f'Responses: \033[0;32munknow_error\033[0m '+
-                        f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ')
             nums_failed = nums_failed+1
-    print(f"download done, succeed {nums_downloaded}, failed {nums_failed}")

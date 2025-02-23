@@ -147,7 +147,7 @@ def requests_download(url,save_path):
             progress_bar_data = progress_bar.format_dict
             # 如果路径不存在,创建路径
             if not os.path.exists(os.path.dirname(save_path)):
-                os.makedirs(save_path)
+                os.makedirs(os.path.dirname(save_path))
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
                 print(f"\033[F\033[FWriting into: {save_path}",end='\r')
