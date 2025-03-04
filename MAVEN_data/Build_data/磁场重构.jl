@@ -39,7 +39,7 @@ for mag_key in mag_keys
         if !isfile(new_path) || filesize(new_path) == 0
             print("\033[0;32mBuilding $(new_path[25:end])\033[0m \n")
             try
-                BData = MAVEN_load.load_mag_l2(file)
+                global BData = MAVEN_load.load_mag_l2(file)
             catch e
                 print("\033[0;31mERROR $(new_path[25:end])\033[0m \n")
                 continue
