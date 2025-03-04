@@ -322,7 +322,7 @@ function WaveSpectra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range
     heatmap!(ax, x[bools], y[bools], c[bools], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
-function Orbit(ax, position_ss; frame="x-yz",line_krawg...)
+function Orbit(ax;pos_ss=[], frame="x-yz",line_krawg_bow=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_mag=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_sc =Dict(:linestyle=>:dash,:linewidth=>3))
     #绘制半球
     theta = LinRange(pi, 2pi, 100)
     x = sin.(theta)
@@ -339,8 +339,10 @@ function Orbit(ax, position_ss; frame="x-yz",line_krawg...)
         func_trans = (x,y,z) -> Point2f(x / Rm,z / Rm)
     end
 
-    trace_points = func_trans.(position_ss[:,1], position_ss[:,2], position_ss[:,3])
-    lines!(ax, trace_points; label="Orbit", overdraw=true,line_krawg...)
+    if pos_ss != []
+        trace_points = func_trans.(position_ss[:,1], position_ss[:,2], position_ss[:,3])
+        lines!(ax, trace_points; label="Orbit", overdraw=true,line_krawg_sc...)
+    end
 
     # bowshock
     x = -10:0.005:2
@@ -349,9 +351,9 @@ function Orbit(ax, position_ss; frame="x-yz",line_krawg...)
     x1 = vcat(x, reverse(x))
     yb1 = vcat(yb, reverse(-yb))
     ym1 = vcat(ym, reverse(-ym))
-    lines!(ax, x1, yb1; linestyle=:dash)#label="bowshock"
+    lines!(ax, x1, yb1; line_krawg_bow...)#label="bowshock"
     # magnetopause
-    lines!(ax, x1, ym1; linestyle=:dash)#label="magnetopause",
+    lines!(ax, x1, ym1; line_krawg_mag...)#label="magnetopause",
     return ax,func_trans
 end
 function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit=(1e-17, 1e-11), xlabel="pitch angle", ylabel="PSD", n=4)

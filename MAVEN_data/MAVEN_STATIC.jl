@@ -218,7 +218,7 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
         bkg = dat[:bkg]
         tmp = dat[:data]
     
-        for i in 1:ntime
+        @inbounds for i in 1:ntime
             swp_ind = dat[:swp_ind][i]
             att_ind = dat[:att_ind][i]
             eff_ind = dat[:eff_ind][i]
@@ -238,7 +238,7 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
         bkg = dat[:bkg]
         tmp = dat[:data]
 
-        for i in 1:ntime
+        @inbounds for i in 1:ntime
             swp_ind = dat[:swp_ind][i]
             att_ind = dat[:att_ind][i]
             eff_ind = dat[:eff_ind][i]
@@ -256,6 +256,63 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
     dat[:df] = scale .* tmp
     return dat
 end
+# function STA_count2df_all_no_m_int(dat) #计算df,结果需要times 质量数的平方
+#     ntime   = dat[:num_dists]
+
+#     nmass   = dat[:nmass]
+#     nbins   = dat[:nbins]
+#     nenergy = dat[:nenergy]
+#     energy  = dat[:energy]
+#     dims4 = (ntime,nmass,nbins,nenergy) 
+#     if nbins == 1
+#         gf     = zeros(ntime,1,nenergy)
+#         eff    = zeros(ntime,nmass,nenergy)
+#         mass   = zeros(ntime,nmass,nenergy)
+#         energy = zeros(ntime,nmass,nenergy)
+#         dt   = reshape(dat[:time_integ],ntime, 1,  1)
+    
+#         dead = dat[:dead]
+#         bkg = dat[:bkg]
+#         tmp = dat[:data]
+    
+#         @inbounds for i in 1:ntime
+#             swp_ind = dat[:swp_ind][i]
+#             att_ind = dat[:att_ind][i]
+#             eff_ind = dat[:eff_ind][i]
+#             gf[i,:,:]   = dat[:gf][att_ind+1,:,swp_ind+1]
+#             eff[i,:,:]  = dat[:eff][:,:,eff_ind+1]
+#             mass[i,:,:] = dat[:mass]
+#             energy[i,:,:] = dat[:energy][:,:,swp_ind+1]
+#         end
+#     else
+#         gf     = zeros(ntime,1,nbins,nenergy)
+#         eff    = zeros(ntime,nmass,nbins,nenergy)
+#         mass   = zeros(ntime,nmass,nbins,nenergy)
+#         energy = zeros(ntime,nmass,nbins,nenergy)
+#         dt   = reshape(dat[:time_integ],ntime, 1, 1, 1)
+
+#         dead = dat[:dead]
+#         bkg = dat[:bkg]
+#         tmp = dat[:data]
+
+#         @inbounds for i in 1:ntime
+#             swp_ind = dat[:swp_ind][i]
+#             att_ind = dat[:att_ind][i]
+#             eff_ind = dat[:eff_ind][i]
+#             gf[i,:,:,:]   = dat[:gf][att_ind+1,:,:,swp_ind+1]
+#             eff[i,:,:,:]  = dat[:eff][:,:,:,eff_ind+1]
+#             mass[i,:,:,:] = dat[:mass]
+#             energy[i,:,:,:] = dat[:energy][:,:,:,swp_ind+1]
+#         end
+#     end
+
+#     G = dat[:geom_factor].*eff.*gf
+
+#     tmp = (tmp .- bkg ).*dead
+#     scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
+#     dat[:df] = scale .* tmp
+#     return dat
+# end
 function STA_count2eflux_all(dat) #计算df,对非时间切片数据
     ntime   = dat[:num_dists]
 
@@ -327,15 +384,15 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     att_ind = dat[:att_ind][time_ind]
     eff_ind = dat[:eff_ind][time_ind]
 
-    dat_slip[:eflux]    = dat[:eflux][time_ind,:,:,:]
-    dat_slip[:data]     = dat[:data][time_ind,:,:,:]
-    dat_slip[:bkg]     = dat[:bkg][time_ind,:,:,:]
-    dat_slip[:epoch]    = dat[:epoch][time_ind]
-    dat_slip[:time_integ]= dat[:time_integ][time_ind]
-    dat_slip[:swp_ind]  = dat[:swp_ind][time_ind]
-    dat_slip[:att_ind]  = dat[:att_ind][time_ind]
-    dat_slip[:eff_ind]  = dat[:eff_ind][time_ind]
-    dat_slip[:sc_pot]   = dat[:sc_pot][time_ind]
+    dat_slip[:eflux]        = dat[:eflux][time_ind,:,:,:]
+    dat_slip[:data]         = dat[:data][time_ind,:,:,:]
+    dat_slip[:bkg]          = dat[:bkg][time_ind,:,:,:]
+    dat_slip[:epoch]        = dat[:epoch][time_ind]
+    dat_slip[:time_integ]   = dat[:time_integ][time_ind]
+    dat_slip[:swp_ind]      = dat[:swp_ind][time_ind]
+    dat_slip[:att_ind]      = dat[:att_ind][time_ind]
+    dat_slip[:eff_ind]      = dat[:eff_ind][time_ind]
+    dat_slip[:sc_pot]       = dat[:sc_pot][time_ind]
     dat_slip[:dead]         = dat[:dead][time_ind,:,:,:]
     dat_slip[:quat_mso]     = dat[:quat_mso][time_ind,:]
     dat_slip[:quat_sc]      = dat[:quat_sc][time_ind,:]
@@ -366,9 +423,7 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
         println("Invalid Data")
         return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
     end
-
-    # 		# Use distribution function
-    
+    # Use distribution function
     # if unit !=:df
     #     if unit ==:eflux"
     #         dat = STA_eflux2df(dat;m_int=m_int)
@@ -422,6 +477,47 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     vel = 1e-5 .* flux ./(density .+ 1e-10)
     return vel,flux,density
 end
+# function sta_v_4d(dat,time_ind;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_cover=true)#计算离子速度,流速,密度,单位km/s,/cm^2/s cm^-3
+#     if unit_cover
+#         dat = STA_count2df_all(dat;m_int=m_int)
+#         data=dat[:df]
+#     else
+#         data=dat[:df_mass_mass] .*m_int^2  #需要提前用STA_count2df_all_no_m_int处理之
+#     end
+#     energy = dat[:energy] 
+#     denergy = dat[:denergy] 
+#     theta = dat[:theta]./RADG
+#     phi = dat[:phi] ./RADG
+#     dtheta = dat[:dtheta] ./RADG
+#     dphi = dat[:dphi] ./RADG
+#     mass_arr = dat[:mass_arr]
+#     pot = dat[:sc_pot]
+
+#     ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+#     data[ind].=0.0
+
+#     ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+#     data[ind].=0.0
+    
+#     mass=dat[:mass]*m_int
+    
+#     Const = 2.0/mass/mass*1e5
+#     energy=energy.+pot		# energy/charge analyzer, require positive energy
+#     energy[energy .< 0.0] .=0.0
+
+#     flux0 = Const.*denergy.*energy.*data
+#     theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
+#     flux3dx = sum(flux0.*theta0.*cos.(phi))
+#     flux3dy = sum(flux0.*theta0.*sin.(phi))
+#     flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
+#     #units are 1/cm^2-s
+#     Const = mass^(-1.5)*2.0^(0.5)
+#     density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    
+#     flux = [flux3dx,flux3dy,flux3dz]
+#     vel = 1e-5 .* flux ./(density .+ 1e-10)
+#     return vel,flux,density
+# end
 function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
@@ -461,7 +557,8 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
     function rotate_vector(u::AbstractVector,q::QuaternionF64)
         q_u = QuaternionF64(0, u[1], u[2], u[3])
         q_v = q*q_u*conj(q)
-        return [imag_part(q_v)...]
+        q_v_i = imag_part(q_v)
+        return [q_v_i[1],q_v_i[2],q_v_i[3]]
     end
     function sphere2xyz_for_static_rotation(θ,ϕ)
         x = cosd.(θ) .*  cosd.(ϕ)

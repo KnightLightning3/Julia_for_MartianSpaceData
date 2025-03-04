@@ -417,6 +417,26 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     return data
 end
 ## ------------------------------数据处理--------------------------------
+kp_dict_0 = Dict(
+    :electorn_density => 2,
+    :GEO_x => 187,
+    :GEO_y => 188,
+    :GEO_z => 189,
+    :MSO_x => 190,
+    :MSO_y => 191,
+    :MSO_z => 192,
+    :Orbit_Number => 210,
+    :Shape_parameter => 39,
+)
+function convert_kp_l3(data::Dict;kp_dict=kp_dict_0)
+    data_out = Dict{Symbol,Any}()
+    data_out[:time] = data[:time]
+    for (key, value) in kp_dict
+        symobl_i = Symbol("var_$value")
+        data_out[key] = data[:vars][symobl_i]
+    end
+    return data_out
+end
 function Bpc2sphere(x, y, z, bx, by, bz)
     r = sqrt(x^2 + y^2 + z^2)
     θ = acos(z / r)

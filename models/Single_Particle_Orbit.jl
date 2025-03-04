@@ -58,7 +58,7 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
 
     if !hide_progress
         global time01 = Dates.now()
-        println("\033[42mStart Tarcing\033[0m at (\033[33m$time01\033[0m) Step = \033[36m $dt\033[0m")
+        print("\033[42mStart Tarcing\033[0m at (\033[33m$time01\033[0m) Step = \033[36m $dt\033[0m\r")
     end
 
     @inbounds for i in 2:Nt
@@ -129,7 +129,7 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     )
     return return_data
 end
-function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, dt; AMU=1, particle="ion")
+function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, dt; AMU=1, particle="ion",hide_progress=false)
     if particle == "ion"
         mq = q2mp / AMU
     elseif particle == "electron"
@@ -143,6 +143,11 @@ function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, 
         du[4:6] = dvdt(v, E(x), B(x), mq)
     end
 
+    if !hide_progress
+        global time01 = Dates.now()
+        print("\033[42mStart Tarcing\033[0m at (\033[33m$time01\033[0m) Step = \033[36m $dt\033[0m\r")
+    end
+
     u0 = vcat(x0, v0)
     prob = ODEProblem(ODE!, u0, tspan)
     sol = solve(prob, Tsit5(); dt=dt)
@@ -151,8 +156,20 @@ function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, 
     v_data = sol[4:6, :]'
     t_data = sol.t
 
-    r_data = [norm(x) for x in eachrow(x_data)]
-    b_data = [B(x) for x in eachrow(x_data)]
+    b_data = zeros(Nt, 3)
+    r_data = zeros(Nt)
+
+    for i in eachindex(t_data)
+        x = x_data[i, :]
+        b_data[i,:] = B(x)
+        r_data[i] = norm(x)
+    end
+    if !hide_progress
+        time02 = Dates.now()
+        total_time = TimeFormat(time01, time02)
+        println("\033[42mEnd Tarcing\033[0m at (\033[33m$time02\033[0m) Step = \033[36m $dt\033[0m, Total_Time = \033[36m$total_time\033[0m")
+    end
+
     return_data = Dict(
         :description => "velocity,position,time",
         :vel => v_data,

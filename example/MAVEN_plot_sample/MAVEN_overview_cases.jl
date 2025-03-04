@@ -180,13 +180,13 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
 
         mapped_colors = [cgrad(:jet, n_points, categorical=true)...]
 
-        ax1,func_trans1 = MAVEN_plot.Orbit(ax1,pos_ss;frame="x-yz",color=colors[1],linewidth=3)
+        ax1,func_trans1 = MAVEN_plot.Orbit(ax1;pos_ss=pos_ss,frame="x-yz",line_krawg_sc =Dict(:color=>colors[1],:linewidth=>3))
         pp = func_trans1.(pos_tick[:,1],pos_tick[:,2],pos_tick[:,3])
         scatter!(ax1, pp, color=mapped_colors, colormap=:jet, markersize=15, marker=:xcross)
-        ax2,func_trans2 = MAVEN_plot.Orbit(ax2,pos_ss;frame="x-y",color=colors[1],linewidth=3)
+        ax2,func_trans2 = MAVEN_plot.Orbit(ax2;pos_ss=pos_ss,frame="x-y",line_krawg_sc =Dict(:color=>colors[1],:linewidth=>3))
         pp = func_trans2.(pos_tick[:,1],pos_tick[:,2],pos_tick[:,3])
         scatter!(ax2, pp, color=mapped_colors, colormap=:jet, markersize=15, marker=:xcross)
-        ax3,func_trans3 = MAVEN_plot.Orbit(ax3,pos_ss;frame="x-z",color=colors[1],linewidth=3)
+        ax3,func_trans3 = MAVEN_plot.Orbit(ax3;pos_ss=pos_ss,frame="x-z",line_krawg_sc =Dict(:color=>colors[1],:linewidth=>3))
         pp = func_trans3.(pos_tick[:,1],pos_tick[:,2],pos_tick[:,3])
         scatter!(ax3, pp, color=mapped_colors, colormap=:jet, markersize=15, marker=:xcross)
 
