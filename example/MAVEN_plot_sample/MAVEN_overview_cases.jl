@@ -4,14 +4,11 @@ using DataFrames
 using ProgressMeter
 using LinearAlgebra
 using JLD2
-include("../../MAVEN_data/MAVEN_load.jl")
-include("../../MAVEN_data/MAVEN_plot.jl")
-include("../../MAVEN_data/MAVEN_STATIC.jl")
-include("../../Magnetic_Model/IGRF_calculate.jl")
-import .MAVEN_load;
-import .MAVEN_plot;
-import .MAVEN_STATIC;
-import .IGRF_calculate;
+include("../../MAVEN_data/MAVEN_load.jl");import .MAVEN_load;
+include("../../MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;
+include("../../MAVEN_data/MAVEN_STATIC.jl");import .MAVEN_STATIC;
+include("../../Magnetic_Model/IGRF_calculate.jl");import .IGRF_calculate;
+
 function TimeFormat(time1, time2)
     elapsed_time_ms = Dates.value(time2 - time1)
     hours = div(elapsed_time_ms, 3600000)
