@@ -401,6 +401,8 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     H_den = read(f, (Float32, Ntime))
     O_den = read(f, (Float32, Ntime))
     O2_den = read(f, (Float32, Ntime))
+    pos_mso = read(f, (Float32, Ntime,3))
+    quality_flag = read(f, (Int8, Ntime))
     close(f)
     data = Dict{Symbol,Any}(
         :epoch => unix2datetime.(time_unix),
@@ -412,7 +414,9 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
         :O2_f => O2_f,
         :H_den => H_den,
         :O_den => O_den,
-        :O2_den => O2_den
+        :O2_den => O2_den,
+        :pos_mso => pos_mso,
+        :quality_flag => quality_flag,
     )
     return data
 end

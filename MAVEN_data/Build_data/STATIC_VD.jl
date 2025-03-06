@@ -14,8 +14,10 @@ import .MAVEN_STATIC;
 
 @inline function get_ion_vel(vsc_data,ion_data)
     sta_epoch = ion_data[:epoch]
-    time = ion_data[:epoch]
-    ntime = length(time)
+    position = ion_data[:pos_sc_mso]
+    quality_flag = ion_data[:quality_flag]
+
+    ntime = length(sta_epoch)
     H_vel = zeros(ntime, 3)
     O_vel = zeros(ntime, 3)
     O2_vel = zeros(ntime, 3)
@@ -64,7 +66,7 @@ import .MAVEN_STATIC;
         H_den[time_ind] = den
     end
     datas_dict = Dict{Symbol,Any}(
-        :epoch => time,
+        :epoch => sta_epoch,
         :H_vel => H_vel,
         :O_vel => O_vel,
         :O2_vel => O2_vel,
@@ -73,7 +75,9 @@ import .MAVEN_STATIC;
         :O2_den => O2_den,
         :H_f => H_f,
         :O_f => O_f,
-        :O2_f => O2_f
+        :O2_f => O2_f,
+        :pos => position,
+        :quality_flag => quality_flag
     )
     return datas_dict
 end
@@ -95,6 +99,9 @@ end
     O2_den = convert(Vector{Float32},datas_dict[:O2_den])
     H_den = convert(Vector{Float32},datas_dict[:H_den])
 
+    pos = convert(Array{Float32,2},datas_dict[:pos])
+    quality_flag = convert(Vector{Int8},datas_dict[:quality_flag])
+
     f = FortranFile(filename,"w")
     write(f, Ntime)
     write(f, time_unix)
@@ -110,6 +117,9 @@ end
     write(f, H_den)
     write(f, O_den)
     write(f, O2_den)
+    
+    write(f, pos)
+    write(f, quality_flag)
     close(f)
 end
 #获取所有文件和对应的mag文件

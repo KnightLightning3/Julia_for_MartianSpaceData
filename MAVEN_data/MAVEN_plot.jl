@@ -193,7 +193,6 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
         c = normalize(c)
         b = -cross(a, c)
         b = normalize(b)
-        rotinv = zeros(3, 3)
         # rotinv[:, 1] = a
         # rotinv[:, 2] = b
         # rotinv[:, 3] = c
@@ -322,15 +321,19 @@ function WaveSpectra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range
     heatmap!(ax, x[bools], y[bools], c[bools], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
-function Orbit(ax;pos_ss=[], frame="x-yz",line_krawg_bow=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_mag=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_sc =Dict(:linestyle=>:dash,:linewidth=>3))
+function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_mag=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_sc =Dict(:linestyle=>:dash,:linewidth=>3))
     #绘制半球
-    theta = LinRange(pi, 2pi, 100)
-    x = sin.(theta)
-    y = cos.(theta)
-    half_circle = [Point2f(x[i], y[i]) for i in eachindex(x)]
-    poly!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
-    poly!(ax, half_circle, color=:black)
-
+    if shadowed
+        theta = LinRange(pi, 2pi, 100)
+        x = sin.(theta)
+        y = cos.(theta)
+        half_circle = [Point2f(x[i], y[i]) for i in eachindex(x)]
+        lines!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
+        poly!(ax, half_circle, color=:black)
+    else
+        lines!(ax, Circle(Point2f(0, 0), 1), color=:black, linewidth=3)
+        lines!(ax, [Point2f(0, 1),Point2f(0, -1)], color=:black,linewidth=3)
+    end
     if frame == "x-yz"
         func_trans = (x,y,z) -> Point2f(x/ Rm,sqrt(y ^2 + z ^ 2)/ Rm)
     elseif frame == "x-y"

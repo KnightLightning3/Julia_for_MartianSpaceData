@@ -393,6 +393,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip[:att_ind]      = dat[:att_ind][time_ind]
     dat_slip[:eff_ind]      = dat[:eff_ind][time_ind]
     dat_slip[:sc_pot]       = dat[:sc_pot][time_ind]
+    dat_slip[:quality_flag] = dat[:quality_flag][time_ind]
     dat_slip[:dead]         = dat[:dead][time_ind,:,:,:]
     dat_slip[:quat_mso]     = dat[:quat_mso][time_ind,:]
     dat_slip[:quat_sc]      = dat[:quat_sc][time_ind,:]
