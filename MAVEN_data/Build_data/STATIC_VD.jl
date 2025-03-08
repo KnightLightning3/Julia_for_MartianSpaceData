@@ -51,7 +51,7 @@ import .MAVEN_STATIC;
         # dat_slip = MAVEN_STATIC.static_rotation(dat_slip; frame="MSO")
         rotation_Q = QuaternionF64(dat_slip[:quat_mso][1], dat_slip[:quat_mso][2], dat_slip[:quat_mso][3], dat_slip[:quat_mso][4]);
 
-        dat_slip = MAVEN_STATIC.STA_count2df_no_m_int(dat_slip)
+        dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
         vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[20, 40], m_int=32,unit_cover=false)
         O2_vel[time_ind, 1:3] = MAVEN_STATIC.rotate_vector_with_quat(vel, rotation_Q) .+ vsc[time_vsc_ind,:]
         O2_f[time_ind,1:3] = MAVEN_STATIC.rotate_vector_with_quat(flux, rotation_Q)
@@ -117,7 +117,7 @@ end
     write(f, H_den)
     write(f, O_den)
     write(f, O2_den)
-    
+
     write(f, pos)
     write(f, quality_flag)
     close(f)

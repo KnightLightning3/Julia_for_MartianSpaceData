@@ -131,37 +131,7 @@ end
 # 'flux':y_units = '#/(cm^2-s-sr-eV)'
 # 'df':y_units = '#/(cm^3-(km/sec)^3)'
 # 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
-# function STA_count2eflux_full_time_4d(dat)
-#     ntime   = dat[:ntime]
-#     nbins   = dat[:nbins]
-#     nenergy = dat[:nenergy]
-#     nmass   = dat[:nmass]
-#     eflux2  = zeros(ntime,nmass,nbins,nenergy)
-#     # eflux    = dat[:eflux]
-#     dead = dat[:dead]
-#     bkg  = dat[:bkg]
-#     tmp  = dat[:data]
-#     tmp = (tmp .- bkg ).*dead
-
-#     gf1 = zeros(ntime,1,nbins,nenergy)
-#     eff1= zeros(ntime,nmass,nbins,nenergy)
-#     dt1 = reshape(dat[:time_integ], ntime,1,1,1)
-#     for time_ind in 1:ntime
-#         swp_ind = dat[:swp_ind][time_ind]
-#         att_ind = dat[:att_ind][time_ind]
-#         eff_ind = dat[:eff_ind][time_ind]
-#         gf   = reshape(dat[:gf][att_ind+1,:,:,swp_ind+1], 1, nbins,nenergy)
-#         eff  = dat[:eff][:,:,:,eff_ind+1]
-#         gf   = dat[:geom_factor].*eff.*gf
-#         dt   = dat[:time_integ][time_ind]
-
-#         scale = 1 ./(dt.* gf)
-#         eflux2[time_ind,:,:,:] = scale .* tmp[time_ind,:,:,:]
-#     end
-#     dat[:eflux] = eflux2
-#     return dat
-# end
-function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得的切片
+function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     nbins   = dat[:nbins]
     nenergy = dat[:nenergy]
     energy = dat[:energy]
@@ -170,14 +140,17 @@ function STA_count2df(dat;m_int=m_int) #计算df,需要导入static_slip取得�
     eff = dat[:eff]
     G = dat[:geom_factor].*eff.*gf
     dt = dat[:time_integ]
-    mass = dat[:mass].*m_int
+    mass = dat[:mass]
+    mass_arr = dat[:mass_arr]
     dead = dat[:dead]						# dead time array usec for STATIC
     bkg = dat[:bkg]					# background array usec for STATIC
     tmp = dat[:data]
 
     tmp = (tmp .- bkg ).*dead
     scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
-    dat[:df] = scale .* tmp
+    df_t = scale .* tmp
+    dat[:df] = df_t .*mass_arr.^2
+    dat[:df_mass_mass] = df_t # 没有乘以质量的平方
     return dat
 end
 function STA_count2df_no_m_int(dat) #计算df,需要导入static_slip取得的切片, 结果需要times 质量数的平方
@@ -256,63 +229,6 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
     dat[:df] = scale .* tmp
     return dat
 end
-# function STA_count2df_all_no_m_int(dat) #计算df,结果需要times 质量数的平方
-#     ntime   = dat[:num_dists]
-
-#     nmass   = dat[:nmass]
-#     nbins   = dat[:nbins]
-#     nenergy = dat[:nenergy]
-#     energy  = dat[:energy]
-#     dims4 = (ntime,nmass,nbins,nenergy) 
-#     if nbins == 1
-#         gf     = zeros(ntime,1,nenergy)
-#         eff    = zeros(ntime,nmass,nenergy)
-#         mass   = zeros(ntime,nmass,nenergy)
-#         energy = zeros(ntime,nmass,nenergy)
-#         dt   = reshape(dat[:time_integ],ntime, 1,  1)
-    
-#         dead = dat[:dead]
-#         bkg = dat[:bkg]
-#         tmp = dat[:data]
-    
-#         @inbounds for i in 1:ntime
-#             swp_ind = dat[:swp_ind][i]
-#             att_ind = dat[:att_ind][i]
-#             eff_ind = dat[:eff_ind][i]
-#             gf[i,:,:]   = dat[:gf][att_ind+1,:,swp_ind+1]
-#             eff[i,:,:]  = dat[:eff][:,:,eff_ind+1]
-#             mass[i,:,:] = dat[:mass]
-#             energy[i,:,:] = dat[:energy][:,:,swp_ind+1]
-#         end
-#     else
-#         gf     = zeros(ntime,1,nbins,nenergy)
-#         eff    = zeros(ntime,nmass,nbins,nenergy)
-#         mass   = zeros(ntime,nmass,nbins,nenergy)
-#         energy = zeros(ntime,nmass,nbins,nenergy)
-#         dt   = reshape(dat[:time_integ],ntime, 1, 1, 1)
-
-#         dead = dat[:dead]
-#         bkg = dat[:bkg]
-#         tmp = dat[:data]
-
-#         @inbounds for i in 1:ntime
-#             swp_ind = dat[:swp_ind][i]
-#             att_ind = dat[:att_ind][i]
-#             eff_ind = dat[:eff_ind][i]
-#             gf[i,:,:,:]   = dat[:gf][att_ind+1,:,:,swp_ind+1]
-#             eff[i,:,:,:]  = dat[:eff][:,:,:,eff_ind+1]
-#             mass[i,:,:,:] = dat[:mass]
-#             energy[i,:,:,:] = dat[:energy][:,:,:,swp_ind+1]
-#         end
-#     end
-
-#     G = dat[:geom_factor].*eff.*gf
-
-#     tmp = (tmp .- bkg ).*dead
-#     scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
-#     dat[:df] = scale .* tmp
-#     return dat
-# end
 function STA_count2eflux_all(dat) #计算df,对非时间切片数据
     ntime   = dat[:num_dists]
 
@@ -433,11 +349,11 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     #     end
     # end
     if unit_cover
-        dat = STA_count2df(dat;m_int=m_int)
-        data=dat[:df]
+        dat = STA_count2df(dat)
     else
-        data=dat[:df_mass_mass] .*m_int^2  #需要提前用STA_count2df_no_m_int处理之
+        data=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
+    
     energy = dat[:energy] 
     denergy = dat[:denergy] 
     theta = dat[:theta]./RADG
@@ -478,55 +394,13 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     vel = 1e-5 .* flux ./(density .+ 1e-10)
     return vel,flux,density
 end
-# function sta_v_4d(dat,time_ind;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_cover=true)#计算离子速度,流速,密度,单位km/s,/cm^2/s cm^-3
-#     if unit_cover
-#         dat = STA_count2df_all(dat;m_int=m_int)
-#         data=dat[:df]
-#     else
-#         data=dat[:df_mass_mass] .*m_int^2  #需要提前用STA_count2df_all_no_m_int处理之
-#     end
-#     energy = dat[:energy] 
-#     denergy = dat[:denergy] 
-#     theta = dat[:theta]./RADG
-#     phi = dat[:phi] ./RADG
-#     dtheta = dat[:dtheta] ./RADG
-#     dphi = dat[:dphi] ./RADG
-#     mass_arr = dat[:mass_arr]
-#     pot = dat[:sc_pot]
-
-#     ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-#     data[ind].=0.0
-
-#     ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
-#     data[ind].=0.0
-    
-#     mass=dat[:mass]*m_int
-    
-#     Const = 2.0/mass/mass*1e5
-#     energy=energy.+pot		# energy/charge analyzer, require positive energy
-#     energy[energy .< 0.0] .=0.0
-
-#     flux0 = Const.*denergy.*energy.*data
-#     theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
-#     flux3dx = sum(flux0.*theta0.*cos.(phi))
-#     flux3dy = sum(flux0.*theta0.*sin.(phi))
-#     flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
-#     #units are 1/cm^2-s
-#     Const = mass^(-1.5)*2.0^(0.5)
-#     density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
-    
-#     flux = [flux3dx,flux3dy,flux3dz]
-#     vel = 1e-5 .* flux ./(density .+ 1e-10)
-#     return vel,flux,density
-# end
 function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
         return NaN
     end
 
-    dat = STA_count2df(dat;m_int=m_int)
-    data=dat[:df]
+    data=dat[:df_mass_mass] .*m_int^2  #相空间密度
 
     energy = dat[:energy] 
     denergy = dat[:denergy] 
@@ -656,6 +530,115 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     )
     return return_data
 end
+
+#-----------------基于c6数据包的3d(time,energy,mass)计算
+function STA_count3df(dat;time_ind = []) #计算c6数据的df,必须有时间轴
+    ntime   = dat[:num_dists]
+    nbins   = dat[:nbins]
+    nenergy = dat[:nenergy]
+    nmass   = dat[:nmass]
+    energy = zeros(ntime,nmass,nenergy)
+    denergy = zeros(ntime,nmass,nenergy)
+    mass_arr = zeros(ntime,nmass,nenergy)
+    phi = zeros(ntime,nmass,nenergy)
+    dphi = zeros(ntime,nmass,nenergy)
+    theta = zeros(ntime,nmass,nenergy)
+    dtheta = zeros(ntime,nmass,nenergy)
+    gf = zeros(ntime,1,nenergy)
+    eff = zeros(ntime,nmass,nenergy)
+    # if time_ind == []
+    time_ind_local = 1:ntime
+    # end
+    for i in time_ind_local
+        swp_ind = dat[:swp_ind][i]
+        att_ind = dat[:att_ind][i]
+        eff_ind = dat[:eff_ind][i]
+        energy[i,:,:] = dat[:energy][:,:,swp_ind+1]
+        denergy[i,:,:] = dat[:denergy][:,:,swp_ind+1]
+        mass_arr[i,:,:] = dat[:mass_arr][:,:,swp_ind+1]
+        
+        theta[i,:,:] = dat[:theta][:,:,swp_ind+1]
+        phi[i,:,:] = dat[:phi][:,:,swp_ind+1]
+        dtheta[i,:,:] = dat[:dtheta][:,:,swp_ind+1]
+        dphi[i,:,:] = dat[:dphi][:,:,swp_ind+1]
+        
+        gf[i,:,:] = dat[:gf][att_ind+1,:,swp_ind+1]
+        eff[i,:,:] = dat[:eff][:,:,eff_ind+1]
+    end
+    dat[:energy3d] = energy
+    dat[:denergy3d] = denergy
+    dat[:mass_arr3d] = mass_arr
+    dat[:phi3d] = phi
+    dat[:dphi3d] = dphi
+    dat[:theta3d] = theta
+    dat[:dtheta3d] = dtheta
+    dat[:gf3d] = gf
+    dat[:eff3d] = eff # 重新按时间排布的数据
+    G    = dat[:geom_factor].*eff.*gf
+    dt   = dat[:time_integ]
+    mass = dat[:mass]
+    dead = dat[:dead]						# dead time array usec for STATIC
+    bkg = dat[:bkg]					# background array usec for STATIC
+    tmp = dat[:data]
+
+    tmp = (tmp .- bkg ).*dead
+    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
+    df_t = scale .* tmp
+    dat[:df] = df_t .*mass_arr.^2
+    dat[:df_mass_mass] = df_t # 没有乘以质量数的平方
+    return dat
+end
+function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_ind = [])#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3
+    ntime = dat[:num_dists]
+    # if time_ind == []
+    #     time_ind_local = 1:ntime
+    # else
+    #     time_ind_local = time_ind
+    # end
+    
+    data=dat[:df_mass_mass] .*m_int^2
+    energy = dat[:energy3d]
+    denergy = dat[:denergy3d]
+    theta = dat[:theta3d]./RADG
+    phi = dat[:phi3d] ./RADG
+    dtheta = dat[:dtheta3d] ./RADG
+    dphi = dat[:dphi3d] ./RADG
+    mass_arr = dat[:mass_arr3d]
+    pot = reshape(dat[:sc_pot],ntime,1,1)
+
+    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+    data[ind].=0.0
+
+    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+    data[ind].=0.0
+
+    mass=dat[:mass]*m_int
+    
+    Const = 2.0/mass/mass*1e5
+    energy=energy.+pot		# energy/charge analyzer, require positive energy
+    energy[energy .< 0.0] .=0.0
+
+    
+    flux0 = Const.*denergy.*energy.*data
+    # theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
+    # flux3dx = sum(flux0.*theta0.*cos.(phi);dims=2:3)
+    # flux3dy = sum(flux0.*theta0.*sin.(phi);dims=2:3)
+    # flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi;dims=2:3)
+    flux =  sum(flux0;dims=2:3)[:,1,1]#sqrt.(flux3dx.^2 .+ flux3dy.^2 .+ flux3dz.^2)   #units are 1/cm^2-s
+
+    Const = mass^(-1.5)*2.0^(0.5)
+    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi;dims=2:3)[:,1,1]#
+    vel = 1e-5 .* flux ./(density .+ 1e-10)
+
+    valid  = dat[:valid] .== 0
+    vel[valid] .= NaN
+    flux[valid] .= NaN
+    density[valid] .= NaN
+
+    return vel,flux,density
+end
+
+
 function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data
@@ -737,3 +720,54 @@ const RADG=180.0/π
 # println(vv0," ",vv," ",ee)
 # vv0^2 * 0.5*32*Mp/EV
 end # module
+
+
+# # -------------------------Test parts-------------------------
+# EnvironmentPath = "D:/CODE/Package_for_Julia/"
+# include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl");import .MAVEN_load;
+# include(EnvironmentPath * "MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;
+# import .MAVEN_STATIC;
+# using Dates
+# using CairoMakie
+# kp_vars_dict = Dict(
+#     :B_SS_x => 128,
+#     :B_SS_y => 130,
+#     :B_SS_z => 132,
+#     :MSO_x => 190,
+#     :MSO_y => 191,
+#     :MSO_z => 192,
+#     :Orbit_Number => 210,
+#     :O2_den => 58,
+#     :O_den => 56,
+#     :H_den => 54,
+#     :O2_f => 87,
+#     :O_f => 84,
+#     :H_f => 78,
+#     )
+# # datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
+# # kp_data = MAVEN_load.convert_kp_l3(datas_dict["KP_l3"];kp_dict=kp_vars_dict)
+# # sta_data = copy(datas_dict["STATIC_c6"])
+# # sta_d1_data = copy(datas_dict["STATIC_d1"])
+# # @time sta_fdata = MAVEN_STATIC.STA_count3df(sta_data)
+# # @time Ov,Of,On = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[13,19],m_int = 16)
+# @time O2v,O2f,O2n = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[20,40],m_int = 32)
+# # @time Hv,Hf,Hn = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[0.5,1.5],m_int = 1)
+
+# # v,f,n = Hv,Hf,Hn
+# # f_kp,n_kp = :H_f,:H_den
+# v,f,n = O2v,O2f,O2n
+# f_kp,n_kp = :O2_f,:O2_den
+# time_range = [DateTime(2015,10,29,11,00),DateTime(2015,10,29,11,40)]
+# time_i_kp = findall(x->x>=time_range[1] && x<=time_range[2],kp_data[:time])
+# time_i_sta = findall(x->x>=time_range[1] && x<=time_range[2],sta_data[:epoch])
+# fig = Figure(size = (800, 600))
+# ax = Axis(fig[1, 1])
+# lines!(ax,sta_data[:epoch][time_i_sta], n[time_i_sta], color = :blue)
+# lines!(ax,kp_data[:time][time_i_kp], kp_data[n_kp][time_i_kp], color = :red)
+# ax = Axis(fig[2, 1])
+# lines!(ax,sta_data[:epoch][time_i_sta], f[time_i_sta], color = :blue)
+# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp], color = :red)
+# ax = Axis(fig[3, 1])
+# lines!(ax,sta_data[:epoch][time_i_sta], v[time_i_sta], color = :blue)
+# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp]./kp_data[n_kp][time_i_kp].*1e-5, color = :red)
+# fig

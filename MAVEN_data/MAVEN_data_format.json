@@ -150,6 +150,13 @@
             "load_d1_v4d",
             "STATIC d1 velocity flux density (binary)"
         ],
+        "STATIC_c6_v3d": [
+            ["STATIC/l3/","None","None"],
+            "mvn_sta_l3_c6_vel_flux_den_.+\\.f77_unformatted",
+            "STATIC/l3/",
+            "load_c6_v3d",
+            "STATIC c6 velocity flux density (binary)"
+        ],
         "LPW_wave": [
             ["LPW/l2/","maven-lpw-derived/data/w-specpas/","lpw/l2/"],
             "mvn_lpw_l2_wspecpas_.+\\.cdf",
