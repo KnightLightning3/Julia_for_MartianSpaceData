@@ -17,6 +17,10 @@ for listname in listnames:
     with open(path+listname,'r') as f:
         lines = [line.rstrip() for line in f]
     list_dict[model] = lines
+# 如果不存在filename_lists.json文件，则创建
+if not os.path.exists("MAVEN_data/filename_lists.json"):
+    from pathlib import Path
+    Path("MAVEN_data/filename_lists.json").touch()
 with open("MAVEN_data/filename_lists.json", 'w') as json_file:
     json.dump(list_dict, json_file, indent=4)
 

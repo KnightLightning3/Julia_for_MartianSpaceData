@@ -44,6 +44,8 @@ def download_model(model):
     return [save_path,filename]
 def search_downloaded_files(save_path,file_style):
     filenames =[]
+    if not os.path.exists(save_path):
+        return None
     yyyy = os.listdir(save_path)
     for iy in yyyy:
         mm   = os.listdir(save_path+iy+"/")

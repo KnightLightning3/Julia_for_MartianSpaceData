@@ -402,7 +402,7 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     O_den = read(f, (Float32, Ntime))
     O2_den = read(f, (Float32, Ntime))
     pos_mso = read(f, (Float32, Ntime,3))
-    quality_flag = read(f, (Int8, Ntime))
+    quality_flag = read(f, (Int16, Ntime))
     close(f)
     data = Dict{Symbol,Any}(
         :epoch => unix2datetime.(time_unix),
@@ -415,8 +415,48 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
         :H_den => H_den,
         :O_den => O_den,
         :O2_den => O2_den,
-        :pos_mso => pos_mso,
+        :pos_sc_mso => pos_mso,
         :quality_flag => quality_flag,
+    )
+    return data
+end
+function load_c6_v3d(file::String) # build using STATIC d1 data. already been corrected by sc_pot(static) and vsc by MAG_ss1s
+    f = FortranFile(file, "r")
+    Ntime = read(f, Int64)
+    time_unix = read(f, (Float64, Ntime))
+    H_vel = read(f, (Float32, Ntime))
+    O_vel = read(f, (Float32, Ntime))
+    O2_vel = read(f, (Float32, Ntime))
+    H_f = read(f, (Float32, Ntime))
+    O_f = read(f, (Float32, Ntime))
+    O2_f = read(f, (Float32, Ntime))
+    H_den = read(f, (Float32, Ntime))
+    O_den = read(f, (Float32, Ntime))
+    O2_den = read(f, (Float32, Ntime))
+
+    vsc = read(f, (Float32, Ntime,3))
+    pos_mso = read(f, (Float32, Ntime,3))
+    quality_flag = read(f, (Int16, Ntime))
+    mode = read(f, (Int16, Ntime))
+    mass_range = trimstring(read(f, FString{64}))
+    close(f)
+
+    data = Dict{Symbol,Any}(
+        :epoch => unix2datetime.(time_unix),
+        :H_vel => H_vel,
+        :O_vel => O_vel,
+        :O2_vel => O2_vel,
+        :H_f => H_f, # flux
+        :O_f => O_f,
+        :O2_f => O2_f,
+        :H_den => H_den,
+        :O_den => O_den,
+        :O2_den => O2_den,
+        :vsc => vsc,
+        :pos_sc_mso => pos_mso,
+        :quality_flag => quality_flag,
+        :mode => mode,
+        :mass_range => mass_range,
     )
     return data
 end
@@ -434,7 +474,9 @@ kp_dict_0 = Dict(
 )
 function convert_kp_l3(data::Dict;kp_dict=kp_dict_0)
     data_out = Dict{Symbol,Any}()
-    data_out[:time] = data[:time]
+    for key in [:sc2ss_Matrix, :filename, :varsion, :data_load_flag, :pc2ss_Matrix, :time]
+        data_out[key] = data[key]
+    end
     for (key, value) in kp_dict
         symobl_i = Symbol("var_$value")
         data_out[key] = data[:vars][symobl_i]
@@ -599,7 +641,6 @@ function static_c6_energy_mean(data; energy_range=[0, 1e6])  # static 3d数据�
     )
     return return_data
 end
-
 function carclu_SWEA_pad(data; energy_range=[])  # SWEA PAD数据处理
     time = data[:epoch]
     pitch_angle = data[:pa]
