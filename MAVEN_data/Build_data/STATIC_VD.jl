@@ -7,10 +7,8 @@ using FortranFiles
 using Base.Threads
 using Quaternions
 @spawn :interactive f()
-include("../MAVEN_load.jl")
-include("../MAVEN_STATIC.jl")
-import .MAVEN_load;
-import .MAVEN_STATIC;
+include("../MAVEN_load.jl");import .MAVEN_load;
+include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 
 @inline function get_ion_vel(vsc_data,ion_data)
     sta_epoch = ion_data[:epoch]
@@ -100,7 +98,7 @@ end
     H_den = convert(Vector{Float32},datas_dict[:H_den])
 
     pos = convert(Array{Float32,2},datas_dict[:pos])
-    quality_flag = convert(Vector{Int8},datas_dict[:quality_flag])
+    quality_flag = convert(Vector{Int16},datas_dict[:quality_flag])
 
     f = FortranFile(filename,"w")
     write(f, Ntime)
@@ -143,9 +141,9 @@ for (date, file_ion, file_vsc) in common_dates
     if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
         # println(file_vsc)
-        vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
-        ion_data = MAVEN_load.load_STATIC(file_ion)
-        datas_dict = get_ion_vel(vsc_data,ion_data)
+        local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
+        local ion_data = MAVEN_load.load_STATIC(file_ion)
+        local datas_dict = get_ion_vel(vsc_data,ion_data)
         touch(new_path)
         try
             data2bi(datas_dict,new_path)
