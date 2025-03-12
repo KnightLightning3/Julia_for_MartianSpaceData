@@ -328,7 +328,7 @@ function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:li
         x = sin.(theta)
         y = cos.(theta)
         half_circle = [Point2f(x[i], y[i]) for i in eachindex(x)]
-        lines!(ax, Circle(Point2f(0, 0), 1), color=:white, strokewidth=2, strokecolor=:black)
+        lines!(ax, Circle(Point2f(0, 0), 1), color=:black, linewidth=3)
         poly!(ax, half_circle, color=:black)
     else
         lines!(ax, Circle(Point2f(0, 0), 1), color=:black, linewidth=3)
@@ -343,7 +343,7 @@ function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:li
     end
 
     if pos_ss != []
-        trace_points = func_trans.(position_ss[:,1], position_ss[:,2], position_ss[:,3])
+        trace_points = func_trans.(pos_ss[:,1], pos_ss[:,2], pos_ss[:,3])
         lines!(ax, trace_points; label="Orbit", overdraw=true,line_krawg_sc...)
     end
 

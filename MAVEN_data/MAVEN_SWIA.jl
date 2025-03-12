@@ -223,7 +223,7 @@ end
 
 
 
-# -------------------------Test parts-------------------------
+# # -------------------------Test parts-------------------------
 # EnvironmentPath = "D:/CODE/Package_for_Julia/"
 # include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl")
 # import .MAVEN_load;
@@ -241,56 +241,74 @@ end
 # density = MAVEN_SWIA.n_3d(dat,time_ind;energy_range=energy_range)
 # flux = MAVEN_SWIA.j_3d(dat,time_ind;energy_range=energy_range)
 # density = reshape(density,length(density),1)
-# # vel = 1e-5 .* flux ./ density
-# vel = MAVEN_SWIA.v_3d(dat,time_ind;energy_range=energy_range)
+
+# time_swia = datetime2unix.(data_swia["SWIA_coarse_svy_3d"][:epoch][time_ind])
+# using CSV,DataFrames
+# using Quaternions
+# quat = CSV.File(raw"D:\work\20151029低海拔jet\data\swia_qu.csv",delim=' ',ignorerepeated=true)|> DataFrame
+# quat[:,1] .= quat[:,1]
+# quat_SWIA =  zeros(length(time_swia),4)
+# for i in eachindex(time_swia)
+#     jj = findmin(x -> abs(x - i), quat[:,1])[2]
+#     quat_SWIA[i,1] = quat[jj,2]
+#     quat_SWIA[i,2] = quat[jj,3]
+#     quat_SWIA[i,3] = quat[jj,4]
+#     quat_SWIA[i,4] = quat[jj,5]
+# end
+# for (i,f) in enumerate(flux[:,1])
+#     flux[i,:] = MAVEN_SWIA.rotate_vector_with_quat(flux[i,:],QuaternionF64(quat_SWIA[i,:]...);)
+# end
+
+# vel = 1e-5 .* flux ./ density
+# # vel = MAVEN_SWIA.v_3d(dat,time_ind;energy_range=energy_range)
 # fig = Figure(;size=(500,1200))
 # ax  = Axis(fig[1,1])
 # colors = [:red,:green,:blue]
 # for i in 1:3
-#     lines!(ax,data_mom[:velocity][time_mom_ind,i],data_mom[:epoch][time_mom_ind],label="n_mom",color = colors[i])
+#     lines!(ax,data_mom[:velocity_mso][time_mom_ind,i],data_mom[:epoch][time_mom_ind],label="n_mom",color = colors[i])
 #     lines!(ax,vel[:,i],dat[:epoch][time_ind],color=colors[i],linestyle = :dash)
 # end
 # fig
-# # time_ind = findfirst(x-> x>= DateTime(2015 ,10,29,11,32,42),dat[:epoch])
-# # time_ind = [time_ind,time_ind+1]
-# nanode = 16
-# ndeflect = 4
-# nbins = 64
-# nenergy = 48
+# # # time_ind = findfirst(x-> x>= DateTime(2015 ,10,29,11,32,42),dat[:epoch])
+# # # time_ind = [time_ind,time_ind+1]
+# # nanode = 16
+# # ndeflect = 4
+# # nbins = 64
+# # nenergy = 48
 
-# data = dat[:diff_en_fluxes][time_ind,:,:,:]
-# energy = dat[:energy_coarse]
-# ind = findall(x-> !(energy_range[2] >= x >= energy_range[1]),energy)
-# data[:,:,:,ind] .= 0.0
-# energy= reshape(dat[:energy_coarse],1,48)
-# denergy = energy .* 0.15 #dat[:de_over_e_coarse]
+# # data = dat[:diff_en_fluxes][time_ind,:,:,:]
+# # energy = dat[:energy_coarse]
+# # ind = findall(x-> !(energy_range[2] >= x >= energy_range[1]),energy)
+# # data[:,:,:,ind] .= 0.0
+# # energy= reshape(dat[:energy_coarse],1,48)
+# # denergy = energy .* 0.15 #dat[:de_over_e_coarse]
 
-# # phi = dat[:phi_coarse]
-# dphi = 22.5/180*π
-# atten = dat[:atten_state][time_ind]
-# theta =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
+# # # phi = dat[:phi_coarse]
+# # dphi = 22.5/180*π
+# # atten = dat[:atten_state][time_ind]
+# # theta =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
 
-# dtheta = (circshift(theta,(-1,0)) - circshift(theta,(1,0)))/2
-# dtheta[1,:] = theta[2,:] - theta[1,:]
-# dtheta[end,:] = theta[end,:] - theta[end-1,:]
+# # dtheta = (circshift(theta,(-1,0)) - circshift(theta,(1,0)))/2
+# # dtheta[1,:] = theta[2,:] - theta[1,:]
+# # dtheta[end,:] = theta[end,:] - theta[end-1,:]
 
-# domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
-# domega = reshape(domega,1,1,4,48)
-# sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
+# # domega = 2.0*dphi*cosd.(theta).*sind.(0.5*dtheta)
+# # domega = reshape(domega,1,1,4,48)
+# # sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
 
-# # mass = 5.68566e-06*1836. * 1.6e-22
-# # Const = (mass/(2.0*1.6e-12))^(0.5)
-# Const = 7.224566339926571e-7
-# density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
+# # # mass = 5.68566e-06*1836. * 1.6e-22
+# # # Const = (mass/(2.0*1.6e-12))^(0.5)
+# # Const = 7.224566339926571e-7
+# # density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
 
-# density = MAVEN_SWIA.n_3d(dat,time_ind;energy_range=energy_range)
-# x= dat[:epoch][time_ind]
-# @show findmax(density)
+# # density = MAVEN_SWIA.n_3d(dat,time_ind;energy_range=energy_range)
+# # x= dat[:epoch][time_ind]
+# # @show findmax(density)
 
-# @show Int(round(datetime2unix(x[findmax(density)[2]])))
-# lines!(ax,density,x,label="n_3d")
-# axislegend(ax)
-# fig
-# # MAVEN_SWIA.n_3d(data_swia["SWIA_coarse_svy_3d"])
+# # @show Int(round(datetime2unix(x[findmax(density)[2]])))
+# # lines!(ax,density,x,label="n_3d")
+# # axislegend(ax)
+# # fig
+# # # MAVEN_SWIA.n_3d(data_swia["SWIA_coarse_svy_3d"])
 
-# # # idl验证完毕,可以证明n_3d,v_3d
+# # # # idl验证完毕,可以证明n_3d,v_3d

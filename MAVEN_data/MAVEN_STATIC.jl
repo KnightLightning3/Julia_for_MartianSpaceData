@@ -619,15 +619,15 @@ function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_i
     energy[energy .< 0.0] .=0.0
 
     
-    flux0 = Const.*denergy.*energy.*data
+    flux0 = Const.*denergy.*energy.*data .*4π # 4PI为去除全向
     # theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
     # flux3dx = sum(flux0.*theta0.*cos.(phi);dims=2:3)
     # flux3dy = sum(flux0.*theta0.*sin.(phi);dims=2:3)
     # flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi;dims=2:3)
-    flux =  sum(flux0;dims=2:3)[:,1,1]#sqrt.(flux3dx.^2 .+ flux3dy.^2 .+ flux3dz.^2)   #units are 1/cm^2-s
+    flux =  sum(flux0;dims=2:3)[:,1,1]#sqrt.(flux3dx.^2 .+ flux3dy.^2 .+ flux3dz.^2)[:,1,1] #  #units are 1/cm^2-s
 
     Const = mass^(-1.5)*2.0^(0.5)
-    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi;dims=2:3)[:,1,1]#
+    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi;dims=2:3)[:,1,1]
     vel = 1e-5 .* flux ./(density .+ 1e-10)
 
     valid  = dat[:valid] .== 0
@@ -722,28 +722,27 @@ const RADG=180.0/π
 end # module
 
 
-# # -------------------------Test parts-------------------------
-# EnvironmentPath = "D:/CODE/Package_for_Julia/"
-# include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl");import .MAVEN_load;
-# include(EnvironmentPath * "MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;
+# # # -------------------------Test parts-------------------------
+# include("MAVEN_load.jl");import .MAVEN_load;
+# include("MAVEN_plot.jl");import .MAVEN_plot;
 # import .MAVEN_STATIC;
 # using Dates
 # using CairoMakie
-# kp_vars_dict = Dict(
-#     :B_SS_x => 128,
-#     :B_SS_y => 130,
-#     :B_SS_z => 132,
-#     :MSO_x => 190,
-#     :MSO_y => 191,
-#     :MSO_z => 192,
-#     :Orbit_Number => 210,
-#     :O2_den => 58,
-#     :O_den => 56,
-#     :H_den => 54,
-#     :O2_f => 87,
-#     :O_f => 84,
-#     :H_f => 78,
-#     )
+# # kp_vars_dict = Dict(
+# #     :B_SS_x => 128,
+# #     :B_SS_y => 130,
+# #     :B_SS_z => 132,
+# #     :MSO_x => 190,
+# #     :MSO_y => 191,
+# #     :MSO_z => 192,
+# #     :Orbit_Number => 210,
+# #     :O2_den => 58,
+# #     :O_den => 56,
+# #     :H_den => 54,
+# #     :O2_f => 87,
+# #     :O_f => 84,
+# #     :H_f => 78,
+# #     )
 # # datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
 # # kp_data = MAVEN_load.convert_kp_l3(datas_dict["KP_l3"];kp_dict=kp_vars_dict)
 # # sta_data = copy(datas_dict["STATIC_c6"])
@@ -766,8 +765,8 @@ end # module
 # lines!(ax,kp_data[:time][time_i_kp], kp_data[n_kp][time_i_kp], color = :red)
 # ax = Axis(fig[2, 1])
 # lines!(ax,sta_data[:epoch][time_i_sta], f[time_i_sta], color = :blue)
-# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp], color = :red)
+# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp].*4π, color = :red)
 # ax = Axis(fig[3, 1])
 # lines!(ax,sta_data[:epoch][time_i_sta], v[time_i_sta], color = :blue)
-# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp]./kp_data[n_kp][time_i_kp].*1e-5, color = :red)
+# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp].*4π./kp_data[n_kp][time_i_kp].*1e-5, color = :red)
 # fig

@@ -118,12 +118,13 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         "B_xyz",
         "density",
         "H_vel",
+        "scpot",
         "SWEA_spec",
         "swea_pad_high","swea_pad_low",
         "SWIA_svy_spec",
         "STATIC_c6",
         "STATIC_mass",
-        "LPW_wave", 
+        "LPW_wave",
     ]
     panels = Dict(name => index for (index, name) in enumerate(panel_name))
     color_ind = 2
@@ -156,7 +157,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         ax1 = Axis(
             fig[0, panel_ind][1,1],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
             ylabel = rich("(Y",superscript("2"),subscript("MSO",offset=(-0.6,0))," + Z",superscript("2"),subscript("MSO",offset=(-0.6,0)),")",superscript("1/2")),
-            limits = ((-2, 2), (0,4)),xreversed = true
+            limits = ((-3, 3), (0,4)),xreversed = true
             )
         ax2 = Axis(
             fig[0, panel_ind][1,2],aspect = DataAspect(),xlabel = rich("X",subscript("MSO")),
@@ -178,13 +179,13 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
 
         mapped_colors = [cgrad(:jet, n_points, categorical=true)...]
 
-        ax1,func_trans1 = MAVEN_plot.Orbit(ax1,pos_ss;frame="x-yz",color=colors[1],linewidth=3)
+        ax1,func_trans1 = MAVEN_plot.Orbit(ax1;pos_ss=pos_ss,frame="x-yz",line_krawg_sc =Dict(:color=>colors[1],:linewidth=>3))
         pp = func_trans1.(pos_tick[:,1],pos_tick[:,2],pos_tick[:,3])
         scatter!(ax1, pp, color=mapped_colors, colormap=:jet, markersize=15, marker=:xcross)
-        ax2,func_trans2 = MAVEN_plot.Orbit(ax2,pos_ss;frame="x-y",color=colors[1],linewidth=3)
+        ax2,func_trans2 = MAVEN_plot.Orbit(ax2;pos_ss=pos_ss,frame="x-y",line_krawg_sc =Dict(:color=>colors[1],:linewidth=>3))
         pp = func_trans2.(pos_tick[:,1],pos_tick[:,2],pos_tick[:,3])
         scatter!(ax2, pp, color=mapped_colors, colormap=:jet, markersize=15, marker=:xcross)
-        ax3,func_trans3 = MAVEN_plot.Orbit(ax3,pos_ss;frame="x-z",color=colors[1],linewidth=3)
+        ax3,func_trans3 = MAVEN_plot.Orbit(ax3;pos_ss=pos_ss,frame="x-z",line_krawg_sc =Dict(:color=>colors[1],:linewidth=>3))
         pp = func_trans3.(pos_tick[:,1],pos_tick[:,2],pos_tick[:,3])
         scatter!(ax3, pp, color=mapped_colors, colormap=:jet, markersize=15, marker=:xcross)
 
@@ -199,7 +200,7 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
         axs[np] = Axis(
             fig[np, panel_ind]; limits=(x_range_unix, nothing), 
             ylabel=rich("B",font =:bold," ",rich("(nT)",font = :regular)), 
-            yticks=[-300,-150,0,150,300,450] ,ax_Dict...)
+            ax_Dict...)
         if data_dict["MAG_ss1s_l3"][:data_load_flag]
             timeB_ss = data_dict["MAG_ss1s_l3"][:epoch]
             B_ss = data_dict["MAG_ss1s_l3"][:B]
@@ -280,25 +281,60 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
                 ]; 
             merge=true, padding=padding, framevisible=false, tellheight=false, tellwidth=false)
     end
-    c_range_lpw = (1e-14,1e-9)
+    if "scpot" in panel_name
+        np = panels["scpot"]
+        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (-10,10)), ylabel="scpot (V)", ax_Dict...)
+        if data_dict["STATIC_c6_origin"][:data_load_flag]
+            x0 = data_dict["STATIC_c6_origin"][:epoch]
+            x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
+            if time_i != []
+                lines!(axs[np], x, data_dict["STATIC_c6_origin"][:sc_pot][time_i], linewidth=3,color=colors[1])
+            end
+        end
+        if data_dict["LPW_mrgscpot"][:data_load_flag]
+            x0 = data_dict["LPW_mrgscpot"][:epoch]
+            x, time_i = MAVEN_plot.time2x(x0, x_range;t0=t0)
+            if time_i != []
+                flag = data_dict["LPW_mrgscpot"][:flag][time_i]
+                data = data_dict["LPW_mrgscpot"][:data][time_i]
+                flag_ind = flag .>= 50
+                lines!(axs[np], x[flag_ind], data[flag_ind], linewidth=3,color=colors[2])
+            end
+        end
+        hlines!(axs[np], [0], color=:black)
+        Legend(
+            fig[np, color_ind], [[],[]],
+            [
+                rich("STATIC",color= colors[1]),
+                rich("LPW_mrgscpot",color=colors[2]),
+                ]; 
+            merge=true, padding=padding, framevisible=false, tellheight=false, tellwidth=false)
+    end
     if "LPW_wave" in panel_name
         np = panels["LPW_wave"]
-        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, (1, 1e5)), 
+        c_range_lpw = (1e-14,1e-9)
+        f_range = (1, 1e5)
+        axs[np] = Axis(fig[np, panel_ind]; limits=(x_range_unix, f_range), 
         ylabel = rich("f ", font =:italic, rich("(Hz)",font = :regular)),
-        yscale=log10,ax_Dict...)
+        yscale=identity,ax_Dict...)
         if data_dict["LPW_wave"][:data_load_flag]
-            timeSP, freq, wave_data = data_dict["LPW_wave"][:epoch], data_dict["LPW_wave"][:freq], data_dict["LPW_wave"][:data]
+            timeSP = data_dict["LPW_wave"][:epoch]
             x, time_i = MAVEN_plot.time2x(timeSP, x_range;t0=t0)
             if time_i != []
-                MAVEN_plot.WaveSpactra_heatmap(axs[np], x, freq[time_i, :], wave_data[time_i, :])
-                if data_dict["MAG_ss1s_l3"][:data_load_flag]
-                    timeB = data_dict["MAG_ss1s_l3"][:epoch]
-                    B_total = data_dict["MAG_ss1s_l3"][:B_total]
-                    fce = B_total .* 27.99
-                    timeB_unix = datetime2unix.(timeB)
-                    lines!(axs[np], timeB_unix, fce, label="fce", linewidth=2, linestyle=:dash, color=:white)
+                wave_data = data_dict["LPW_wave"][:data][time_i, :]
+                freq = data_dict["LPW_wave"][:freq][time_i, :]
+                if false in isnan.(wave_data)
+                    MAVEN_plot.WaveSpectra_heatmap(axs[np], x, freq, wave_data;c_range=c_range_lpw,f_range=f_range)
                 end
-
+            end
+        end
+        if data_dict["MAG_ss1s_l3"][:data_load_flag]
+            timeB = data_dict["MAG_ss1s_l3"][:epoch]
+            x, time_i = MAVEN_plot.time2x(timeB, x_range;t0=t0)
+            if time_i != []
+                B_total = data_dict["MAG_ss1s_l3"][:B_total][time_i]
+                fce = log10.(B_total .* 27.99)
+                lines!(axs[np], x, fce, label="fce", linewidth=2, linestyle=:dash, color=:white)
             end
         end
         text!(axs[np], 1, 0, text="LPW", font=:bold,color=:white, align=(:right, :bottom), offset=(-6, 6), strokewidth=5,space=:relative)

@@ -452,7 +452,7 @@ function load_c6_v3d(file::String) # build using STATIC d1 data. already been co
         :H_den => H_den,
         :O_den => O_den,
         :O2_den => O2_den,
-        :vsc => vsc,
+        :vsc_mso => vsc,
         :pos_sc_mso => pos_mso,
         :quality_flag => quality_flag,
         :mode => mode,
