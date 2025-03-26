@@ -153,25 +153,6 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     dat[:df_mass_mass] = df_t # 没有乘以质量的平方
     return dat
 end
-function STA_count2df_no_m_int(dat) #计算df,需要导入static_slip取得的切片, 结果需要times 质量数的平方
-    nbins   = dat[:nbins]
-    nenergy = dat[:nenergy]
-    energy = dat[:energy]
-
-    gf = reshape(dat[:gf], 1, nbins,nenergy)
-    eff = dat[:eff]
-    G = dat[:geom_factor].*eff.*gf
-    dt = dat[:time_integ]
-    mass = dat[:mass]
-    dead = dat[:dead]						# dead time array usec for STATIC
-    bkg = dat[:bkg]					# background array usec for STATIC
-    tmp = dat[:data]
-
-    tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
-    dat[:df_mass_mass] = scale .* tmp
-    return dat
-end
 function STA_count2df_all(dat) #计算df,对非时间切片数据
     ntime   = dat[:num_dists]
 
@@ -436,9 +417,9 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
         return [q_v_i[1],q_v_i[2],q_v_i[3]]
     end
     function sphere2xyz_for_static_rotation(θ,ϕ)
-        x = cosd.(θ) .*  cosd.(ϕ)
-        y = cosd.(θ) .*  sind.(ϕ)
-        z = sind.(θ)
+        x = cosd(θ) *  cosd(ϕ)
+        y = cosd(θ) *  sind(ϕ)
+        z = sind(θ)
         return [x,y,z]
     end;
     function xyz2sphere_for_static_rotation(xyz)
@@ -637,8 +618,39 @@ function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_i
 
     return vel,flux,density
 end
-
-
+function get_quality_flag(x)
+    #取得二进制的质量标志，Int转二进制
+    flags = [i == '1' for i in string(x, base=2)] |> reverse
+    return flags
+end
+function compare_quality(flag,contains)
+    #比较质量标志是否包含某个标志
+    # qf = [
+    #     "test pulser on", 
+    #     "diagnostic mode", 
+    #     "dead time correction >2 flag", 
+    #     "detector droop correction >2 flag", 
+    #     "dead time correction not at event time",
+    #     "electrostatic attenuator problem", 
+    #     "attenuator change during accumulation",
+    #     "mode change during accumulation", 
+    #     "LPW interference with data", 
+    #     "high background", 
+    #     "no background subtraction array", 
+    #     "missing spacecraft potential", 
+    #     "inflight calibration incomplete", 
+    #     "geometric factor problem" ,
+    #     "ion suppression problem" ,
+    #     "0",
+    # ]
+    # ax4.yticks = (0:15,qf)
+    flags = get_quality_flag(flag)
+    if true in flags[contains]
+        return true
+    else   
+        return false
+    end
+end
 function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data
@@ -670,21 +682,21 @@ function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位�
     return F
 end
 function sphere2xyz_for_STATIC(r,θ,ϕ) #spedas_6_1\general\science\sphere_to_cart.pro
-    x = r .* cosd.(θ) .*  cosd.(ϕ)
-    y = r .* cosd.(θ) .*  sind.(ϕ)
-    z = r .* sind.(θ)
+    x = r * cosd(θ) *  cosd(ϕ)
+    y = r * cosd(θ) *  sind(ϕ)
+    z = r * sind(θ)
     return [x,y,z]
 end;
 function xyz2sphere_for_STATIC(x,y,z)
     r=sqrt(x^2 + y^2 + z^2)
-    theta = 90. - acosd(z/r)
+    theta = 90.0 - acosd(z/r)
     phi = atand(y, x)
     return [r,theta,phi]
 end
 function sphere2xyz(r,θ,ϕ)
-    x = r .* sind.(θ) .*  cosd.(ϕ)
-    y = r .* sind.(θ) .*  sind.(ϕ)
-    z = r .* cosd.(θ)
+    x = r * sind(θ) *  cosd(ϕ)
+    y = r * sind(θ) *  sind(ϕ)
+    z = r * cosd(θ)
     return [x,y,z]
 end
 function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, IS单位制

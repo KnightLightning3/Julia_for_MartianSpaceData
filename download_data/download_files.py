@@ -34,7 +34,7 @@ url_path_0 = config_data['Servers'][Server_ind]
 sleep_time = config_data.getint('DEFAULT','sleep_time')
 step_time = config_data.getint('DEFAULT','step_time')
 timeout = None
-
+Server_ind = 1
 session = requests.Session()
 if Server_ind == 0:  #自建服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
@@ -44,7 +44,7 @@ if Server_ind == 0:  #自建服务器
     step_time = 0
 else:       # 外部服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
-print(f"Server: {url_path_0},vpn: {vpn_proxy}")
+print(f"vpn: {vpn_proxy}")
 if vpn_proxy != None:
     vpn_proxy = {
     "http": vpn_proxy[0],
@@ -52,12 +52,11 @@ if vpn_proxy != None:
     }
 
 # 设置区
-url_path_root = "http://222.195.76.155:8000/MAVEN/MAVEN_plot/overview/"
-file_style = ""
-save_path = save_dir+"MAVEN_plot/overview/"
-max_depth = 3
+url_path_root = "https://naif.jpl.nasa.gov/pub/naif/MAVEN/kernels/ck/"
+file_style = "^mvn"
+save_path = r"C:\data\misc\spice\naif\MAVEN\kernels\ck/"
+max_depth = 1
 # session = requests.Session()
-
 
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):

@@ -127,7 +127,7 @@ end
                         while the x axis is the y projection on the plane.
            ANGLE: the lower and upper angle limits of the slice selected to plot (DEFAULT [-20,20]).
 """
-function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false)
+function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=[1,0,0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false)
     function remove_repeat_points(x, y, z, c; angle=[-30, 30])
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
@@ -233,11 +233,11 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     v0 = dat[:v]
     nenergy = dat[:nenergy]
     nbins = dat[:nbins]
-    energy0 = dat[:energy]
+    # energy0 = dat[:energy]
 
     V = reshape(v0, nbins * nenergy, 3)
     df = reshape(df_data, nbins * nenergy)
-    energy = reshape(energy0, nbins * nenergy)
+    # energy = reshape(energy0, nbins * nenergy)
     V[:, 1] = V[:, 1] .+ vsc[1]
     V[:, 2] = V[:, 2] .+ vsc[2]
     V[:, 3] = V[:, 3] .+ vsc[3]
@@ -248,8 +248,8 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     new_b = normalize(new_b)
 
     x, y, z, c = new_v[:, 1], new_v[:, 2], new_v[:, 3], df
-    ind_energy = (energy_range[1] .>= energy) .|| (energy .>= energy_range[2])
-    c[ind_energy] .= 0.0
+    # ind_energy = (energy_range[1] .>= energy) .|| (energy .>= energy_range[2])
+    # c[ind_energy] .= 0.0
     # x = vec(x) ; y = vec(y) ; z = vec(z); c = vec(c)
     # 去除0点
     ind_c = c .<= 0
@@ -265,19 +265,149 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0], colorr
     voronoiplot!(ax, voronoi(tri), color=scatter_colors, colormap=colormap, strokewidth=0, markersize=0)
     # tricontourf!(ax, tri, scatter_colors, colormap = colormap,bottom = :black,levels = 256)
 
-    if show_data
+    # if show_data
         colormap = :viridis
         n_colors = 256
         colors = resample_cmap(colormap, n_colors)
         scatter_color = [colors[i] for i in scatter_colors]
         scatter!(ax, x, y, markersize=7, color=:black)
         scatter!(ax, x, y, markersize=5, color=scatter_color)
-    end
+    # end
     lines!(ax, [-1000, 1000], [0, 0], linestyle=:dash, color=:white)
     lines!(ax, [0, 0], [-1000, 1000], linestyle=:dash, color=:white)
 
     lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
     scatter!(ax, new_vbluk[1], new_vbluk[2], color=:white, marker='X', markersize=20)
+    v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
+    #遮盖超过v_max的部分  可以改成闭包?
+    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=:white)
+    if return_rot_matrix
+        return ax, rot
+    end
+    return ax
+end
+function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[0, 0, 0],magf=[1,0,0], vsc=[0,0,0],colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, colormap=:viridis, show_data=false)
+    #绘制任何3d空间分布的饼状图，必需要满足： data为一维或多维数据,速度必须为n*3的格式
+    function remove_repeat_points(x, y, z, c; angle=[-30, 30])
+        points = [x y c]
+        theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
+        ind = findall(x -> angle[1] <= x <= angle[2], theta_xy)
+        data1 = Dict()
+        for (p1, p2, ci) in eachrow(points[ind, :])
+            push!(get!(data1, (p1, p2), []), ci)
+        end
+        new_x = []
+        new_y = []
+        new_c = []
+        for (key, val) in data1
+            push!(new_x, key[1])
+            push!(new_y, key[2])
+            push!(new_c, mean(skipmissing(val)))
+        end
+        new_x = convert(Array{Float64}, new_x)
+        new_y = convert(Array{Float64}, new_y)
+        new_c = convert(Array{Float64}, new_c)
+        return new_x, new_y, new_c
+    end
+    function filter_points_optimized(x, y, c, r)  # 当无效点附近存在有效点,去除无效点
+        valid = c .!= 1e-20
+        # 遍历所有无效点
+        for i in 1:length(c)
+            if !valid[i]
+                nearby_valid = false
+                # 检查在距离 r 内是否有有效点
+                for j in 1:length(c)
+                    if valid[j]
+                        dist = sqrt((x[i] - x[j])^2 + (y[i] - y[j])^2)
+                        if dist <= r
+                            nearby_valid = true
+                            break
+                        end
+                    end
+                end
+                # 如果附近没有有效点,则将此无效点标记为有效点
+                if !nearby_valid
+                    valid[i] = true
+                end
+            end
+        end
+        return x[valid], y[valid], c[valid]
+    end
+    function color_mapping(vars, color_range; scaler=nothing)
+        if scaler == "log10"
+            color_range_in = log10.(color_range)
+            vars_in = log10.(vars)
+        else
+            color_range_in = color_range
+            vars_in = vars
+        end
+        vars_mapped = round.(Int, ((vars_in .- color_range_in[1]) ./ (color_range_in[2] - color_range_in[1])) .* 255 .+ 1)
+        vars_mapped[vars_mapped.>256] .= 256
+        vars_mapped[vars_mapped.<1] .= 1
+        return vars_mapped
+    end
+    function slice2d_cal_rot(v1, v2)
+        a = normalize(v1)
+        d = normalize(v2)
+        c = cross(a, d)
+        c = normalize(c)
+        b = -cross(a, c)
+        b = normalize(b)
+        # rotinv[:, 1] = a
+        # rotinv[:, 2] = b
+        # rotinv[:, 3] = c
+        rotinv = hcat(a, b, c)
+        rot = inv(rotinv)
+        return rot
+    end
+    bvec = magf
+    vvec = vbluk
+    rot = slice2d_cal_rot(normal_vectors[1], normal_vectors[2]) # xy的两个法向向量，默认为xy平面
+
+    ax.ylabel = ylabel
+    ax.xlabel = xlabel
+    ax.limits = (plot_range, plot_range)
+
+    V = velocity
+    V[:, 1] = V[:, 1] .+ vsc[1]
+    V[:, 2] = V[:, 2] .+ vsc[2]
+    V[:, 3] = V[:, 3] .+ vsc[3]
+
+    new_v = V * rot'
+    new_vbluk = rot * vvec
+    new_b = rot * bvec
+    new_b = normalize(new_b)
+
+     x, y, z, c = new_v[:, 1], new_v[:, 2], new_v[:, 3], vec(data)
+
+    c[c .<= 0 ] .= 1e-20
+
+    x, y, c = remove_repeat_points(x, y, z, c; angle=angle_range)
+    x, y, c = filter_points_optimized(x, y, c, (plot_range[2]-plot_range[1])/100) #绘图部分0.01的分辨率
+
+    scatter_colors = color_mapping(c, colorrange; scaler="log10")
+
+    # pts = hcat(x, y)'
+    pts = [Point2f(x[i],y[i]) for i in eachindex(x)]
+    if length(pts) <= 3
+        println("No enough data in the selected range.")
+    else
+        tri = voronoi(triangulate(pts))
+        voronoiplot!(ax, tri, color=scatter_colors, colormap=colormap, strokewidth=0, markersize=0)
+    end
+    if show_data
+        n_colors = 256
+        colors = resample_cmap(colormap, n_colors)
+        scatter_color = [colors[i] for i in scatter_colors]
+        inds = scatter_colors .!= 1
+        scatter!(ax, x[inds], y[inds], markersize=7, color=:black)
+        scatter!(ax, x[inds], y[inds], markersize=5, color=scatter_color[inds])
+    end
+    lines!(ax, [-1000, 1000], [0, 0], linestyle=:dash, color=:white)
+    lines!(ax, [0, 0], [-1000, 1000], linestyle=:dash, color=:white)
+
+    lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
+    scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)
     v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
     #遮盖超过v_max的部分  可以改成闭包?
     poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=:white)
@@ -637,36 +767,31 @@ function eflux2F(energy, eflux)
     F = (γ * M)^3 * eflux / energy * 1e4 / EV / P^2
     return F
 end
+# Edberg, N. J. T., M. Lester, S. W. H. Cowley, and A. I. Eriksson (2008), Statistical analysis of the location of the Martian magnetic pileup boundary and bow shock and the influence of crustal magnetic fields, J. Geophys. Res., 113, A08206, doi:10.1029/2008JA013096.
 #bow-shock model
 function bowshock(xshock)
-    xF = 0.6 # Rm
-    ϵ = 1.026
-    L = 2.081 # rm
-    # rSD = 1.63
-    temp = (ϵ^2 - 1.0) * (xshock - xF)^2 - 2ϵ * L * (xshock - xF) + L^2
-    if temp >= 0
+    xF = 0.55 # R_Mars
+    ϵ = 1.05
+    L = 2.10 # R_Mars
+    rSD = 1.58
+    temp = (ϵ^2-1.0)*(xshock-xF)^2-2ϵ*L*(xshock-xF)+L^2
+    if temp>=0 
         return sqrt(temp)
     else
-        return Inf64
+        return NaN64
     end
 end
 #magnetopause model
 function magnetopause(xmp)
-    # rSD = 1.25
-    if xmp > 0
-        xF = 0.64
-        ϵ = 0.77
-        L = 1.08
-    else
-        xF = 1.60
-        ϵ = 1.009
-        L = 0.528
-    end
-    temp = (ϵ^2 - 1.0) * (xmp - xF)^2 - 2ϵ * L * (xmp - xF) + L^2
-    if temp >= 0
+    rSD = 1.33
+	xF = 0.86
+	ϵ = 0.92
+	L = 0.90
+    temp = (ϵ^2-1.0)*(xmp-xF)^2-2ϵ*L*(xmp-xF)+L^2
+    if temp>=0 
         return sqrt(temp)
     else
-        return Inf64
+        return NaN64
     end
 end
 
