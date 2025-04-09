@@ -31,7 +31,6 @@ function build_file_list()
     end
     return nothing
 end
-
 function read_list()
     list_path = root_path*"List/"*"MINPA_list.txt"
     files = readlines(list_path)
@@ -269,6 +268,64 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
     vel[:,:,1] = nvx  ./ n0 ./ 1.0e3 # 单位转换，m/cm → km
     vel[:,:,2] = nvy  ./ n0 ./ 1.0e3
     vel[:,:,3] = nvz  ./ n0 ./ 1.0e3
+
+    vel = -vel
+
+    flux = vel .* den .* 1e5 #通量，cm^-2s^-1
+    
+    return vel,flux,den #速度(ntime,nmass,3),km/s,密度(ntime,nmass),cm^-3
+end
+function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PSD
+    dflux = dat[:differential_flux][time_ind,:,:,:,:]
+
+    # ntime = dat[:ntime]
+    nmass = dat[:nmass]
+    ntheta = dat[:ntheta]
+    nphi = dat[:nphi]
+    nenergy = dat[:nenergy]
+
+    energy = reshape(dat[:energy],1,1,1,nenergy)
+    theta = reshape(dat[:theta],1,1,ntheta,1)
+    phi = reshape(dat[:phi],1,nphi,1,1)
+    mass = reshape(dat[:mass],nmass,1,1,1)
+    dtheta = reshape(dat[:dtheta],1,1,ntheta,1)
+    dphi = dat[:dphi];#单值
+
+    theta = 0.5π .- theta # 角度修正
+    phi = 2π .- phi
+    
+    vel = zeros(nmass,3)
+    den = zeros(nmass)
+
+    velocity = sqrt.(2 .*Q ./(mp.*mass).*energy)# 不同能量对应的速度
+
+    # 由于此处θ、φ表示的是视场接收的方向，但相空间分布函数表示的应为速度方向θ',φ',两者方向相反，关系为：θ'=-θ，φ'=φ+Π
+
+    # ct = cos.(-theta)#视场方向反向于实际方向
+    # cp = cos.(phi.+π)
+    # st = sin.(-theta)
+    # sp = sin.(phi.+π)
+
+    ct = cos.(theta)
+    cp = cos.(phi)
+    st = sin.(theta)
+    sp = sin.(phi)
+
+    J = dflux.*energy .* 1.0e4  # 粒子数通量原本单位为cm^-2, 转换为m^-2//原始数据为微分方向通量j，转换为方向通量J。J=jE
+
+    #积分间隔为dtheta*dphi
+    dsum = st .* dtheta .* dphi
+
+    n0  =  sum(2.0 .* J ./ velocity   .*dsum ;dims=2:4)
+    nvx =  sum(2.0 .* J .* (ct       .* dsum);dims=2:4)
+    nvy = -sum(2.0 .* J .* (st .* cp .* dsum);dims=2:4)
+    nvz = -sum(2.0 .* J .* (st .* sp .* dsum);dims=2:4)
+    #  单位转换，m → cm   Δv/v(=1/2ΔE/E)  Δθ Δφ 乘上积分间隔 
+
+    den[:] = n0 .* (1.0E-6 * 0.2/2)
+    vel[:,1] = nvx  ./ n0 ./ 1.0e3 # 单位转换，m/cm → km
+    vel[:,2] = nvy  ./ n0 ./ 1.0e3
+    vel[:,3] = nvz  ./ n0 ./ 1.0e3
 
     vel = -vel
 

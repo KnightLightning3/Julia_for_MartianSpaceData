@@ -472,7 +472,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     sc_pot   = dat[:sc_pot]     
 
     # dat = STA_count2df(dat;m_int=m_int)
-    dat = STA_eflux2df(dat;m_int=m_int)
+    # dat = STA_eflux2df(dat;m_int=m_int)
     data=dat[:df]
     
     mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
@@ -483,7 +483,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     df_data = sum(data.*mask,dims=1)
     df_data = df_data[1,:,:]
     
-    V_MSO = zeros(nbins,nenergy,3)
+    V_ = zeros(nbins,nenergy,3)
     
     energy_t = energy_mass .+ sc_pot
     energy_t[energy_t .<= 0] .= 0.001
@@ -492,17 +492,17 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     
     APP_position = sphere2xyz_for_STATIC.(v0,theta_mass,phi_mass)
     
-    V_MSO[:,:,1] = [x[1] for x in APP_position]
-    V_MSO[:,:,2] = [x[2] for x in APP_position]
-    V_MSO[:,:,3] = [x[3] for x in APP_position]
+    V_[:,:,1] = [x[1] for x in APP_position]
+    V_[:,:,2] = [x[2] for x in APP_position]
+    V_[:,:,3] = [x[3] for x in APP_position]
 
     vsc1 = reshape(vsc,1,1,3)
 
-    V_MSO =V_MSO .+ vsc1
+    V_ =V_ .+ vsc1
     
     return_data = Dict{Symbol,Any}(
-       :dF=> df_data,
-       :v => V_MSO,
+       :df=> df_data,
+       :v => V_,
        :mass=> m_int,
        :nbins=>nbins,
        :energy=>energy_t,
@@ -655,9 +655,15 @@ function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data
 end
-function rotate_vector_with_quat(u::AbstractVector,q::QuaternionF64)
+function rotate_vector_with_quat(u::AbstractVector, q::QuaternionF64)
     q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = q*q_u*conj(q)
+    q_v = q * q_u * conj(q)
+    return [imag_part(q_v)...]
+end
+
+function rotate_vector_with_quat_reverse(u::AbstractVector, q::QuaternionF64)
+    q_u = QuaternionF64(0, u[1], u[2], u[3])
+    q_v = conj(q) * q_u * q
     return [imag_part(q_v)...]
 end
 function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位制, 与STA方法差了1e3倍

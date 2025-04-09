@@ -174,7 +174,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=[1
         return x[valid], y[valid], c[valid]
     end
     function color_mapping(vars, color_range; scaler=nothing)
-        if scaler == "log"
+        if scaler == "log10"
             color_range_in = log10.(color_range)
             vars_in = log10.(vars)
         else
@@ -261,7 +261,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=[1
 
     pts = hcat(x, y)'
     tri = triangulate(pts)
-    scatter_colors = color_mapping(c, colorrange; scaler="log")
+    scatter_colors = color_mapping(c, colorrange; scaler="log10")
     voronoiplot!(ax, voronoi(tri), color=scatter_colors, colormap=colormap, strokewidth=0, markersize=0)
     # tricontourf!(ax, tri, scatter_colors, colormap = colormap,bottom = :black,levels = 256)
 
