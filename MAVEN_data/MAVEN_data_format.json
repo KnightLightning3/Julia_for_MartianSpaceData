@@ -275,6 +275,12 @@
             "SWIA/l2/",
             "load_cdf"
         ],
+        "SWIA_coarse_arc_3d": [
+            ["SWIA/l2/","maven-swia-calibrated/data/coarse_arc_3d/","swi/l2/"],
+            "mvn_swi_l2_coarsearc3d_.+\\.cdf",
+            "SWIA/l2/",
+            "load_cdf"
+        ],
         "EUV_l2_bands": [
             ["EUV/l2/","None","euv/l2/"],
             "mvn_euv_l2_bands_.+\\.cdf",
