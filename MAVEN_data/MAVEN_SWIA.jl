@@ -317,6 +317,13 @@ function sphere2xyz_for_SWIA(r,θ,ϕ) #general/science/sphere_to_cart.pro
     # z = r * cosd(θ)
     return [x,y,z]
 end;
+function eflux2df!(dat) #projects/maven/swia/mvn_swia_convert_units.pro, 返回单位:1/(cm^3-(km/s)^3)
+    energy = reshape(dat[:energy],1,1,1,48)
+    mass = dat[:mass]
+    df = dat[:diff_en_fluxes] ./ (energy.^2 * 2.0 ./mass./mass.*1e5)
+    dat[:df] = df
+    return dat
+end
 function xyz2sphere_for_SWIA(x,y,z)
     r=sqrt(x^2 + y^2 + z^2)
     theta = 90.0 - acosd(z/r)

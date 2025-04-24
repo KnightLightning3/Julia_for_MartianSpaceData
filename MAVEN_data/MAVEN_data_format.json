@@ -101,6 +101,41 @@
             "load_swea_pad",
             "SWEA l2 survey pad"
         ],
+        "SWEA_arc3d": [
+            ["SWEA/l2/","maven-swea-calibrated/data/arc_3d/","swe/l2/"],
+            "mvn_swe_l2_arc3d_.+\\.cdf",
+            "SWEA/l2/",
+            "load_cdf",
+            "SWEA l2 arc 3d"
+        ],
+        "SWEA_svy3d": [
+            ["SWEA/l2/","maven-swea-calibrated/data/svy_3d/","swe/l2/"],
+            "mvn_swe_l2_svy3d_.+\\.cdf",
+            "SWEA/l2/",
+            "load_cdf",
+            "SWEA l2 svy 3d"
+        ],
+        "SEP_anc": [
+            ["SEP/l2/","maven-sep-calibrated/data/anc/","sep/l2/"],
+            "mvn_sep_l2_anc_.+\\.cdf",
+            "SEP/l2/",
+            "load_cdf",
+            " "
+        ],
+        "SEP_counts": [
+            ["SEP/l2/","maven-sep-calibrated/data/anc/","sep/l2/"],
+            "mvn_sep_l2_s1-raw-svy-full_.+\\.cdf",
+            "SEP/l2/",
+            "load_cdf",
+            " "
+        ],
+        "SEP_spec": [
+            ["SEP/l2/","maven-sep-calibrated/data/spec/","sep/l2/"],
+            "mvn_sep_l2_s1-cal-svy-full_.+\\.cdf",
+            "SEP/l2/",
+            "load_cdf",
+            " "
+        ],
         "STATIC_c6": [
             ["STATIC/l2/","maven-static-c/data/c6_32e64m/","sta/l2/"],
             "mvn_sta_l2_c6-32e64m_.+\\.cdf",
@@ -266,6 +301,12 @@
         "SWIA_fine_svy_3d": [
             ["SWIA/l2/","maven-swia-calibrated/data/fine_svy_3d/","swi/l2/"],
             "mvn_swi_l2_finesvy3d_.+\\.cdf",
+            "SWIA/l2/",
+            "load_cdf"
+        ],
+        "SWIA_fine_arc_3d": [
+            ["SWIA/l2/","maven-swia-calibrated/data/fine_arc_3d/","swi/l2/"],
+            "mvn_swi_l2_finearc3d_.+\\.cdf",
             "SWIA/l2/",
             "load_cdf"
         ],

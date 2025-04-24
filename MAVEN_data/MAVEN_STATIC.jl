@@ -370,9 +370,10 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     #units are 1/cm^2-s
     Const = mass^(-1.5)*2.0^(0.5)
     density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
-    
+    #units are 1/cm^3
     flux = [flux3dx,flux3dy,flux3dz]
     vel = 1e-5 .* flux ./(density .+ 1e-10)
+    #units are km/s
     return vel,flux,density
 end
 function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
