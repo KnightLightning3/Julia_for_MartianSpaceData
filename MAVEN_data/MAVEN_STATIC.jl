@@ -331,6 +331,7 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     # end
     if unit_cover
         dat = STA_count2df(dat)
+        data = dat[:df] #取得相空间密度
     else
         data=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
@@ -530,15 +531,16 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
 
     # dat = STA_count2df(dat;m_int=m_int)
     # dat = STA_eflux2df(dat;m_int=m_int)
-    data=dat[:df]
+    df_data = dat[:df]
+    ef_data = dat[:eflux]
     
     mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
     energy_mass = energy[1,:,:]
     phi_mass = phi[1,:,:]
     theta_mass = theta[1,:,:]
     
-    df_data = sum(data.*mask,dims=1)
-    df_data = df_data[1,:,:]
+    df_data1 = sum(df_data.*mask,dims=1)[1,:,:]
+    ef_data1 = sum(ef_data.*mask,dims=1)[1,:,:]
     
     V_ = zeros(nbins,nenergy,3)
     
@@ -558,13 +560,14 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     V_ =V_ .+ vsc1
     
     return_data = Dict{Symbol,Any}(
-       :df=> df_data,
-       :v => V_,
-       :mass=> m_int,
-       :nbins=>nbins,
-       :energy=>energy_t,
-       :nenergy=>nenergy,
-       :magf => dat[:magf],
+        :df=> df_data1,
+        :eflux=> ef_data1,
+        :v => V_,
+        :mass=> m_int,
+        :nbins=>nbins,
+        :energy=>energy_t,
+        :nenergy=>nenergy,
+        :magf => dat[:magf],
     )
     return return_data
 end

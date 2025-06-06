@@ -127,7 +127,7 @@ end
                         while the x axis is the y projection on the plane.
            ANGLE: the lower and upper angle limits of the slice selected to plot (DEFAULT [-20,20]).
 """
-function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=[1,0,0], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false)
+function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=dat[:magf], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false)
     function remove_repeat_points(x, y, z, c; angle=[-30, 30])
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
@@ -200,7 +200,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=[1
         rot = inv(rotinv)
         return rot
     end
-    bvec = dat[:magf]
+    bvec = magf
     vvec = vbluk
     rot = zeros(3, 3)
     if frame == "xy"
@@ -229,7 +229,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=[1
     ax.ylabel = ylabel
     ax.xlabel = xlabel
     ax.limits = (plot_range, plot_range)
-    df_data = dat[:dF]
+    df_data = dat[:df]
     v0 = dat[:v]
     nenergy = dat[:nenergy]
     nbins = dat[:nbins]
@@ -407,7 +407,7 @@ function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[
     lines!(ax, [0, 0], [-1000, 1000], linestyle=:dash, color=:white)
 
     lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
-    scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)
+    # scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)
     v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
     #遮盖超过v_max的部分  可以改成闭包?
     poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=:white)

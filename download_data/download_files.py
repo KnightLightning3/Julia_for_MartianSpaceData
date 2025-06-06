@@ -223,7 +223,7 @@ if __name__ == '__main__':
                 break
         depth = depth - 1
         url_paths = url_paths0
-    print("URLs获取完毕,共计",len(url_paths),"个URLs")
+    print("URLs获取完毕,共计",len(url_paths),"个URLs",end='\n\n')
     #下载内容
     if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
         os.makedirs(save_path)
