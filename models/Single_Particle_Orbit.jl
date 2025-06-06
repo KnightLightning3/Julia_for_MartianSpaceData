@@ -31,12 +31,18 @@ function cross3(a::Vector{Float64}, b::Vector{Float64})::Vector{Float64}
          ]
     return ans
 end
-function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=1, hide_progress=false, r_range=[0.0, 1e10], particle="ion") # mq: 反比荷
-    if particle == "ion"
+function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=1, hide_progress=false, particle=:ion, stop_condition = nothing) # mq: 反比荷
+    if particle == :ion
         mq = q2mp / AMU
-    elseif particle == "electron"
+    elseif particle == :electron
         mq = q2me
     end
+    # stop_condition = nothing # 目前不支持停止条件
+
+    # Conditions = Dict(
+    #     :pa_limit => 90,
+    #     :r_limit => 200,
+    # )
     # f_b = mq * 1.0 / (2.0 * π) # 此参数乘以磁场得到回旋频率
     v = v0
     x = x0
@@ -62,39 +68,39 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     end
 
     @inbounds for i in 2:Nt
-        b0 = B(x)
+        local b0 = B(x)
 
         # b_total = norm(b0)
         # fc = f_b * b_total # 回旋频率
         # dt = 
 
-        k1v = dvdt(v, E(x), b0, mq)
-        k1x = v
+        local k1v = dvdt(v, E(x), b0, mq)
+        local k1x = v
 
-        kv = 0.5 * dt * k1v
-        kx = 0.5 * dt * k1x
-        B_in = B(x + kx)
-        E_in = E(x + kx)
-        k2v = dvdt(v + kv, E_in, B_in, mq)
-        k2x = v + kv
+        local kv1 = 0.5 * dt * k1v
+        local kx1 = 0.5 * dt * k1x
+        local B_1 = B(x + kx1)
+        local E_1 = E(x + kx1)
+        local k2v = dvdt(v + kv1, E_1, B_1, mq)
+        local k2x = v + kv
 
-        kv = 0.5 * dt * k2v
-        kx = 0.5 * dt * k2x
-        B_in = B(x + kx)
-        E_in = E(x + kx)
-        k3v = dvdt(v + kv, E_in, B_in, mq)
-        k3x = v + kv
+        local kv = 0.5 * dt * k2v
+        local kx = 0.5 * dt * k2x
+        local B_2 = B(x + kx2)
+        local E_2 = E(x + kx2)
+        local k3v = dvdt(v + kv2, E_2, B_2, mq)
+        local k3x = v + kv
 
-        kv = dt * k3v
-        kx = dt * k3x
-        B_in = B(x + kx)
-        E_in = E(x + kx)
-        k4v = dvdt(v + kv, E_in, B_in, mq)
-        k4x = v + kv
+        local kv3 = dt * k3v
+        local kx3 = dt * k3x
+        local B_3 = B(x + kx3)
+        local E_3 = E(x + kx3)
+        local k4v = dvdt(v + kv3, E_3, B_3, mq)
+        local k4x = v + kv
 
-        v = v + dt / 6 * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
-        x = x + dt / 6 * (k1x + 2.0 * k2x + 2.0 * k3x + k4x)
-        s = s + norm(dt / 6 * (k1x + 2.0 * k2x + 2.0 * k3x + k4x))
+        v += dt / 6 * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
+        x += dt / 6 * (k1x + 2.0 * k2x + 2.0 * k3x + k4x)
+        s += norm(dt / 6 * (k1x + 2.0 * k2x + 2.0 * k3x + k4x))
 
         v_data[i, :] = v
         x_data[i, :] = x
@@ -129,10 +135,10 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
     )
     return return_data
 end
-function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, dt; AMU=1, particle="ion",hide_progress=false)
-    if particle == "ion"
+function solve_orbit_ode(v0::Vector{Float64}, x0::Vector{Float64}, E, B, tspan, dt; AMU=1, particle=:ion,hide_progress=false)
+    if particle == :ion
         mq = q2mp / AMU
-    elseif particle == "electron"
+    elseif particle == :electron
         mq = q2me
     end
 
