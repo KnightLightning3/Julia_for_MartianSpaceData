@@ -82,21 +82,21 @@ function solve_orbit(v0::Vector{Float64}, x0::Vector{Float64}, E, B, t, dt; AMU=
         local B_1 = B(x + kx1)
         local E_1 = E(x + kx1)
         local k2v = dvdt(v + kv1, E_1, B_1, mq)
-        local k2x = v + kv
+        local k2x = v + kv1
 
-        local kv = 0.5 * dt * k2v
-        local kx = 0.5 * dt * k2x
+        local kv2 = 0.5 * dt * k2v
+        local kx2 = 0.5 * dt * k2x
         local B_2 = B(x + kx2)
         local E_2 = E(x + kx2)
         local k3v = dvdt(v + kv2, E_2, B_2, mq)
-        local k3x = v + kv
+        local k3x = v + kv2
 
         local kv3 = dt * k3v
         local kx3 = dt * k3x
         local B_3 = B(x + kx3)
         local E_3 = E(x + kx3)
         local k4v = dvdt(v + kv3, E_3, B_3, mq)
-        local k4x = v + kv
+        local k4x = v + kv3
 
         v += dt / 6 * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
         x += dt / 6 * (k1x + 2.0 * k2x + 2.0 * k3x + k4x)

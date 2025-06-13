@@ -334,6 +334,13 @@
             "EUV/l3/",
             "load_cdf",
             "EUV daily averaged data"
+        ],
+        "SWIA_quat": [
+            ["SPICE/swia/","None","None"],
+            "mvn_spice_swia_qu_.+\\.csv",
+            "SPICE/swia/",
+            "load_quat",
+            "quat data of SWIA to MSO"
         ]
     },
     "kp_dict": {

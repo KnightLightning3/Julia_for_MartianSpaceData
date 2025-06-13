@@ -212,10 +212,10 @@ function load_mag_l3(file::String)
     close(f)
 
     times = Dates.julian2datetime.(timeB)
-    coodinate = file[end-36:end-33]
+    coordinate = file[end-36:end-33]
     data = Dict{Symbol,Any}(
         :epoch => times,
-        :coodinate => coodinate,
+        :coordinate => coordinate,
         :B_total => BB,
         :B => B,
         :position => position,
@@ -231,10 +231,10 @@ function load_mag_vsc(file::String)
     close(f)
 
     times = Dates.unix2datetime.(time_unix)
-    # coodinate = file[end-32:end-29]
+    # coordinate = file[end-32:end-29]
     data = Dict{Symbol,Any}(
         :epoch => times,
-        # :coodinate => coodinate,
+        # :coordinate => coordinate,
         :vsc => vsc,
         :position => position,
     )
@@ -459,6 +459,39 @@ function load_c6_v3d(file::String) # build using STATIC d1 data. already been co
         :mass_range => mass_range,
     )
     return data
+end
+function load_quat(filename::String)::Dict{Symbol,Any}#读取idl导出的quat数据
+    # 数据格式, filename = file.csv ut, scrotmat, msorotmat, format="(I10,1x,4(f14.10,1x),4(f14.10,1x))"
+    # 统计行数以预分配矩阵
+    local n = 0
+    open(filename) do io
+        for _ in eachline(io)
+            n += 1
+        end
+    end
+    # 预分配矩阵，每行包含ut和8个浮点数
+    local data = Matrix{Float64}(undef, n, 5)
+    # 逐行解析数据
+    open(filename) do io
+        for (i, line) in enumerate(eachline(io))
+            # 提取各字段并转换为Float64
+            local ut   = parse(Float64, SubString(line, 1, 10))
+            local mso1 = parse(Float64, SubString(line, 12, 25))
+            local mso2 = parse(Float64, SubString(line, 27, 40))
+            local mso3 = parse(Float64, SubString(line, 42, 55))
+            local mso4 = parse(Float64, SubString(line, 57, 70))
+            
+            # 填充数据到矩阵
+            @inbounds data[i, :] .= (ut, mso1, mso2, mso3, mso4)
+        end
+    end
+    local quat_s = [QuaternionF64(data[i, 2:5]) for i in 1:n]
+    dd0 = Dict{Symbol,Any}(
+        :epoch => unix2datetime.(data[:, 1]),
+        :quat => quat_s,
+        :coordinate => "SWIA to mso", # 读取文件名中的坐标系
+    )
+    return dd0
 end
 ## ------------------------------数据处理--------------------------------
 kp_dict_0 = Dict(

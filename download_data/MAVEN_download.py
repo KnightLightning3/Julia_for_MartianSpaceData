@@ -51,7 +51,7 @@ if Server_ind == 0:  #自建服务器
     password = config_data['Servers']['Password']
     session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
     models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
-    models_skip = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc","KP"]  #批量下载的时候跳过的模块, 这些模块存在本地自制的二进制文件
+    models_skip = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc","KP"]  #批量下载的时候跳过的模块, 这些模块存在本地自制的体积更小的二进制文件
     step_time = 0
 else:       # 外部服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
@@ -170,6 +170,8 @@ def download_model(model):
         model_key[key] = value[:3]
     model_url0,filename,pathname=model_key[model]
     model_url = model_url0[Server_ind]
+    if model_url == "None":
+        return None,None,None
     url = url_path_0+model_url
     save_path =  save_dir+pathname
     return [url,save_path,filename]
@@ -301,6 +303,9 @@ if __name__ == '__main__':
         bool_skip = False
         skip_data_start = ''
         url_path,save_path,file_style = download_model(model)
+        if url_path is None:
+            print(f"\033[1;31m{model} is not available on this server\033[0m")
+            continue
         if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
             os.makedirs(save_path)
         file_names = search_downloaded_files(save_path,file_style)
