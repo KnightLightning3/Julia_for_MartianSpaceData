@@ -485,7 +485,7 @@ function load_quat(filename::String)::Dict{Symbol,Any}#读取idl导出的quat数
             @inbounds data[i, :] .= (ut, mso1, mso2, mso3, mso4)
         end
     end
-    local quat_s = [QuaternionF64(data[i, 2:5]) for i in 1:n]
+    local quat_s = [QuaternionF64(data[i, 2],data[i, 3],data[i, 4],data[i, 5]) for i in 1:n]
     dd0 = Dict{Symbol,Any}(
         :epoch => unix2datetime.(data[:, 1]),
         :quat => quat_s,
