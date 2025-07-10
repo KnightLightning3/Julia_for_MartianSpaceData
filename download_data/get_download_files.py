@@ -2,13 +2,18 @@
 
 import os
 import json
+import configparser
+
+project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
+config_data = configparser.ConfigParser()
+config_data.optionxform = str
+config_data.read(config_file_path, encoding='utf-8')
+save_dir = config_data['DEFAULT']['Save_dir']
 
 list_dict={}
 
-data_format_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(f"{data_format_path}/MAVEN_data/MAVEN_data_format.json", "r") as file:
-    json_data = json.load(file)
-path = json_data["save_path"]+"lists/"
+path = save_dir+"lists/"
 listnames = os.listdir(path)
 listnames = [x for x in listnames if x[-4:] == ".txt"]
 

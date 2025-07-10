@@ -9,6 +9,7 @@ from time import sleep
 import json
 import configparser
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 def get_list_from_ini(input_string):
     if input_string == 'Null':
         return []
@@ -37,6 +38,8 @@ timeout = None
 
 continue_download = config_data['Properties'].getboolean('continue_download')
 download_mode = config_data['Properties']['download_mode']
+max_threads = config_data.getint('Properties','max_threads')
+show_tqdm_bar = config_data['Properties'].getboolean('show_tqdm_bar')
 
 start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
 end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
@@ -129,24 +132,25 @@ def requests_download(url,save_path):
     global vpn_proxy
     global session
     global timeout
+    global show_tqdm_bar
     sleep_local(step_time)
     try:
-        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K")
+        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",end='\n')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
-            print(f"Requesting:{url}...\033[K")
+            print(f"Requesting:{url}...\033[K",end='\n')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True)
+            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=show_tqdm_bar)
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
                 buffer.extend(data)  # 将下载的数据添加到缓冲区
-            progress_bar.close()
+            # progress_bar.close()
             progress_bar_data = progress_bar.format_dict
             # 如果路径不存在,创建路径
             dir_save_path = os.path.dirname(save_path)
@@ -290,6 +294,58 @@ def search_downloaded_files(save_path,file_style):
             for filepath in filepaths:
                 filenames.append(filepath)
     return filenames
+def month_delta(datetime_current): # 向前前进到下个月月初
+    current_month = datetime_current.month
+    current_year = datetime_current.year
+    current_month += 1
+    if current_month > 12:
+        current_month = 1
+        current_year += 1
+    return  datetime.date(current_year, current_month, 1)
+def download_from_head(head,num_links_added,num_links):
+    model,date,url_path,filename,save_path = head
+    if os.path.exists(save_path+filename):
+        return f"\033[1;32m{model} {date} {filename} already exists, skip downloading.\033[0m {num_links_added}/{num_links}"
+    if download_mode == 'win.idm':
+        cmd_status_code=idm_add_download_links(url_path,save_path,filename)
+        if cmd_status_code:
+            # print(f'\033[1;32mIDM link added {num_links_added}/{num_links}\033[0m',end='\r')
+            return f'\033[1;32mIDM link added {num_links_added}/{num_links}\033[0m'
+    if download_mode == 'python.request':
+        url_status_code,logic,progress_data = requests_download(url_path,save_path+filename)
+        time_now = datetime.datetime.now()
+        try: # 尝试读取v和r
+            v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
+        except:
+            v_new = "_vXX"
+        try:
+            r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
+        except:
+            r_new = "_rXX"
+        if logic:
+            try:
+                download_speed = str(round(progress_data["rate"]/1024/1024,2))
+                download_time = str(round(progress_data["elapsed"],2))
+            except:
+                download_speed = "ERROR"
+                download_time = "ERROR"
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_time}\033[0m s '+f'Speed: \033[1;34m{download_speed}\033[0m Mb/s'
+            
+        else:
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '
+# def run_muti_threads(task_func, task_args_list: list[tuple], max_workers: int = 5):
+#     total_tasks = len(task_args_list)
+#     print(f"\n--- 准备启动 {total_tasks} 个任务，最大 {max_workers} 个并发线程 ---")
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         # 提交每个任务到线程池
+#         # 使用字典推导式来存储 future 和其对应的原始参数，便于结果匹配
+#         # 这里，我们将 (task_func, *args) 提交给executor
+#         results = []
+#         for args in task_args_list:
+#             result = executor.submit(task_func, *args)
+#             results.append(result)
+#     print("\n--- 所有任务已完成,退出多线程模式 ---")
+#     return results
 
 if __name__ == '__main__':
     if check_download_file:
@@ -343,8 +399,6 @@ if __name__ == '__main__':
         current_date = start_date
         nums_downloaded = 0
         nums_failed = 0
-        bool_skip = False
-        skip_data_start = ''
         url_path,save_path,file_style = download_model(model)
         if url_path is None:
             print(f"\033[1;31m{model} is not available on this server\033[0m")
@@ -352,63 +406,49 @@ if __name__ == '__main__':
         if not os.path.exists(save_path):                   #判断是否存在文件夹如果不存在则创建为文件夹
             os.makedirs(save_path)
         file_names = search_downloaded_files(save_path,file_style)
-        if not (file_names is None):
-            os.makedirs(json_data["save_path"]+"lists", exist_ok=True)
-            with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
-                for item in file_names:
-                    file.write(str(item) + '\n') 
+
+        # 跳过前期下载的文件
+        all_planed_file_dates = []
+        all_yyyymm_set = set()
+        all_years_set = set()
         while current_date <= end_date:
             date=str(current_date.strftime("%Y%m%d"))
-            booL_exist = find_downloaded_file(file_names, date) if not update_file_version else False
-            if booL_exist:
-                if bool_skip == False:
-                    skip_data_start = current_date.strftime("%Y-%m-%d")
-                bool_skip = True
-                current_date+=datetime.timedelta(days=1)
+            if (not find_downloaded_file(file_names, date)) or (update_file_version):
+                all_planed_file_dates.append(date)
+                all_yyyymm_set.add(str(current_date.strftime("%Y/%m/")))
+                all_years_set.add(str(current_date.strftime("%Y/")))
+            current_date+=datetime.timedelta(days=1)
+        if all_planed_file_dates == []:
+            print(f"\033[1;32m{model} 计划内已经全部下载\033[0m")
+            continue
+        else:
+            print(f"\033[1;32m{model} 计划查找{len(all_planed_file_dates)}个日期\033[0m")
+        urls_status_code,bool_urls,urls_years = search_url(url_path,r'\d{4}/')# 取得服务器的所有年
+        if not bool_urls:
+            continue
+        years_need_to_access = set(urls_years) & all_years_set
+        server_yyyymm = []
+        for yyyy in years_need_to_access:
+            urls_status_code,bool_urls,urls_months = search_url(url_path+yyyy,r'\d{2}/')# 取得服务器的所有月
+            if not bool_urls:
                 continue
-            else:
-                if bool_skip:
-                    print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
-                    bool_skip = False
-            year      = current_date.year
-            month     = current_date.month
-            yyyymm    = str(current_date.strftime("%Y/%m/"))
+            server_yyyymm.extend([yyyy+m for m in urls_months])
+        yyyymm_need_to_access = set(server_yyyymm) & all_yyyymm_set
+        
+        for yyyymm in yyyymm_need_to_access:
             urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
             if not bool_urls:
-                # 移动到下个月的一号
-                month+=1
-                if month == 13:
-                    month=1
-                    year+=1
-                current_date = datetime.date(year, month, 1)
                 continue
+            if not os.path.exists(save_path+yyyymm):
+                os.makedirs(save_path+yyyymm)
             print(f'Found \033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
             for url in urls:
                 filename = str(url)
                 date=re.findall(r"\d{8}", filename)[0]
-                if start_date.strftime("%Y%m%d") > date or date > end_date.strftime("%Y%m%d"):  #Skip the part that is out of date
+                if not(date in all_planed_file_dates):
                     continue
-                booL_exist = find_downloaded_version(file_names,filename,date,save_path) if update_file_version else find_downloaded_file(file_names, date)
-                if booL_exist:
-                    if bool_skip == False:
-                        skip_data_start = current_date.strftime("%Y-%m-%d")
-                    bool_skip = True
-                    current_date+=datetime.timedelta(days=1)
-                    continue
-                else:
-                    if bool_skip:
-                        print(f'SKIPPED \033[1;34m{model}\033[0m from \033[1;32m{skip_data_start}\033[0m to \033[1;32m{current_date.strftime("%Y-%m-%d")}\033[0m.',end='\n')
-                        bool_skip = False
-
-                if not os.path.exists(save_path+yyyymm):
-                    os.makedirs(save_path+yyyymm)
                 # 添加文件地址
                 download_heads.append((model,date,url_path+yyyymm+filename,filename,save_path+yyyymm))
-            month+=1
-            if month == 13:
-                month=1
-                year+=1
-            current_date = datetime.date(year, month, 1)
     time_now = datetime.datetime.now()
     print(f"\033[1;32m{len(download_heads)}\033[0m links loaded, \033[1;34mTotal time spent: {time_now-time_start}\033[0m")
 
@@ -418,49 +458,22 @@ if __name__ == '__main__':
             json.dump(download_heads, f, ensure_ascii=False, indent=4)
     num_links = len(download_heads)
     num_links_added = 0
-    for download_head in download_heads:
-        model,date,url_path,filename,save_path = download_head
-        save_path_0 = os.path.dirname(save_path)
-        if os.path.exists(save_path):
-            print(f"\033[1;32m{model} {date} {filename} already exists, skip downloading.\033[0m {num_links_added}/{num_links}")
-            continue
-        if download_mode == 'win.idm':
-            cmd_status_code=idm_add_download_links(url_path,save_path_0,filename)
-            if cmd_status_code:
-                num_links_added+=1
-                print(f'\033[1;32mIDM link added {num_links_added}/{num_links}\033[0m',end='\r')
-        if download_mode == 'python.request':
-            url_status_code,logic,progress_data = requests_download(url_path,save_path+filename)
-            time_now = datetime.datetime.now()
-            try: # 尝试读取v和r
-                v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
-            except:
-                v_new = "_vXX"
+
+    # 多线程下载
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        future_to_task_info = {
+            executor.submit(download_from_head, head, i + 1, num_links): (head, i + 1)
+            for i, head in enumerate(download_heads)
+            }
+        print("\n--- 正在等待下载任务完成，并实时打印结果... ---\n")
+        for future in as_completed(future_to_task_info):
+            original_head, task_id = future_to_task_info[future]
             try:
-                r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
-            except:
-                r_new = "_rXX"
-            if logic:
-                # num_links_added+=1
-                try:
-                    download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                    download_time = str(round(progress_data["elapsed"],2))
-                except:
-                    download_speed = "ERROR"
-                    download_time = "ERROR"
-                print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                        f'Status: \033[0;32m{logic}\033[0m ' +
-                        f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                        f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
-                        f'Time spend: \033[1;34m{download_time}\033[0m s '+
-                        f'Speed: \033[1;34m{download_speed}\033[0m Mb/s',end='\n\n')
-                nums_downloaded = nums_downloaded+1
-            else:
-                print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                        f'Status: \033[0;31m{logic}\033[0m ' +
-                        f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                        f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ',end='\n\n')
-                nums_failed = nums_failed+1
+                # 获取任务函数的实际返回值
+                result_string = future.result()
+                print(f"✅ [完成] {result_string}", flush=True) # 实时打印完成结果
+            except Exception as exc:
+                print(f"❌ [失败] 任务 {task_id} (处理 '{original_head}') 执行异常: {exc}", flush=True)
                 
     if download_mode == 'win.idm':       
         idm_download()

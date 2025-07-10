@@ -29,12 +29,14 @@ config['VPN_proxy'] = {
 }
 config['Properties'] = {
     "download_mode": "python.request \n;python.request:通过request方式下载文件 \n;win.idm:通过IDM下载文件,需要安装IDM软件,IDM可以启动多线程,但是下载程序将无法追踪下载进度,需要自行在软件中查看并启动文件录入功能(download_data/check_exist_files.py)",
-    "continue_download": "False\n;为True时继续下载未完成的文件,为False时重新下载所有文件, 首次启动必然false\n;True to continue downloading unfinished files, False to redownload all files",
+    "continue_download": "True\n;为True时继续下载未完成的文件,为False时重新下载所有文件, 首次启动必然false\n;True to continue downloading unfinished files, False to redownload all files",
     "IDM_program_path" : "C:\Program Files (x86)\Internet Download Manager\IDMan.exe",
+    'max_threads' : "5 \n; 多线程的线程数量",
+    'show_tqdm_bar': "False \n; 是否显示下载进度条(多线程下会出错)",
 }
 config['Settings'] = {
     "start_date": "2014-10-01 \n;下载数据的起始日期 \n;Start date yyyy-mm-dd",
-    "end_date": "2024-06-01 \n;下载数据的终止日期 \n;End date yyyy-mm-dd",
+    "end_date": "2025-06-01 \n;下载数据的终止日期 \n;End date yyyy-mm-dd",
     "single_model": "LPW_lpiv \n;单次模式下载的模块,如果single_download为True, 则下载此模块 \n;Module downloaded in single mode. If single_download = True, this module will be downloaded.",
     "muti_models": "Null\n;填入想要批量下载的仪器模块, 如果为Null, 则下载所有模块\n;Fill in the instrument modules you want to download in batches. If it is Null, all modules will be downloaded.",
     "models_pass" : "MAG_ss,MAG_ss1s,MAG_pc1s,MAG_pc,KP \n;从USTC服务器上批量下载的时候默认跳过的模块,MAG数据的l3为占用更小的二进制格式,所以不需要下载l2的数据,不同模块间用英文逗号分隔\n; Modules that are skipped by default when downloading in batches from the USTC server. l3 data of the MAG is a smaller Fortran binary format, so there is no need to download the l2 data. Different modules are separated by commas.",

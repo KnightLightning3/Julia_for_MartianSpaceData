@@ -78,11 +78,11 @@ if __name__ == '__main__':
         file_names = search_downloaded_files(save_path,file_style)
         if file_names is None:
             continue
-        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
+        with open(save_dir+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
         # filehash_list = get_filehashs(save_path,file_style)
-        # with open(json_data["save_path"]+"filehash_list.csv", 'w', encoding='utf-8') as file:
+        # with open(save_dir+"filehash_list.csv", 'w', encoding='utf-8') as file:
         #     for item in filehash_list:
         #         file.write(str(item) + '\n')
     
