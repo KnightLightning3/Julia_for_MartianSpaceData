@@ -103,12 +103,12 @@ def search_url(url,file_style):
     global timeout
     sleep_local(step_time)
     try:
-        print(f"Requesting:{url}...\033[K",end='\r')
+        print(f"Requesting:{url}...\033[K",flush=True,end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
-            print(f"Requesting:{url}...\033[K",end='\r')
+            print(f"Requesting:{url}...\033[K",flush=True,end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             html_content = response.text
@@ -135,17 +135,17 @@ def requests_download(url,save_path):
     global show_tqdm_bar
     sleep_local(step_time)
     try:
-        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",end='\n')
+        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",flush=True,end='\r')
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
-            print(f"Requesting:{url}...\033[K",end='\n')
+            print(f"Requesting:{url}...\033[K",flush=True,end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=show_tqdm_bar)
+            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=(not show_tqdm_bar))
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
@@ -425,6 +425,7 @@ if __name__ == '__main__':
             print(f"\033[1;32m{model} 计划查找{len(all_planed_file_dates)}个日期\033[0m")
         urls_status_code,bool_urls,urls_years = search_url(url_path,r'\d{4}/')# 取得服务器的所有年
         if not bool_urls:
+            print("\033[1;31m连接失败\033[0m")
             continue
         years_need_to_access = set(urls_years) & all_years_set
         server_yyyymm = []
@@ -434,7 +435,7 @@ if __name__ == '__main__':
                 continue
             server_yyyymm.extend([yyyy+m for m in urls_months])
         yyyymm_need_to_access = set(server_yyyymm) & all_yyyymm_set
-        
+        download_heads_model = []
         for yyyymm in yyyymm_need_to_access:
             urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
             if not bool_urls:
@@ -448,7 +449,10 @@ if __name__ == '__main__':
                 if not(date in all_planed_file_dates):
                     continue
                 # 添加文件地址
-                download_heads.append((model,date,url_path+yyyymm+filename,filename,save_path+yyyymm))
+                download_heads_model.append((model,date,url_path+yyyymm+filename,filename,save_path+yyyymm))
+        print(f"\033[1;32m{model} 完成查找{len(download_heads_model)}个日期\033[0m")
+        download_heads.extend(download_heads_model)
+            
     time_now = datetime.datetime.now()
     print(f"\033[1;32m{len(download_heads)}\033[0m links loaded, \033[1;34mTotal time spent: {time_now-time_start}\033[0m")
 
@@ -471,9 +475,9 @@ if __name__ == '__main__':
             try:
                 # 获取任务函数的实际返回值
                 result_string = future.result()
-                print(f"✅ [完成] {result_string}", flush=True) # 实时打印完成结果
+                print(f"✅ [完成] {result_string}", flush=False) # 实时打印完成结果
             except Exception as exc:
-                print(f"❌ [失败] 任务 {task_id} (处理 '{original_head}') 执行异常: {exc}", flush=True)
+                print(f"❌ [失败] 任务 {task_id} (处理 '{original_head}') 执行异常: {exc}", flush=False)
                 
     if download_mode == 'win.idm':       
         idm_download()
