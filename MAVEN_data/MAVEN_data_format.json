@@ -1,6 +1,5 @@
 {
     "description": "data_model: data_type:[url_pathss, file_name_pattern, save_path, load_function,description,description]",
-    "save_path": "E:/MAVEN/",
     "server_url":["http://222.195.76.155:8000/MAVEN/","https://pds-ppi.igpp.ucla.edu/data/","https://lasp.colorado.edu/maven/sdc/public/data/sci/"],
     "data_model": {
         "KP": [
@@ -78,7 +77,7 @@
             "mvn_mag_vsc_ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
             "MAG/vsc/",
             "load_mag_vsc",
-            "spacecraft velocity carculated from mag data (binary)"
+            "spacecraft velocity calculated from mag data (binary)"
         ],
         "SWEA_spec": [
             ["SWEA/l2/","maven-swea-calibrated/data/svy_spec/","swe/l2/"],
@@ -344,9 +343,6 @@
         ]
     },
     "kp_dict": {
-        "Orbit Number": 210
-    },
-    "kp_dict_backup": {
         "electorn density": 2,
         "Ne quality min": 3,
         "Ne quality max": 4,
@@ -358,6 +354,7 @@
         "H+ T": 60,
         "O+ T": 62,
         "O2+ T": 64,
-        "H+_density_SWIA": 41
+        "H+_density_SWIA": 41,
+        "Orbit Number": 210
     }
 }

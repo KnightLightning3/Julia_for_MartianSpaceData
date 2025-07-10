@@ -11,7 +11,7 @@ cdflib = pyimport("cdflib")
 using TimesDates, Dates
 using DataFrames
 using JSON
-using ConfParser
+using IniFile
 using JLD2
 using Statistics
 using Quaternions
@@ -946,9 +946,12 @@ open(dir * "/MAVEN_data_format.json", "r") do f
     global kp_dict = data["kp_dict"]
     global data_model = data["data_model"]
 end
-conf = ConfParse(dirname(dir) * "/download_data/MAVEN_download_config.ini")
-parse_conf!(conf)
-root_path = retrieve(conf, "DEFAULT", "Save_dir")#所有文件的根目录
+# conf = ConfParse(dirname(dir) * "/download_data/MAVEN_download_config.ini")
+# parse_conf!(conf)
+# root_path = retrieve(conf, "DEFAULT", "Save_dir")#所有文件的根目录
+
+root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
+
 kp_dict = change_kp_read_data(kp_dict)
 
 read_models = Dict{String,Tuple{String,Function}}()

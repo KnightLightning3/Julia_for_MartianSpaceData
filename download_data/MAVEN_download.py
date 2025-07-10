@@ -8,7 +8,7 @@ import re
 from time import sleep
 import json
 import configparser
-
+import subprocess
 def get_list_from_ini(input_string):
     if input_string == 'Null':
         return []
@@ -35,6 +35,9 @@ sleep_time = config_data.getint('DEFAULT','sleep_time')
 step_time = config_data.getint('DEFAULT','step_time')
 timeout = None
 
+continue_download = config_data['Properties'].getboolean('continue_download')
+download_mode = config_data['Properties']['download_mode']
+
 start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
 end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
 
@@ -56,7 +59,7 @@ if Server_ind == 0:  #自建服务器
 else:       # 外部服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
     models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
-    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3","MAG_ss1s_vsc","STATIC_d1_v4d","STATIC_c6_v3d"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3","MAG_ss1s_vsc","STATIC_d1_v4d","STATIC_c6_v3d","SWIA_quat"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
 print(f"Server: {url_path_0},vpn: {vpn_proxy}")
 if vpn_proxy != None:
     vpn_proxy = {
@@ -120,8 +123,8 @@ def search_url(url,file_style):
     except requests.exceptions.RequestException as e:
         print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0m Seconds")
         sleep_local(sleep_time)
-        return response.status_code,False,0
-    return response.status_code,False,0
+        return "error",False,0
+    return "error",False,0
 def requests_download(url,save_path):
     global vpn_proxy
     global session
@@ -159,8 +162,31 @@ def requests_download(url,save_path):
     except requests.exceptions.RequestException as e:
         print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0m Seconds")
         sleep_local(sleep_time)
-        return response.status_code,False,None
-    return response.status_code,False,None
+        return "error",False,None
+    return "error",False,None
+def idm_add_download_links(url,save_path,filename):
+    global step_time
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    # command = f'"{config_data["Properties"]["IDM_program_path"]}" /a /d "{url}" /p "{save_path}" /f "{filename}"'
+    command = [
+        config_data["Properties"]["IDM_program_path"],
+        "/a" ,
+        "/d", url,
+        "/p", save_path,
+        "/f", filename,
+        ]
+    # os.system(command)
+    result = subprocess.run(command, check=False, capture_output=True, text=True, encoding='utf-8')
+    # print(command)
+    return result.returncode == 0
+def idm_download():
+    command = [
+        config_data["Properties"]["IDM_program_path"],
+        "/s"
+    ]
+    result = subprocess.run(command, check=False, capture_output=True, text=True, encoding='utf-8')
+    return result.returncode == 0
 def download_model(model):
     global Server_ind
     global url_path_0
@@ -264,6 +290,7 @@ def search_downloaded_files(save_path,file_style):
             for filepath in filepaths:
                 filenames.append(filepath)
     return filenames
+
 if __name__ == '__main__':
     if check_download_file:
         for model in json_data["data_model"].keys():
@@ -271,7 +298,7 @@ if __name__ == '__main__':
             file_names = search_downloaded_files(save_path,file_style)
             if file_names is None:
                 continue
-            with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
+            with open(save_dir+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
                 for item in file_names:
                     file.write(str(item) + '\n')
         import runpy
@@ -298,7 +325,21 @@ if __name__ == '__main__':
     else:
         models = muti_models
 
+    # 导入上次保存的链接表
+    download_heads_file = f"{project_path}/download_data/download_heads.json"
+    if continue_download and os.path.exists(download_heads_file):
+        print("\033[1;32m Continue Downloading \033[0m")
+        with open(download_heads_file, 'r', encoding='utf-8') as f:
+            download_heads = json.load(f)
+    else:
+        download_heads = []
+        continue_download = False
+    # 遍历网站,取得所有文件的下载链接
+    time_start = datetime.datetime.now()
+    print(f"\033[1;32mStart get all download link from {start_date} to {end_date}\033[0m")
     for model in models:
+        if continue_download:
+            break
         current_date = start_date
         nums_downloaded = 0
         nums_failed = 0
@@ -341,7 +382,7 @@ if __name__ == '__main__':
                     year+=1
                 current_date = datetime.date(year, month, 1)
                 continue
-            print(f'\033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
+            print(f'Found \033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
             for url in urls:
                 filename = str(url)
                 date=re.findall(r"\d{8}", filename)[0]
@@ -361,49 +402,76 @@ if __name__ == '__main__':
 
                 if not os.path.exists(save_path+yyyymm):
                     os.makedirs(save_path+yyyymm)
-                url_status_code,logic,progress_data = requests_download(url_path+yyyymm+filename,save_path+yyyymm+filename)
-                time_now = datetime.datetime.now()
-                try: # 尝试读取v和r
-                    v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
-                except:
-                    v_new = "_vXX"
-                try:
-                    r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
-                except:
-                    r_new = "_rXX"
-                if logic:
-                    try:
-                        download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                        download_time = str(round(progress_data["elapsed"],2))
-                    except:
-                        download_speed = "ERROR"
-                        download_time = "ERROR"
-                    print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                            f'Status: \033[0;32m{logic}\033[0m ' +
-                            f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
-                            f'Time spend: \033[1;34m{download_time}\033[0m s '+
-                            f'Speed: \033[1;34m{download_speed}\033[0m Mb/s',end='\n\n')
-                    nums_downloaded = nums_downloaded+1
-                else:
-                    print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
-                            f'Status: \033[0;31m{logic}\033[0m ' +
-                            f'Responses: \033[0;32m{url_status_code}\033[0m '+
-                            f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ',end='\n\n')
-                    nums_failed = nums_failed+1
+                # 添加文件地址
+                download_heads.append((model,date,url_path+yyyymm+filename,filename,save_path+yyyymm))
             month+=1
             if month == 13:
                 month=1
                 year+=1
             current_date = datetime.date(year, month, 1)
+    time_now = datetime.datetime.now()
+    print(f"\033[1;32m{len(download_heads)}\033[0m links loaded, \033[1;34mTotal time spent: {time_now-time_start}\033[0m")
+
+    # 如果continue_download为false,将download_heads保存为json文件:
+    if not continue_download:
+        with open(download_heads_file, 'w', encoding='utf-8') as f:
+            json.dump(download_heads, f, ensure_ascii=False, indent=4)
+    num_links = len(download_heads)
+    num_links_added = 0
+    for download_head in download_heads:
+        model,date,url_path,filename,save_path = download_head
+        save_path_0 = os.path.dirname(save_path)
+        if os.path.exists(save_path):
+            print(f"\033[1;32m{model} {date} {filename} already exists, skip downloading.\033[0m {num_links_added}/{num_links}")
+            continue
+        if download_mode == 'win.idm':
+            cmd_status_code=idm_add_download_links(url_path,save_path_0,filename)
+            if cmd_status_code:
+                num_links_added+=1
+                print(f'\033[1;32mIDM link added {num_links_added}/{num_links}\033[0m',end='\r')
+        if download_mode == 'python.request':
+            url_status_code,logic,progress_data = requests_download(url_path,save_path+filename)
+            time_now = datetime.datetime.now()
+            try: # 尝试读取v和r
+                v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
+            except:
+                v_new = "_vXX"
+            try:
+                r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
+            except:
+                r_new = "_rXX"
+            if logic:
+                # num_links_added+=1
+                try:
+                    download_speed = str(round(progress_data["rate"]/1024/1024,2))
+                    download_time = str(round(progress_data["elapsed"],2))
+                except:
+                    download_speed = "ERROR"
+                    download_time = "ERROR"
+                print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
+                        f'Status: \033[0;32m{logic}\033[0m ' +
+                        f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                        f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+
+                        f'Time spend: \033[1;34m{download_time}\033[0m s '+
+                        f'Speed: \033[1;34m{download_speed}\033[0m Mb/s',end='\n\n')
+                nums_downloaded = nums_downloaded+1
+            else:
+                print(f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +
+                        f'Status: \033[0;31m{logic}\033[0m ' +
+                        f'Responses: \033[0;32m{url_status_code}\033[0m '+
+                        f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ',end='\n\n')
+                nums_failed = nums_failed+1
+                
+    if download_mode == 'win.idm':       
+        idm_download()
+        print(f'\033[1;32mIDM downloading start, check software.\033[0m')
             
-            
-        file_names = search_downloaded_files(save_path,file_style)
-        with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
-            for item in file_names:
-                file.write(str(item) + '\n')
-        with open(f"{project_path}/download_data/download.log", "a", encoding='utf-8') as download_log:
-            download_log.write(f'[{datetime.datetime.now()}]  {nums_downloaded} Files Downloaded, {nums_failed} Files Failed [{model}] [MAVEN server]'+"\n")
+        # file_names = search_downloaded_files(save_path,file_style)
+        # with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
+        #     for item in file_names:
+        #         file.write(str(item) + '\n')
+        # with open(f"{project_path}/download_data/download.log", "a", encoding='utf-8') as download_log:
+            # download_log.write(f'[{datetime.datetime.now()}]  {nums_downloaded} Files Downloaded, {nums_failed} Files Failed [{model}] [MAVEN server]'+"\n")
 
     import runpy
     runpy.run_path(f"{project_path}/download_data/get_download_files.py")  # run get_download_files.py, update filename_list.txt

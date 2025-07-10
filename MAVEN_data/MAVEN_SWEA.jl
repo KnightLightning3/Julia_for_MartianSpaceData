@@ -162,62 +162,62 @@ const RADG=180.0/π
 end
 
 # # -------------------------Test parts-------------------------
-EnvironmentPath = "D:/CODE/Package_for_Julia/"
-include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl")
-import .MAVEN_load;
-import .MAVEN_SWEA;
-using Dates
-using CairoMakie
-using DataInterpolations
-time_range = [DateTime(2015,10,29,11),DateTime(2015,10,29,12)]
-time_range = [DateTime(2015,10,29,11,27),DateTime(2015,10,29,11,39)]
-MAVEN_load.change_kp_read_data(Dict(
-    :electorn_density => 2,
-    :sw_electorn_density => 23,
-    :Ne_quality_min => 3,
-    :Ne_quality_max => 4,
-    :GEO_x => 187,
-    :GEO_y => 188,
-    :GEO_z => 189,
-    :MSO_x => 190,
-    :MSO_y => 191,
-    :MSO_z => 192,
-    :Orbit_Number => 210,
-    :Shape_parameter => 39,
-    :H_flow_MSO_x => 43,
-    :H_flow_MSO_y => 45,
-    :H_flow_MSO_z => 47,
-    :Oiondensity => 56,
-    :O2iondensity => 58,
-    :iondensity16 => 172,
-    :iondensity32 => 163,
-    :iondensity44 => 167,
-    :OionTemperature => 62,
-    :O2ionTemperature => 64,
-));
-dat0 = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["SWEA_spec","KP","LPW_mrgscpot","LPW_lpnt","LPW_wn"])
-dat_swe=dat0["SWEA_spec"]
-dat_kp = dat0["KP"]
-dat_pot = dat0["LPW_mrgscpot"]
-func_on_zero = x -> isnan(x) ? 0.0 : x
-func_pot = CubicSpline(func_on_zero.(dat_pot[:data]),datetime2unix.(dat_pot[:epoch]),extrapolate=true)
-pots = func_pot.(datetime2unix.(dat_swe[:epoch]))
+# EnvironmentPath = "D:/CODE/Package_for_Julia/"
+# include(EnvironmentPath * "MAVEN_data/MAVEN_load.jl")
+# import .MAVEN_load;
+# import .MAVEN_SWEA;
+# using Dates
+# using CairoMakie
+# using DataInterpolations
+# time_range = [DateTime(2015,10,29,11),DateTime(2015,10,29,12)]
+# time_range = [DateTime(2015,10,29,11,27),DateTime(2015,10,29,11,39)]
+# MAVEN_load.change_kp_read_data(Dict(
+#     :electorn_density => 2,
+#     :sw_electorn_density => 23,
+#     :Ne_quality_min => 3,
+#     :Ne_quality_max => 4,
+#     :GEO_x => 187,
+#     :GEO_y => 188,
+#     :GEO_z => 189,
+#     :MSO_x => 190,
+#     :MSO_y => 191,
+#     :MSO_z => 192,
+#     :Orbit_Number => 210,
+#     :Shape_parameter => 39,
+#     :H_flow_MSO_x => 43,
+#     :H_flow_MSO_y => 45,
+#     :H_flow_MSO_z => 47,
+#     :Oiondensity => 56,
+#     :O2iondensity => 58,
+#     :iondensity16 => 172,
+#     :iondensity32 => 163,
+#     :iondensity44 => 167,
+#     :OionTemperature => 62,
+#     :O2ionTemperature => 64,
+# ));
+# dat0 = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["SWEA_spec","KP","LPW_mrgscpot","LPW_lpnt","LPW_wn"])
+# dat_swe=dat0["SWEA_spec"]
+# dat_kp = dat0["KP"]
+# dat_pot = dat0["LPW_mrgscpot"]
+# func_on_zero = x -> isnan(x) ? 0.0 : x
+# func_pot = CubicSpline(func_on_zero.(dat_pot[:data]),datetime2unix.(dat_pot[:epoch]),extrapolate=true)
+# pots = func_pot.(datetime2unix.(dat_swe[:epoch]))
 
-dens = MAVEN_SWEA.n1d(dat_swe;sc_pot=pots)
-time_i_swe = findall(x ->time_range[2]>= x >= time_range[1], dat_swe[:epoch])
+# dens = MAVEN_SWEA.n1d(dat_swe;sc_pot=pots)
+# time_i_swe = findall(x ->time_range[2]>= x >= time_range[1], dat_swe[:epoch])
 
-time_i_kp = findall(x ->time_range[2]>= x >= time_range[1], dat_kp[:time])
-fig = Figure(resolution=(800, 600))
-ax = Axis(fig[1, 1], xlabel="time", ylabel="Density (1/cm^3)", title="MAVEN SWEA Density")
-lines!(ax, dat_swe[:epoch][time_i_swe], dens[time_i_swe], color=:blue, label="Density")
-lines!(ax, dat_kp[:time][time_i_kp], dat_kp[:sw_electorn_density][time_i_kp], color=:red, label="Kp Index")
+# time_i_kp = findall(x ->time_range[2]>= x >= time_range[1], dat_kp[:time])
+# fig = Figure(resolution=(800, 600))
+# ax = Axis(fig[1, 1], xlabel="time", ylabel="Density (1/cm^3)", title="MAVEN SWEA Density")
+# lines!(ax, dat_swe[:epoch][time_i_swe], dens[time_i_swe], color=:blue, label="Density")
+# lines!(ax, dat_kp[:time][time_i_kp], dat_kp[:sw_electorn_density][time_i_kp], color=:red, label="Kp Index")
 
-ax = Axis(fig[2, 1], xlabel="time", ylabel="Density (1/cm^3)", title="MAVEN SWEA Density",yscale=log10)
+# ax = Axis(fig[2, 1], xlabel="time", ylabel="Density (1/cm^3)", title="MAVEN SWEA Density",yscale=log10)
 
-time_i1 = findall(x ->time_range[2]>= x >= time_range[1], dat0["LPW_lpnt"][:epoch])
-scatter!(ax, dat0["LPW_lpnt"][:epoch][time_i1], dat0["LPW_lpnt"][:data][time_i1], color=:blue, label="Density")
+# time_i1 = findall(x ->time_range[2]>= x >= time_range[1], dat0["LPW_lpnt"][:epoch])
+# scatter!(ax, dat0["LPW_lpnt"][:epoch][time_i1], dat0["LPW_lpnt"][:data][time_i1], color=:blue, label="Density")
 
-time_i2 = findall(x ->time_range[2]>= x >= time_range[1], dat0["LPW_wn"][:epoch])
-scatter!(ax, dat0["LPW_wn"][:epoch][time_i2], dat0["LPW_wn"][:data][time_i2], color=:red, label="Density")
+# time_i2 = findall(x ->time_range[2]>= x >= time_range[1], dat0["LPW_wn"][:epoch])
+# scatter!(ax, dat0["LPW_wn"][:epoch][time_i2], dat0["LPW_wn"][:data][time_i2], color=:red, label="Density")
 
-fig
+# fig

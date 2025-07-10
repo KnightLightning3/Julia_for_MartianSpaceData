@@ -27,6 +27,11 @@ config['VPN_proxy'] = {
     "Outer_server":"http://127.0.0.1:7890\n;vpn设置,None为不使用VPN\n;VPN settings, None means no VPN is used.",
     "USTC_server": "None\n;vpn设置,None为不使用VPN,校外访问时可以忽略\n;VPN settings, None means no VPN is used, which can be ignored when accessing outside the school.",
 }
+config['Properties'] = {
+    "download_mode": "python.request \n;python.request:通过request方式下载文件 \n;win.idm:通过IDM下载文件,需要安装IDM软件,IDM可以启动多线程,但是下载程序将无法追踪下载进度,需要自行在软件中查看并启动文件录入功能(download_data/check_exist_files.py)",
+    "continue_download": "False\n;为True时继续下载未完成的文件,为False时重新下载所有文件, 首次启动必然false\n;True to continue downloading unfinished files, False to redownload all files",
+    "IDM_program_path" : "C:\Program Files (x86)\Internet Download Manager\IDMan.exe",
+}
 config['Settings'] = {
     "start_date": "2014-10-01 \n;下载数据的起始日期 \n;Start date yyyy-mm-dd",
     "end_date": "2024-06-01 \n;下载数据的终止日期 \n;End date yyyy-mm-dd",
