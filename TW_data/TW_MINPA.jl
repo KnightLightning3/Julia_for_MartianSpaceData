@@ -1,6 +1,7 @@
 module TW_MINPA
 using Dates
 using DelimitedFiles, DataFrames
+using LinearAlgebra
 
 const mp = 1.6726219e-27 # 质子质量
 const me = 9.10938356e-31 # 电子质量
@@ -354,7 +355,6 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     
     return vel,flux,den #速度(ntime,nmass,3),km/s,密度(ntime,nmass),cm^-3
 end
-using LinearAlgebra
 function slice2d_cal_rot(v1, v2)
     a = normalize(v1)
     d = normalize(v2)

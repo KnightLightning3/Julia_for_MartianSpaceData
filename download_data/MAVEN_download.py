@@ -6,10 +6,12 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 import re
 from time import sleep
+import time
 import json
 import configparser
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import math
 def get_list_from_ini(input_string):
     if input_string == 'Null':
         return []
@@ -39,7 +41,7 @@ timeout = None
 continue_download = config_data['Properties'].getboolean('continue_download')
 download_mode = config_data['Properties']['download_mode']
 max_threads = config_data.getint('Properties','max_threads')
-show_tqdm_bar = config_data['Properties'].getboolean('show_tqdm_bar')
+disable_tqdm_bar = not config_data['Properties'].getboolean('show_tqdm_bar')
 
 start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
 end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
@@ -128,11 +130,18 @@ def search_url(url,file_style):
         sleep_local(sleep_time)
         return "error",False,0
     return "error",False,0
+def download_unit_convert(total_bits):
+    size_units = ["b", "Kb", "Mb", "Gb", "Tb", "Pb"]
+    unit_idx = min(len(size_units) - 1, max(0, int(math.log(total_bits, 1024))))
+    divisor = 1024 ** unit_idx
+    size_value = total_bits / divisor
+    size_unit = size_units[unit_idx]
+    return f"{size_value} {size_unit}"
 def requests_download(url,save_path):
     global vpn_proxy
     global session
     global timeout
-    global show_tqdm_bar
+    global disable_tqdm_bar
     sleep_local(step_time)
     try:
         print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",flush=True,end='\r')
@@ -145,13 +154,17 @@ def requests_download(url,save_path):
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=(not show_tqdm_bar))
+            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=disable_tqdm_bar)
+            time_start = time.time()
+            if disable_tqdm_bar:
+                print(f"\033[1;32mLoading from\033[0m: {url}...\033[K",flush=True,end='\r')
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
                 buffer.extend(data)  # 将下载的数据添加到缓冲区
-            # progress_bar.close()
-            progress_bar_data = progress_bar.format_dict
+            # progress_bar_data = progress_bar.format_dict
+            # dict_keys(['n', 'total', 'elapsed', 'unit'])
+            progress_bar.close()
             # 如果路径不存在,创建路径
             dir_save_path = os.path.dirname(save_path)
             if not os.path.exists(dir_save_path):
@@ -161,13 +174,17 @@ def requests_download(url,save_path):
             with open(save_path, "wb") as file:
                 print(f"\033[F\033[FWriting into: {save_path}",end='\r')
                 file.write(buffer)
-            return response.status_code,True,progress_bar_data
+            elapsed = time.time() - time_start
+            speed = total_size/elapsed
+            loading_data = (download_unit_convert(total_size),f"{elapsed} s",download_unit_convert(speed)+'/s')
+
+            return response.status_code,True,loading_data
         response.close()
     except requests.exceptions.RequestException as e:
         print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0m Seconds")
         sleep_local(sleep_time)
-        return "error",False,None
-    return "error",False,None
+        return "error",False,("error","error","error")
+    return "error",False,("error","error","error")
 def idm_add_download_links(url,save_path,filename):
     global step_time
     if not os.path.exists(save_path):
@@ -323,13 +340,10 @@ def download_from_head(head,num_links_added,num_links):
         except:
             r_new = "_rXX"
         if logic:
-            try:
-                download_speed = str(round(progress_data["rate"]/1024/1024,2))
-                download_time = str(round(progress_data["elapsed"],2))
-            except:
-                download_speed = "ERROR"
-                download_time = "ERROR"
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_time}\033[0m s '+f'Speed: \033[1;34m{download_speed}\033[0m Mb/s'
+            download_speed = progress_data[2]
+            download_elapsed = progress_data[1]
+            download_size = progress_data[0]
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m'
             
         else:
             return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '
@@ -384,7 +398,7 @@ if __name__ == '__main__':
     # 导入上次保存的链接表
     download_heads_file = f"{project_path}/download_data/download_heads.json"
     if continue_download and os.path.exists(download_heads_file):
-        print("\033[1;32m Continue Downloading \033[0m")
+        print("\033[1;32m 继续之前的下载 \033[0m")
         with open(download_heads_file, 'r', encoding='utf-8') as f:
             download_heads = json.load(f)
     else:
@@ -463,6 +477,8 @@ if __name__ == '__main__':
     num_links = len(download_heads)
     num_links_added = 0
 
+    # 启动下载记录
+    io_download_log = open('download_data/download.log', 'w', encoding='utf-8')
     # 多线程下载
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         future_to_task_info = {
@@ -475,9 +491,13 @@ if __name__ == '__main__':
             try:
                 # 获取任务函数的实际返回值
                 result_string = future.result()
-                print(f"✅ [完成] {result_string}", flush=False) # 实时打印完成结果
+                result_string_0 = f"✅ [完成] {result_string}"
             except Exception as exc:
-                print(f"❌ [失败] 任务 {task_id} (处理 '{original_head}') 执行异常: {exc}", flush=False)
+                result_string_0 = f"❌ [失败] 任务 {task_id} (处理 '{original_head}') 执行出错: {exc}"
+            print(result_string_0, flush=True,end='\n') # 实时打印完成结果
+            io_download_log.write(result_string_0+'\n')
+            io_download_log.flush()
+    io_download_log.close()        
                 
     if download_mode == 'win.idm':       
         idm_download()
