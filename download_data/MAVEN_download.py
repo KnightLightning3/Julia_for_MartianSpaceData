@@ -134,7 +134,7 @@ def download_unit_convert(total_bits):
     size_units = ["b", "Kb", "Mb", "Gb", "Tb", "Pb"]
     unit_idx = min(len(size_units) - 1, max(0, int(math.log(total_bits, 1024))))
     divisor = 1024 ** unit_idx
-    size_value = total_bits / divisor
+    size_value = round(total_bits / divisor,ndigits=2)
     size_unit = size_units[unit_idx]
     return f"{size_value} {size_unit}"
 def requests_download(url,save_path):
@@ -176,7 +176,7 @@ def requests_download(url,save_path):
                 file.write(buffer)
             elapsed = time.time() - time_start
             speed = total_size/elapsed
-            loading_data = (download_unit_convert(total_size),f"{elapsed} s",download_unit_convert(speed)+'/s')
+            loading_data = (download_unit_convert(total_size),f"{round(elapsed,ndigits=2)} s",download_unit_convert(speed)+'/s')
 
             return response.status_code,True,loading_data
         response.close()
