@@ -532,7 +532,7 @@ function Bpc2sphere(x, y, z, bx, by, bz)
 
     return Br, Bθ, Bϕ
 end
-function caculate_mag(position; models=[:alt])
+function calculate_mag(position; models=[:alt])
     function c_alt(position)
         alt = sqrt.(sum(position .^ 2, dims=2)) .- 3393.5
         alt = alt[:, 1]
@@ -806,6 +806,16 @@ function ion_energy2v(energy, mass) # 离子子能量对应速度(相对论)
     v = β .* 3e8
     return v
 end
+function  cyclone_frequency(B; mass = Me) 
+    # 计算离子子的回旋频率, 默认电子, B nT
+    f = Q * B*1e-9 / (2 * π * mass)
+    return f
+end
+function  cyclone_R(v,B; mass = Me) 
+    # 计算离子子的回旋半径, 默认电子,v m/s B nT
+    R = v / (cyclone_frequency(B; mass) * 2 * π) # m
+    return R
+end
 function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time_i = nothing)# 计算指定pa范围的shape parameter,设置time_i后可以计算指定时间段的数据以增加运行速度
     function mvn_swe_calc_shape_arr(npts, fin, energy; hresflg=true, energy_range = [0.0, 100.0])
         function deriv(x, y)
@@ -933,6 +943,7 @@ function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],
     par_away[.!B_out] .= par_antipara[.!B_out]
     return par_twd,par_away,par_mid
 end
+const Q = 1.602176487e-19 # 库仑
 const EV = 1.602176487e-19
 const C = 3.0e8
 const Me = 9.109e-31

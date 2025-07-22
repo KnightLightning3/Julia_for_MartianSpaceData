@@ -265,14 +265,14 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=da
     voronoiplot!(ax, voronoi(tri), color=scatter_colors, colormap=colormap, strokewidth=0, markersize=0)
     # tricontourf!(ax, tri, scatter_colors, colormap = colormap,bottom = :black,levels = 256)
 
-    # if show_data
+    if show_data
         colormap = :viridis
         n_colors = 256
         colors = resample_cmap(colormap, n_colors)
         scatter_color = [colors[i] for i in scatter_colors]
         scatter!(ax, x, y, markersize=7, color=:black)
         scatter!(ax, x, y, markersize=5, color=scatter_color)
-    # end
+    end
     lines!(ax, [-1000, 1000], [0, 0], linestyle=:dash, color=:white)
     lines!(ax, [0, 0], [-1000, 1000], linestyle=:dash, color=:white)
 
@@ -286,7 +286,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=da
     end
     return ax
 end
-function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[0, 0, 0],magf=[1,0,0], vsc=[0,0,0],colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, colormap=:viridis, show_data=false)
+function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[0, 0, 0],magf=[1,0,0], vsc=[0,0,0],colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, colormap=:viridis,show_data=false)
     #绘制任何3d空间分布的饼状图，必需要满足： data为一维或多维数据,速度必须为n*3的格式
     function remove_repeat_points(x, y, z, c; angle=[-30, 30])
         points = [x y c]
@@ -383,7 +383,7 @@ function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[
     c[c .<= 0 ] .= 1e-20
 
     x, y, c = remove_repeat_points(x, y, z, c; angle=angle_range)
-    x, y, c = filter_points_optimized(x, y, c, (plot_range[2]-plot_range[1])/100) #绘图部分0.01的分辨率
+    x, y, c = filter_points_optimized(x, y, c, (plot_range[2]-plot_range[1])/50) #绘图部分0.02的分辨率
 
     scatter_colors = color_mapping(c, colorrange; scaler="log10")
 
@@ -392,8 +392,15 @@ function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[
     if length(pts) <= 3
         println("No enough data in the selected range.")
     else
+        krawg = Dict{Symbol,Any}()
+        # if lowclip != :automatic
+        #     krawg[:lowclip] = :black
+        # end
+        # if highclip != :automatic
+        #     krawg[:highclip] = highclip
+        # end
         tri = voronoi(triangulate(pts))
-        voronoiplot!(ax, tri, color=scatter_colors, colormap=colormap, strokewidth=0, markersize=0)
+        voronoiplot!(ax, tri, color=scatter_colors, colormap=colormap, strokewidth=0, markersize=0,krawg...)
     end
     if show_data
         n_colors = 256
@@ -403,8 +410,8 @@ function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[
         scatter!(ax, x[inds], y[inds], markersize=7, color=:black)
         scatter!(ax, x[inds], y[inds], markersize=5, color=scatter_color[inds])
     end
-    lines!(ax, [-1000, 1000], [0, 0], linestyle=:dash, color=:white)
-    lines!(ax, [0, 0], [-1000, 1000], linestyle=:dash, color=:white)
+    hlines!(ax, 0, linestyle=:dash, color=:white)
+    vlines!(ax, 0, linestyle=:dash, color=:white)
 
     lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
     # scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)

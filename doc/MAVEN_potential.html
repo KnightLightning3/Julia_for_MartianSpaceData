@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAVEN 卫星电势揭秘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: 本应用的结构设计旨在将一个复杂的空间物理问题（卫星电势的确定）分解为易于理解的几个步骤，引导用户从“为什么”到“怎么做”再到“结果是什么”。结构采用自上而下的叙事流程：1. **介绍和挑战**: 首先提出核心问题——什么是卫星电势，为何它如此重要且难以测量。2. **仪器工具箱**: 以选项卡（Tabs）的形式介绍解决问题的三个关键仪器，让用户可以逐一了解每个工具的功能。这种设计避免了信息过载。3. **互动模拟**: 这是应用的核心，通过三个独立的交互图表，让用户“亲手”模拟每个仪器的工作原理。特别是STATIC仪器的滑块交互，能直观地展示电势对离子测量的影响，将抽象概念具象化。4. **数据融合**: 使用流程图展示如何将不同仪器的零散数据整合为最终的科学数据产品，清晰地呈现了“1+1+1 > 3”的协同效应。5. **结论**: 总结整个过程的科学意义。这种结构不是简单复述一篇科学报告，而是重新组织信息，创建了一个以用户探索和理解为中心的学习路径。 -->
+    <!-- Visualization & Content Choices: 1. **卫星电势效应图**: 报告信息->卫星电势对粒子的影响; 目标->告知; 呈现方式->HTML/CSS构建的示意图（一个代表卫星的圆和代表粒子的箭头）; 交互->无; 理由->用最简单的视觉语言解释核心物理现象。 2. **仪器介绍**: 报告信息->LPW, STATIC, SWEA仪器的功能; 目标->组织信息; 呈现方式->选项卡界面; 交互->点击切换; 理由->结构化展示，便于用户集中注意力。 3. **STATIC离子能谱**: 报告信息->离子能谱截止能量与卫星电势的关系; 目标->比较与展示变化; 呈现方式->Chart.js条形图; 交互->拖动滑块改变电势，图表实时更新; 理由->将复杂的物理关系转化为直观的、可操作的模拟，是最佳的教学方式。 4. **LPW伏安特性曲线**: 报告信息->朗缪尔探针通过I-V曲线确定等离子体电势; 目标->告知; 呈现方式->Chart.js线图，标注关键“拐点”; 交互->鼠标悬停高亮“拐点”; 理由->展示仪器测量的原始数据形态。 5. **数据融合流程图**: 报告信息->多仪器数据处理流程; 目标->组织信息; 呈现方式->HTML/CSS Flexbox构建的流程图; 交互->无; 理由->清晰、轻量地展示工作流程。 所有图表均使用Chart.js，确保了无SVG依赖、高性能和良好的移动端兼容性。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #F5F5F4; /* stone-100 */
+            color: #1C1917; /* stone-900 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tab-button {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .tab-button.active {
+            background-color: #2563EB; /* blue-600 */
+            color: white;
+            border-color: #2563EB;
+        }
+        .tab-button:not(.active) {
+            background-color: white;
+            color: #374151; /* gray-700 */
+            border-color: #D1D5DB; /* gray-300 */
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-blue-800 mb-2">MAVEN 卫星电势揭秘</h1>
+            <p class="text-lg text-gray-600">一颗火星探测器如何精确测量自身电场，以洞悉火星大气的奥秘</p>
+        </header>
+
+        <main class="space-y-16">
+
+            <!-- Section 1: The Challenge -->
+            <section id="challenge" class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">核心挑战：带电的“观察者”</h2>
+                <div class="prose max-w-none text-gray-700">
+                    <p>当MAVEN卫星在火星的稀薄大气（等离子体环境）中穿行时，它并不是一个完全中立的观察者。由于太阳紫外线辐射会“敲”出卫星表面的电子（光电效应），以及周围等离子体中的电子和离子会撞击卫星，导致卫星自身会带上一个微弱的电荷。这个电荷使得卫星相对于周围空间有了一个电势，我们称之为<strong>卫星电势 ($V_{sc}$)</strong>。</p>
+                    <p>这个电势虽然微小，却像一个隐形的力场，会干扰对低能量带电粒子的测量。准确测定$V_{sc}$，并从测量数据中扣除它的影响，是确保MAVEN科学数据质量的关键。如下图所示，正电势会排斥正离子，负电势则会排斥电子。</p>
+                </div>
+                <div class="mt-6 flex justify-center items-center h-48 bg-stone-50 rounded-lg p-4">
+                    <div class="flex items-center space-x-8 md:space-x-16">
+                        <div class="text-center">
+                            <div class="relative w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">MAVEN<span class="absolute text-sm top-0 right-0 bg-white text-blue-500 rounded-full px-1.5 py-0.5 shadow-sm">+V</span></div>
+                            <p class="mt-2 text-sm text-gray-600">正电势排斥离子</p>
+                            <div class="mt-2 text-orange-500 text-2xl font-mono flex justify-center items-center">
+                                <span class="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-orange-400 opacity-75"></span>
+                                <span>+</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-4 transform rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="relative w-20 h-20 bg-red-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">MAVEN<span class="absolute text-sm top-0 right-0 bg-white text-red-500 rounded-full px-1.5 py-0.5 shadow-sm">-V</span></div>
+                            <p class="mt-2 text-sm text-gray-600">负电势排斥电子</p>
+                             <div class="mt-2 text-blue-500 text-2xl font-mono flex justify-center items-center">
+                                <span>-</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-4 transform rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Instruments -->
+            <section id="instruments" class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">多仪器联合的“侦探工具箱”</h2>
+                 <p class="mb-6 prose max-w-none text-gray-700">为了精确破解$V_{sc}$之谜，MAVEN动用了粒子与场载荷包（P&F）中的多个“专家级侦探”。每个仪器都从自己独特的视角提供线索，最终通过协同工作，拼凑出完整的真相。点击下方选项卡，了解每个仪器的独特本领。</p>
+                <div class="flex flex-wrap justify-center gap-2 mb-6" id="instrument-tabs">
+                    <button data-target="lpw" class="tab-button active text-sm md:text-base font-semibold py-2 px-4 border rounded-lg shadow-sm">🛰️ LPW (朗缪尔探针与波场仪)</button>
+                    <button data-target="static" class="tab-button text-sm md:text-base font-semibold py-2 px-4 border rounded-lg shadow-sm">💨 STATIC (超热与热离子成分谱仪)</button>
+                    <button data-target="swea" class="tab-button text-sm md:text-base font-semibold py-2 px-4 border rounded-lg shadow-sm">☀️ SWEA (太阳风电子分析仪)</button>
+                </div>
+                <div id="instrument-content" class="p-4 bg-gray-50 rounded-lg min-h-[150px]">
+                    <div id="lpw-content" class="tab-content">
+                        <h3 class="font-bold text-lg text-blue-700">LPW: 直接测量者</h3>
+                        <p class="text-gray-600 mt-2">LPW仪器伸出两根长长的探针，直接“感受”周围的等离子体环境。通过测量施加在探针上的电压与流过电流之间的关系（伏安特性曲线），它可以直接推算出等离子体的电势，从而反推出卫星的电势。它是团队中的“基准提供者”。</p>
+                    </div>
+                    <div id="static-content" class="tab-content hidden">
+                        <h3 class="font-bold text-lg text-orange-700">STATIC: 离子行为分析师</h3>
+                        <p class="text-gray-600 mt-2">STATIC负责测量低能离子的能量分布。如果卫星带正电，它会像一个“减速带”一样，排斥能量较低的离子，导致在能谱上出现一个“截止能量”。通过精确测量这个截止点，就可以反推出卫星的电势。它是团队中的“行为分析专家”。</p>
+                    </div>
+                    <div id="swea-content" class="tab-content hidden">
+                        <h3 class="font-bold text-lg text-yellow-700">SWEA: 电子踪迹追踪器</h3>
+                        <p class="text-gray-600 mt-2">SWEA负责测量电子。在有日照的情况下，卫星表面会产生光电子。这些光电子的能量特征是已知的，但它们被SWEA测到时，其能量会受到卫星电势的影响而发生偏移。通过追踪这个能量偏移，SWEA也能估算出卫星电势。它是团队中的“间接证据搜集者”。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Interactive Simulation -->
+            <section id="simulation">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">交互模拟：仪器如何工作？</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    <!-- STATIC Simulation -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg col-span-1 lg:col-span-2">
+                        <h3 class="font-bold text-lg text-orange-700 mb-2">模拟 STATIC: 感受离子“截止能量”</h3>
+                        <p class="text-sm text-gray-600 mb-4">这是确定正电势最直观的方法。拖动下面的滑块来改变模拟的卫星电势 ($V_{sc}$)，观察离子能谱如何响应。当$V_{sc}$为正时，能量低于 $e \times V_{sc}$ 的离子将被排斥，无法到达探测器，在能谱上形成一个明显的“断崖”。</p>
+                        <div class="chart-container mx-auto">
+                            <canvas id="staticChart"></canvas>
+                        </div>
+                        <div class="mt-4 px-2">
+                            <label for="vsc-slider" class="block text-sm font-medium text-gray-700">调整卫星电势 (Vsc): <span id="vsc-value" class="font-bold text-blue-600">1.0</span> V</label>
+                            <input id="vsc-slider" type="range" min="0" max="10" value="1" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- LPW & SWEA -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-lg text-blue-700 mb-2">LPW 的“伏安特性曲线”</h3>
+                        <p class="text-sm text-gray-600 mb-4">LPW通过扫描电压，测量电流，绘制出下图。曲线中的“拐点”（Knee）位置揭示了周围等离子体的电势，其数值与卫星电势大小相等，符号相反。</p>
+                        <div class="chart-container mx-auto">
+                            <canvas id="lpwChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-lg text-yellow-700 mb-2">SWEA 追踪“光电子峰”</h3>
+                        <p class="text-sm text-gray-600 mb-4">在日照区，卫星表面产生的光电子形成一个特征峰。这个峰的能量位置会随着卫星电势$V_{sc}$精确移动。下图展示了在不同$V_{sc}$下，观测到的光电子峰位置的变化。</p>
+                        <div class="chart-container mx-auto">
+                            <canvas id="sweaChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            
+            <!-- Section 4: Data Fusion -->
+            <section id="fusion" class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">数据融合：拼凑完整真相</h2>
+                <p class="prose max-w-none text-gray-700 mb-6">没有任何一个仪器是完美的。例如，STATIC的方法在卫星电势为负时失效，而SWEA的方法在阴影区无法使用。因此，MAVEN团队开发了复杂的算法，将来自不同仪器的“证据”融合在一起，并根据卫星所处的环境（如日照、等离子体密度）进行加权，最终生成一个统一、可靠的卫星电势数据产品。</p>
+                <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 text-center">
+                    <div class="flex flex-col md:flex-row items-center gap-4">
+                        <div class="p-3 bg-blue-100 border-2 border-blue-300 rounded-lg">LPW 数据</div>
+                        <div class="p-3 bg-orange-100 border-2 border-orange-300 rounded-lg">STATIC 数据</div>
+                        <div class="p-3 bg-yellow-100 border-2 border-yellow-300 rounded-lg">SWEA 数据</div>
+                    </div>
+                    <div class="text-2xl font-bold text-gray-500 mx-4 transform rotate-90 md:rotate-0">→</div>
+                    <div class="p-4 bg-gray-200 border-2 border-gray-400 rounded-lg shadow-inner">
+                        <h4 class="font-bold">融合算法</h4>
+                        <p class="text-xs">（环境依赖加权）</p>
+                    </div>
+                     <div class="text-2xl font-bold text-gray-500 mx-4 transform rotate-90 md:rotate-0">→</div>
+                    <div class="p-4 bg-green-100 border-2 border-green-500 rounded-lg shadow-md">
+                        <h4 class="font-bold text-green-800">最终 $V_{sc}$ 数据产品</h4>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Section 5: Conclusion -->
+            <section id="conclusion" class="text-center bg-blue-800 text-white p-8 rounded-xl shadow-lg">
+                <h2 class="text-3xl font-bold mb-4">科学意义：为何如此重要？</h2>
+                <p class="max-w-3xl mx-auto text-blue-100">精确的卫星电势是MAVEN任务成功的基石。它使得科学家能够修正对逃逸离子的测量，准确计算出火星大气随时间流失的速率。这对于回答“火星如何从一个可能宜居的温暖湿润星球，演变成今天这个寒冷干燥的世界”这一核心科学问题至关重要。每一次精确的测量，都是对解开火星历史谜题的又一次贡献。</p>
+            </section>
+
+        </main>
+
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>交互式报告由 Gemini AI 生成。数据为教学目的模拟生成。</p>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const targetId = tab.dataset.target;
+                    contents.forEach(content => {
+                        if (content.id === `${targetId}-content`) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            const vscSlider = document.getElementById('vsc-slider');
+            const vscValueSpan = document.getElementById('vsc-value');
+
+            const staticCtx = document.getElementById('staticChart').getContext('2d');
+            
+            function createStaticData(vsc) {
+                const labels = Array.from({ length: 20 }, (_, i) => i * 0.5); 
+                const data = labels.map(energy => {
+                    if (energy < vsc) return 0;
+                    return 100 * Math.exp(-0.5 * (energy - 5)) + 10 * Math.random();
+                });
+                return { labels, data };
+            }
+
+            const staticChart = new Chart(staticCtx, {
+                type: 'bar',
+                data: {
+                    labels: createStaticData(1.0).labels,
+                    datasets: [{
+                        label: '离子计数',
+                        data: createStaticData(1.0).data,
+                        backgroundColor: 'rgba(249, 115, 22, 0.6)',
+                        borderColor: 'rgba(249, 115, 22, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => `能量: ${tooltipItems[0].label} eV`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '相对计数' }
+                        },
+                        x: {
+                            title: { display: true, text: '离子能量 (eV)' }
+                        }
+                    }
+                }
+            });
+            
+            vscSlider.addEventListener('input', (e) => {
+                const vsc = parseFloat(e.target.value);
+                vscValueSpan.textContent = vsc.toFixed(1);
+                const newData = createStaticData(vsc);
+                staticChart.data.datasets[0].data = newData.data;
+                staticChart.update('none');
+            });
+
+            const lpwCtx = document.getElementById('lpwChart').getContext('2d');
+            const lpwChart = new Chart(lpwCtx, {
+                type: 'line',
+                data: {
+                    labels: [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
+                    datasets: [{
+                        label: '探针电流',
+                        data: [0.1, 0.2, 0.4, 0.8, 1.5, 3, 3.2, 3.3, 3.35, 3.4, 3.42],
+                        fill: false,
+                        borderColor: 'rgb(59, 130, 246)',
+                        tension: 0.1,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                    }, {
+                        label: '拐点 (Knee)',
+                        data: [null, null, null, null, null, null, 3.2, null, null, null, null],
+                        pointStyle: 'circle',
+                        pointRadius: 8,
+                        pointBackgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 0)',
+                    }]
+                },
+                options: {
+                     responsive: true,
+                    maintainAspectRatio: false,
+                     plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: true }
+                     },
+                     scales: {
+                        y: { title: { display: true, text: '电流 (任意单位)' } },
+                        x: { title: { display: true, text: '探针电压 (V)' } }
+                    }
+                }
+            });
+
+            const sweaCtx = document.getElementById('sweaChart').getContext('2d');
+            const sweaChart = new Chart(sweaCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 21}, (_, i) => i), // 0 to 20 eV
+                    datasets: [
+                        {
+                            label: 'Vsc = +1V',
+                            data: Array.from({length: 21}, (_, i) => i > 0 && i < 5 ? Math.exp(-Math.pow(i - 2, 2) / 2) * 100 : 5 + Math.random()*5),
+                            borderColor: 'rgba(234, 179, 8, 0.8)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'Vsc = +4V',
+                            data: Array.from({length: 21}, (_, i) => i > 3 && i < 8 ? Math.exp(-Math.pow(i - 5, 2) / 2) * 100 : 5 + Math.random()*5),
+                            borderColor: 'rgba(37, 99, 235, 0.8)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: { enabled: true }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '相对计数' } },
+                        x: { title: { display: true, text: '电子能量 (eV)' } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

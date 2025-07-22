@@ -703,6 +703,22 @@ function compare_quality(flag,contains)
     #     "ion suppression problem" ,
     #     "0",
     # ]
+#     ;		bit 0	test pulser on					- testpulser header bit set
+# ;			bit 1	diagnostic mode					- diagnostic header bit set
+# ;			bit 2	dead time correction >2 flag			- deadtime correction > 2
+# ;			bit 3	detector droop correction >2 flag 		- mcp droop flagged if correction > 2
+# ;			bit 4	dead time correction not at event time		- missing data quantity for deadtime
+# ;			bit 5	electrostatic attenuator failing at low energy	- attE on and eprom_ver<2
+# ;			bit 6   attenuator change during accumulation		- att 1->2 or 2->1 transition (one measurement)	
+# ;			bit 7	mode change during accumulation			- only needed for packets that average data during mode transition
+# ;			bit 8	lpw sweeps interfering with data 		- lpw mode not dust mode
+# ;			bit 9	high background 		 		- minimum value in DA > 10000 Hz
+# ;			bit 10	no background subtraction array		 	- dat.bkg = 0		- may not be needed
+# ;			bit 11	missing spacecraft potential			- dat.sc_pot = 0	- may not be needed	
+# ;			bit 12	inflight calibration incomplete			- date determined, set to 1 until calibration finalized
+# ;			bit 13	geometric factor problem			- 
+# ;			bit 14	ion suppression problem				- low energy ions <6eV have wrong geometric factor
+# ;			bit 15	not used =0
     # ax4.yticks = (0:15,qf)
     flags = get_quality_flag(flag)
     if true in flags[contains]

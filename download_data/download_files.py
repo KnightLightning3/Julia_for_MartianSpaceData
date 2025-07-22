@@ -53,8 +53,14 @@ if vpn_proxy != None:
 
 # 设置区
 url_path_root = "https://naif.jpl.nasa.gov/pub/naif/MAVEN/kernels/ck/"
-file_style = "^mvn"
-save_path = r"C:\data\misc\spice\naif\MAVEN\kernels\ck/"
+file_style = ""#"^MVN"#""#"^mvn"
+url_filter_regex = re.compile(
+    r'^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}'  # 匹配 http/https 开头，接着是域名
+    r'(?:/[^#:/]+)*'                           # 匹配路径，不允许出现 # 或 :
+    r'(?!\.html$|\.htm$|\.php$|\.asp$|\.aspx$)' # 排除常见的网页后缀
+    r'(?:/[^#:/]+)?$'                          # 匹配最后一个路径段（可选），确保不含 # 或 :
+)
+save_path = r"C:\data\misc\spice\naif\MAVEN\kernels/ck/"
 max_depth = 1
 # session = requests.Session()
 
@@ -63,12 +69,11 @@ def sleep_local(sleep_time_range):
         print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r")
         sleep(1)
     return None
-def test_proxies():
+def test_proxies(url):
     global vpn_proxy
-    global url_path_0
     global timeout
     try:
-        response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
+        response = requests.get(url,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             print("\033[1;32m Connection Succeed\033[0m:"+vpn_proxy["http"])
         response.close()
@@ -90,6 +95,8 @@ def search_url(url,file_style):
     global vpn_proxy
     global session
     global timeout
+    global url_filter_regex
+    url_simple_filter_regex = url_filter_regex
     sleep_local(step_time)
     try:
         # print(f"Requesting:{url}...\033[K",end='\r')
@@ -102,12 +109,15 @@ def search_url(url,file_style):
         if response.status_code == 200:
             html_content = response.text
             soup = BeautifulSoup(html_content, 'html.parser')
-            file_urls = []
+            urls = []
             file_elements = soup.find_all('a', href=True)  # 找到所有带有href属性的<a>元
             for element in file_elements:
-                file_url = element['href']
-                file_urls.append(file_url)
-            urls=[string for string in file_urls if re.match(file_style, string)]
+                href = element['href']
+                if url_simple_filter_regex.match(href):
+                    continue
+                if not re.match(file_style, href):
+                    continue
+                urls.append(href)
             response.close()
             if urls == None:
                 return response.status_code,False,0
@@ -197,7 +207,7 @@ if __name__ == '__main__':
     if vpn_proxy == None:
         print("\033[1;32m No VPN \033[0m")
     else:
-        logic = test_proxies()
+        logic = test_proxies(url_path_root)
         if(logic == False):
             print('\033[1;31m Connection Failed, Exit Program \033[0m')
             exit(0)
