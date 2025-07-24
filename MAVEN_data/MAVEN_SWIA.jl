@@ -133,8 +133,9 @@ function get_3df!(dat) #projects/maven/swia/mvn_swia_get_3df.pro,直接处理dat
     return dat
     # [:filename, :theta_coarse, :theta_atten_coarse, :g_phi_atten_coarse, :g_theta_atten_coarse, :g_phi_coarse, :energy_coarse, :time_unix, :time_met, :diff_en_fluxes, :atten_state, :g_theta_coarse, :counts, :phi_coarse, :data_load_flag, :dindex, :num_accum, :grouping, :epoch]
 end
-function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假设所有离子为质子,需要get_3d系列
+function n_3d(dat0,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假设所有离子为质子,需要get_3d系列
     # general/science/n_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考
+    local dat= deepcopy(dat0)
     ntime_local = length(time_ind)
     # ntime = dat[:ntime]  
     # nbins = dat[:nbins]  
@@ -170,8 +171,9 @@ function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假
     density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
     return density
 end
-function j_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 
+function j_3d(dat0,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 
     # general/science/j_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考, 单位cm^-2s^-1
+    local dat= deepcopy(dat0)
     ntime_local = length(time_ind)
     # ntime = dat[:ntime]  
     # nbins = dat[:nbins]  
@@ -209,10 +211,11 @@ function j_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA假
     flux3dz = sum(dnrg.*sumdataz,dims=2)[:,1]
     return hcat(flux3dx,flux3dy,flux3dz)
 end
-function v_3d(dat,time_ind;energy_range=[0.1,1e8],mask=[1])# 计算SWIA的速度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
+function v_3d(dat0,time_ind;energy_range=[0.1,1e8],mask=[1])# 计算SWIA的速度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
     # general/science/v_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考，已经经过检验，速度单位km/s
+    local dat= deepcopy(dat0)
     ntime_local = length(time_ind)
-       # ntime = dat[:ntime]  
+    # ntime = dat[:ntime]  
     # nbins = dat[:nbins]  
 
     nenergy = dat[:nenergy]  
@@ -253,7 +256,8 @@ function v_3d(dat,time_ind;energy_range=[0.1,1e8],mask=[1])# 计算SWIA的速度
     vel = 1.e-5*flux./density
     return vel,flux,density
 end
-function n_1d(dat;energy_range=[0.1,1e8],time_ind=1:10)# 计算SWIA的密度, SWIA假设所有离子为质子,需要SWIA svy spec data 3D
+function n_1d(dat0;energy_range=[0.1,1e8],time_ind=1:10)# 计算SWIA的密度, SWIA假设所有离子为质子,需要SWIA svy spec data 3D
+    local dat= deepcopy(dat0)
     flux = dat[:spectra_diff_en_fluxes][time_ind,:]
     energy = reshape(dat[:energy_spectra],1,48)
     energy_ind = findall(x->x <= energy_range[1] || x >= energy_range[2],dat[:energy_spectra])
@@ -264,34 +268,34 @@ function n_1d(dat;energy_range=[0.1,1e8],time_ind=1:10)# 计算SWIA的密度, SW
     density = Const*sum(denergy.*(energy.^(-1.5)).*flux,dims=2)[:,1]
     return density
 end
-function load_quat(filename::String)#读取idl导出的quat数据
-    # 数据格式, filename = file.csv ut, scrotmat, msorotmat, format="(I10,1x,4(f14.10,1x),4(f14.10,1x))"
-    # 统计行数以预分配矩阵
-    n = 0
-    open(filename) do io
-        for _ in eachline(io)
-            n += 1
-        end
-    end
-    # 预分配矩阵，每行包含ut和8个浮点数
-    data = Matrix{Float64}(undef, n, 5)
-    # 逐行解析数据
-    open(filename) do io
-        for (i, line) in enumerate(eachline(io))
-            # 提取各字段并转换为Float64
-            ut = parse(Float64, SubString(line, 1, 10))
-            mso1 = parse(Float64, SubString(line, 12, 25))
-            mso2 = parse(Float64, SubString(line, 27, 40))
-            mso3 = parse(Float64, SubString(line, 42, 55))
-            mso4 = parse(Float64, SubString(line, 57, 70))
+# function load_quat(filename::String)#读取idl导出的quat数据
+#     # 数据格式, filename = file.csv ut, scrotmat, msorotmat, format="(I10,1x,4(f14.10,1x),4(f14.10,1x))"
+#     # 统计行数以预分配矩阵
+#     n = 0
+#     open(filename) do io
+#         for _ in eachline(io)
+#             n += 1
+#         end
+#     end
+#     # 预分配矩阵，每行包含ut和8个浮点数
+#     data = Matrix{Float64}(undef, n, 5)
+#     # 逐行解析数据
+#     open(filename) do io
+#         for (i, line) in enumerate(eachline(io))
+#             # 提取各字段并转换为Float64
+#             ut = parse(Float64, SubString(line, 1, 10))
+#             mso1 = parse(Float64, SubString(line, 12, 25))
+#             mso2 = parse(Float64, SubString(line, 27, 40))
+#             mso3 = parse(Float64, SubString(line, 42, 55))
+#             mso4 = parse(Float64, SubString(line, 57, 70))
             
-            # 填充数据到矩阵
-            @inbounds data[i, :] .= (ut, mso1, mso2, mso3, mso4)
-        end
-    end
+#             # 填充数据到矩阵
+#             @inbounds data[i, :] .= (ut, mso1, mso2, mso3, mso4)
+#         end
+#     end
     
-    return data
-end
+#     return data
+# end
 function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data

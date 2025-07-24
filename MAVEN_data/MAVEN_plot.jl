@@ -127,7 +127,7 @@ end
                         while the x axis is the y projection on the plane.
            ANGLE: the lower and upper angle limits of the slice selected to plot (DEFAULT [-20,20]).
 """
-function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=dat[:magf], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false)
+function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=dat[:magf], colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, energy_range=[0, 1e6], colormap=:viridis, show_data=false,backgroundcolor = :gray80)
     function remove_repeat_points(x, y, z, c; angle=[-30, 30])
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
@@ -280,18 +280,27 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=da
     scatter!(ax, new_vbluk[1], new_vbluk[2], color=:white, marker='X', markersize=20)
     v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
     #遮盖超过v_max的部分  可以改成闭包?
-    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=:white)
+    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color = backgroundcolor)
     if return_rot_matrix
         return ax, rot
     end
     return ax
 end
-function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[0, 0, 0],magf=[1,0,0], vsc=[0,0,0],colorrange=(1e-12, 1e0), angle_range=[-30, 30], ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, colormap=:viridis,show_data=false)
+function VDF_2d_slip(ax,velocity, data; 
+    normal_vectors=[[1,0,0],[0,1,0]],vbluk=[0, 0, 0],magf=[1,0,0], vsc=[0,0,0],colorrange=(1e-12, 1e0), 
+    angle_range=[-30, 30], # 角度范围的切法 
+    r_range_rate = 0.1, # 垂直方向的切法
+    ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, colormap=:viridis,show_data=false,backgroundcolor = :gray80)
     #绘制任何3d空间分布的饼状图，必需要满足： data为一维或多维数据,速度必须为n*3的格式
-    function remove_repeat_points(x, y, z, c; angle=[-30, 30])
+    function remove_repeat_points(x, y, z, c; angle=[-30, 30],r_range_rate = 0.1)
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
-        ind = findall(x -> angle[1] <= x <= angle[2], theta_xy)
+        r0 = r_range_rate.*maximum(plot_range)
+        println("平行方向范围: $r0")
+        r_xy = abs.(z) 
+        ind1 = angle[1] .<= theta_xy .<= angle[2]
+        ind2 = r_xy .<= r0
+        ind = ind1 .| ind2
         data1 = Dict()
         for (p1, p2, ci) in eachrow(points[ind, :])
             push!(get!(data1, (p1, p2), []), ci)
@@ -377,12 +386,10 @@ function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[
     new_vbluk = rot * vvec
     new_b = rot * bvec
     new_b = normalize(new_b)
-
-     x, y, z, c = new_v[:, 1], new_v[:, 2], new_v[:, 3], vec(data)
-
+    x, y, z, c = new_v[:, 1], new_v[:, 2], new_v[:, 3], vec(data)
     c[c .<= 0 ] .= 1e-20
 
-    x, y, c = remove_repeat_points(x, y, z, c; angle=angle_range)
+    x, y, c = remove_repeat_points(x, y, z, c; angle=angle_range,r_range_rate=r_range_rate)
     x, y, c = filter_points_optimized(x, y, c, (plot_range[2]-plot_range[1])/50) #绘图部分0.02的分辨率
 
     scatter_colors = color_mapping(c, colorrange; scaler="log10")
@@ -413,11 +420,11 @@ function VDF_2d_slip(ax,velocity, data; normal_vectors=[[1,0,0],[0,1,0]],vbluk=[
     hlines!(ax, 0, linestyle=:dash, color=:white)
     vlines!(ax, 0, linestyle=:dash, color=:white)
 
-    lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
+    # lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
     # scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)
     v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
     #遮盖超过v_max的部分  可以改成闭包?
-    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=:white)
+    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=backgroundcolor)
     if return_rot_matrix
         return ax, rot
     end

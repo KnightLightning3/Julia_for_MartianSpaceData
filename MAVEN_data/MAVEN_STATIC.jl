@@ -316,7 +316,8 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     return dat_slip
 end
 # 速度计算
-function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
+function sta_v_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
+    local dat= deepcopy(dat0)
     if dat[:valid] == 0
         println("Invalid Data")
         return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
@@ -336,14 +337,14 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
         data=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
     
-    energy = dat[:energy] 
-    denergy = dat[:denergy] 
-    theta = dat[:theta]./RADG
-    phi = dat[:phi] ./RADG
-    dtheta = dat[:dtheta] ./RADG
-    dphi = dat[:dphi] ./RADG
-    mass_arr = dat[:mass_arr]
-    pot = dat[:sc_pot]
+    local energy = dat[:energy] 
+    local denergy = dat[:denergy] 
+    local theta = dat[:theta]./RADG
+    local phi = dat[:phi] ./RADG
+    local dtheta = dat[:dtheta] ./RADG
+    local dphi = dat[:dphi] ./RADG
+    local mass_arr = dat[:mass_arr]
+    local pot = dat[:sc_pot]
 
     ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
     data[ind].=0.0
@@ -360,7 +361,7 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     mass=dat[:mass]*m_int
     
     Const = 2.0/mass/mass*1e5
-    energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy=energy.+pot		# energy/charge analyzer, require positive energy
     energy[energy .< 0.0] .=0.0
 
     flux0 = Const.*denergy.*energy.*data
@@ -377,7 +378,8 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     #units are km/s
     return vel,flux,density
 end
-function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
+function sta_n_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
+    local dat= deepcopy(dat0)
     if dat[:valid] == 0
         println("Invalid Data")
         return NaN
@@ -411,7 +413,8 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
     return density
 end
-function sta_pickup(dat)#计算拾取率,需要conut2df处理过的dat切片
+function sta_pickup(dat0)#计算拾取率,需要conut2df处理过的dat切片
+    local dat= deepcopy(dat0)
     function get_vfn(dat,dF;m_int=1)
         phi = dat[:phi] .|> deg2rad# 8,64,32
         theta = dat[:theta] .|> deg2rad# (8, 64, 32)
@@ -629,7 +632,8 @@ function STA_count3df(dat;time_ind = []) #计算c6数据的df,必须有时间轴
     dat[:df_mass_mass] = df_t # 没有乘以质量数的平方
     return dat
 end
-function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_ind = [])#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3
+function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_ind = [])#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3
+    local dat= deepcopy(dat0)
     ntime = dat[:num_dists]
     # if time_ind == []
     #     time_ind_local = 1:ntime
