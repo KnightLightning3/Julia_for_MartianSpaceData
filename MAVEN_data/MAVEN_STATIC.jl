@@ -346,11 +346,22 @@ function sta_v_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit =
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-    data[ind].=0.0
+    # ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+    mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    # data[ind].=0.0
 
-    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
-    data[ind].=0.0
+    # ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+    mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
+    mask = mask1 .& mask2
+    data = data.*mask
+    # data[ind].=0.0
+
+    if unit_cover
+        dat = STA_count2df(dat)
+        data = dat[:df] #取得相空间密度
+    else
+        data=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
+    end
     
     # if m_int != 0
     # mass_arr[:] .= m_int
