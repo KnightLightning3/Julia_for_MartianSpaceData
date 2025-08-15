@@ -124,12 +124,15 @@ function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处�
 end
 # UNITS计算  
 # STA_ 系列的单位转换代码源于SPEDAS的"projects\maven\sta\mvn_sta_functions\mvn_sta_convert_units.pro", 其默认输出单位并非IS单位, 此程序中的速度等计算无特殊声明则默认使用以下单位制:
-# 'counts':y_units = 'counts'
-# 'eflux':y_units = 'eV/(cm^2-s-sr-eV)'
-# 'rate':y_units = '#/sec'
-# 'crate':y_units = 'Deadtime Corrected #/sec'
-# 'flux':y_units = '#/(cm^2-s-sr-eV)'
-# 'df':y_units = '#/(cm^3-(km/sec)^3)'
+#  'COUNTS' :  units = '#/sample'                        ;counts in a sample
+#   'RATE'   :  units = '#/s'                             ;count rate
+#   'CRATE'  :  units = '#/sec, corrected for dead time'  ;dead-time corrected rate
+#   'EFLUX'  :  units = 'eV/cm^2-sec-sr-eV'               ;energy flux in angular bin
+#   'E2FLUX' :  units = 'eV^2/cm^2-sec-sr-eV'             ;energy^2 flux in angular bin
+#   'E3FLUX' :  units = 'eV^3/cm^2-sec-sr-eV'             ;energy^3 flux in angular bin
+#   'FLUX'   :  units = '#/cm^2-sec-sr-eV'                ;particle flux in angular bin
+#   'DF'     :  units = '1/(cm^3-(km/s)^3)'               ;particle distribution function in 6 dimensional (3 spatial, 3 velocity) phase space; note that MMS uses 1/(km^6/cm^3)
+
 # 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
 function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     nbins   = dat[:nbins]
@@ -153,14 +156,15 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     dat[:df_mass_mass] = df_t # 没有乘以质量的平方
     return dat
 end
-function STA_count2df_all(dat) #计算df,对非时间切片数据
+function STA_count2df_all(dat0) #计算df,对非时间切片数据
+    dat = deepcopy(dat0)
     ntime   = dat[:num_dists]
 
-    nmass   = dat[:nmass]
-    nbins   = dat[:nbins]
-    nenergy = dat[:nenergy]
-    energy  = dat[:energy]
-    dims4 = (ntime,nmass,nbins,nenergy) 
+    local nmass   = dat[:nmass]
+    local nbins   = dat[:nbins]
+    local nenergy = dat[:nenergy]
+    local energy  = dat[:energy]
+    local dims4 = (ntime,nmass,nbins,nenergy) 
     if nbins == 1
         gf     = zeros(ntime,1,nenergy)
         eff    = zeros(ntime,nmass,nenergy)
@@ -211,26 +215,26 @@ function STA_count2df_all(dat) #计算df,对非时间切片数据
     return dat
 end
 function STA_count2eflux_all(dat) #计算df,对非时间切片数据
-    ntime   = dat[:num_dists]
+    local ntime   = dat[:num_dists]
 
-    nmass   = dat[:nmass]
-    nbins   = dat[:nbins]
-    nenergy = dat[:nenergy]
-    natt = dat[:natt]
-    nswp = dat[:nswp]
-    neff = dat[:neff]
-    # dims4 = (ntime,nmass,nbins,nenergy) 
+    local nmass   = dat[:nmass]
+    local nbins   = dat[:nbins]
+    local nenergy = dat[:nenergy]
+    local natt = dat[:natt]
+    local nswp = dat[:nswp]
+    local neff = dat[:neff]
+    local # dims4 = (ntime,nmass,nbins,nenergy) 
 
-    gf     = zeros(ntime,1,nbins,nenergy)
-    eff    = zeros(ntime,nmass,nbins,nenergy)
-    dt   = reshape(dat[:time_integ],ntime, 1, 1, 1)
+    local gf     = zeros(ntime,1,nbins,nenergy)
+    local eff    = zeros(ntime,nmass,nbins,nenergy)
+    local dt   = reshape(dat[:time_integ],ntime, 1, 1, 1)
 
-    dead = reshape(dat[:dead],ntime,nmass,nbins,nenergy)
-    bkg  = reshape(dat[:bkg],ntime,nmass,nbins,nenergy)
-    tmp  = reshape(dat[:data],ntime,nmass,nbins,nenergy)
+    local dead = reshape(dat[:dead],ntime,nmass,nbins,nenergy)
+    local bkg  = reshape(dat[:bkg],ntime,nmass,nbins,nenergy)
+    local tmp  = reshape(dat[:data],ntime,nmass,nbins,nenergy)
 
-    gf0  = reshape(dat[:gf], natt,1,nbins,nenergy,nswp)
-    eff0 = reshape(dat[:eff], nmass,nbins,nenergy,neff)
+    local gf0  = reshape(dat[:gf], natt,1,nbins,nenergy,nswp)
+    local eff0 = reshape(dat[:eff], nmass,nbins,nenergy,neff)
     @inbounds for i in 1:ntime
         swp_ind = dat[:swp_ind][i]
         att_ind = dat[:att_ind][i]
@@ -239,10 +243,10 @@ function STA_count2eflux_all(dat) #计算df,对非时间切片数据
         eff[i,:,:,:]  = eff0[:,:,:,eff_ind+1]
     end
 
-    G = dat[:geom_factor].*eff.*gf
+    local G = dat[:geom_factor].*eff.*gf
 
-    tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* G)
+    local tmp = (tmp .- bkg ).*dead
+    local scale = 1 ./(dt.* G)
     dat[:eflux_from_count] = scale .* tmp
     return dat
 end
@@ -281,6 +285,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     att_ind = dat[:att_ind][time_ind]
     eff_ind = dat[:eff_ind][time_ind]
 
+    dat_slip[:epoch]        = dat[:epoch][time_ind]
     dat_slip[:eflux]        = dat[:eflux][time_ind,:,:,:]
     dat_slip[:data]         = dat[:data][time_ind,:,:,:]
     dat_slip[:bkg]          = dat[:bkg][time_ind,:,:,:]
@@ -316,8 +321,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     return dat_slip
 end
 # 速度计算
-function sta_v_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
-    local dat= deepcopy(dat0)
+function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
         return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
@@ -332,9 +336,9 @@ function sta_v_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit =
     # end
     if unit_cover
         dat = STA_count2df(dat)
-        data = dat[:df] #取得相空间密度
+        data0 = dat[:df] #取得相空间密度
     else
-        data=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
+        data0=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
     
     local energy = dat[:energy] 
@@ -346,22 +350,11 @@ function sta_v_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit =
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    # ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-    mask1 =  energy_range[1] .<= energy .<= energy_range[2]
-    # data[ind].=0.0
+    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
+    local mask = mask1 .& mask2
+    local masked_data = data0.*mask
 
-    # ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
-    mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
-    mask = mask1 .& mask2
-    data = data.*mask
-    # data[ind].=0.0
-
-    if unit_cover
-        dat = STA_count2df(dat)
-        data = dat[:df] #取得相空间密度
-    else
-        data=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
-    end
     
     # if m_int != 0
     # mass_arr[:] .= m_int
@@ -369,59 +362,62 @@ function sta_v_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit =
     #     mass_arr=round.(mass_arr .-0.1) # the minus 0.1 helps account for straggling at low mass
     #     mass_arr[mass_arr .< 1] .= 1.0
     # end
-    mass=dat[:mass]*m_int
-    
-    Const = 2.0/mass/mass*1e5
-    local energy=energy.+pot		# energy/charge analyzer, require positive energy
-    energy[energy .< 0.0] .=0.0
 
-    flux0 = Const.*denergy.*energy.*data
+    local mass=dat[:mass]*m_int
+    
+    local Const = 2.0/mass/mass*1e5
+    local energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy[energy .< 0.0] .=0.0
+
+    flux0 = Const.*denergy.*energy.*masked_data
     theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
     flux3dx = sum(flux0.*theta0.*cos.(phi))
     flux3dy = sum(flux0.*theta0.*sin.(phi))
     flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
     #units are 1/cm^2-s
     Const = mass^(-1.5)*2.0^(0.5)
-    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
     #units are 1/cm^3
     flux = [flux3dx,flux3dy,flux3dz]
     vel = 1e-5 .* flux ./(density .+ 1e-10)
     #units are km/s
     return vel,flux,density
 end
-function sta_n_4d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux")#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
-    local dat= deepcopy(dat0)
+function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_cover =false)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
         return NaN
     end
 
-    data=dat[:df_mass_mass] .*m_int^2  #相空间密度
+    if unit_cover
+        dat = STA_count2df(dat)
+        data0 = dat[:df] #取得相空间密度
+    else
+        data0=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
+    end
 
-    energy = dat[:energy] 
-    denergy = dat[:denergy] 
-    theta = dat[:theta]./RADG
-    phi = dat[:phi] ./RADG
-    dtheta = dat[:dtheta] ./RADG
-    dphi = dat[:dphi] ./RADG
-    mass_arr = dat[:mass_arr]
-    pot = dat[:sc_pot]
+    local energy = dat[:energy] 
+    local denergy = dat[:denergy] 
+    local theta = dat[:theta]./RADG
+    # local phi = dat[:phi] ./RADG
+    local dtheta = dat[:dtheta] ./RADG
+    local dphi = dat[:dphi] ./RADG
+    local mass_arr = dat[:mass_arr]
+    local pot = dat[:sc_pot]
 
-    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-    data[ind].=0.0
-
-    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
-    data[ind].=0.0
+    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
+    local mask = mask1 .& mask2
+    local masked_data = data0.*mask
     
-    mass=dat[:mass]*m_int
+    local mass=dat[:mass]*m_int
     
-    # Const = 2.0/mass/mass*1e5
-    energy=energy.+pot		# energy/charge analyzer, require positive energy
-    energy[energy .< 0.0] .=0.0
+    local energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy[energy .< 0.0] .=0.0
 
-    #units are 1/cm^2-s
-    Const = mass^(-1.5)*2.0^(0.5)
-    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    local Const = mass^(-1.5)*2.0^(0.5)
+    density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
+    #units are 1/cm^3
     return density
 end
 function sta_pickup(dat0)#计算拾取率,需要conut2df处理过的dat切片
@@ -652,30 +648,43 @@ function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_
     #     time_ind_local = time_ind
     # end
     
-    data=dat[:df_mass_mass] .*m_int^2
-    energy = dat[:energy3d]
-    denergy = dat[:denergy3d]
-    theta = dat[:theta3d]./RADG
-    phi = dat[:phi3d] ./RADG
-    dtheta = dat[:dtheta3d] ./RADG
-    dphi = dat[:dphi3d] ./RADG
-    mass_arr = dat[:mass_arr3d]
-    pot = reshape(dat[:sc_pot],ntime,1,1)
+    local data0=dat[:df_mass_mass] .*m_int^2
+    # energy = dat[:energy3d]
+    # denergy = dat[:denergy3d]
+    # theta = dat[:theta3d]./RADG
+    # phi = dat[:phi3d] ./RADG
+    # dtheta = dat[:dtheta3d] ./RADG
+    # dphi = dat[:dphi3d] ./RADG
+    # mass_arr = dat[:mass_arr3d]
+    # pot = reshape(dat[:sc_pot],ntime,1,1)
 
-    ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-    data[ind].=0.0
+    # ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
+    # data[ind].=0.0
 
-    ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
-    data[ind].=0.0
+    # ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
+    # data[ind].=0.0
+    local energy = dat[:energy] 
+    local denergy = dat[:denergy] 
+    local theta = dat[:theta]./RADG
+    local phi = dat[:phi] ./RADG
+    local dtheta = dat[:dtheta] ./RADG
+    local dphi = dat[:dphi] ./RADG
+    local mass_arr = dat[:mass_arr]
+    local pot = dat[:sc_pot]
 
-    mass=dat[:mass]*m_int
+    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
+    local mask = mask1 .& mask2
+    local masked_data = data0.*mask
     
-    Const = 2.0/mass/mass*1e5
-    energy=energy.+pot		# energy/charge analyzer, require positive energy
-    energy[energy .< 0.0] .=0.0
+    local mass=dat[:mass]*m_int
+    
+    local Const = 2.0/mass/mass*1e5
+    local energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy[energy .< 0.0] .=0.0
 
     
-    flux0 = Const.*denergy.*energy.*data .*4π # 4PI为去除全向
+    flux0 = Const.*denergy.*energy.*masked_data .*4π # 4PI为去除全向
     # theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
     # flux3dx = sum(flux0.*theta0.*cos.(phi);dims=2:3)
     # flux3dy = sum(flux0.*theta0.*sin.(phi);dims=2:3)
@@ -683,7 +692,7 @@ function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_
     flux =  sum(flux0;dims=2:3)[:,1,1]#sqrt.(flux3dx.^2 .+ flux3dy.^2 .+ flux3dz.^2)[:,1,1] #  #units are 1/cm^2-s
 
     Const = mass^(-1.5)*2.0^(0.5)
-    density = sum(Const.*denergy.*sqrt.(energy).*data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi;dims=2:3)[:,1,1]
+    density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi;dims=2:3)[:,1,1]
     vel = 1e-5 .* flux ./(density .+ 1e-10)
 
     valid  = dat[:valid] .== 0

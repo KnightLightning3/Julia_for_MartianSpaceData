@@ -20,7 +20,7 @@ for i=0,nday-1 do begin
 endfor
 close,lun1
 free_lun,lun1
-time_day_range = ['2024-01-01','2024-12-31']
+time_day_range = ['2017-11-01','2024-12-31']
 ;time_day_range = ['2014-12-20','2022-05-01']
 t_range = [t_day_range[0,0],t_day_range[3000,1]]
 ;mvn_spice_load,trange=t_range,/quaternion,/no_download,/load ;每次重新执行时将其注释掉
@@ -35,7 +35,7 @@ for i =0,nday-1 do begin
      t_bool = 0
      continue
   endif
-  file_name = "E:\MAVEN\SPICE\swia_0\"+t_day[i,1]+"mvn_spice_swia_qu_"+t_day[i,2]+".csv"
+  file_name = "E:\MAVEN\SPICE\swia\"+t_day[i,1]+"mvn_spice_swia_qu_"+t_day[i,2]+".csv"
   if file_test(file_name) then begin
     continue
   endif

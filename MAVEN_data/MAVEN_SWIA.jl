@@ -133,35 +133,35 @@ function get_3df!(dat) #projects/maven/swia/mvn_swia_get_3df.pro,直接处理dat
     return dat
     # [:filename, :theta_coarse, :theta_atten_coarse, :g_phi_atten_coarse, :g_theta_atten_coarse, :g_phi_coarse, :energy_coarse, :time_unix, :time_met, :diff_en_fluxes, :atten_state, :g_theta_coarse, :counts, :phi_coarse, :data_load_flag, :dindex, :num_accum, :grouping, :epoch]
 end
-function n_3d(dat0,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假设所有离子为质子,需要get_3d系列
+function n_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA假设所有离子为质子,需要get_3d系列
     # general/science/n_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考
-    local dat= deepcopy(dat0)
-    ntime_local = length(time_ind)
+
+    local ntime_local = length(time_ind)
     # ntime = dat[:ntime]  
     # nbins = dat[:nbins]  
 
-    nenergy = dat[:nenergy]  
-    energy = dat[:energy]
-    denergy = dat[:denergy]
+    local nenergy = dat[:nenergy]  
+    local energy = dat[:energy]
+    local denergy = dat[:denergy]
 
-    ndeflect = dat[:ndeflect]  
+    local ndeflect = dat[:ndeflect]  
     # theta = reshape(dat[:theta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
     # dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
 
-    nanode = dat[:nanode]  
-    # phi = dat[:phi]  
+    local nanode = dat[:nanode]  
+    # local phi = reshape(dat[:phi],1,nanode,1,1)
     # dphi = dat[:dphi]  
     
-    domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
     # mass = dat[:mass]
-    data = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
+    local data0 = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
 
-    inds = .!(energy_range[1] .<= energy[1,:] .<= energy_range[2])
+    local mask = reshape(energy_range[1] .<= energy[1,:] .<= energy_range[2],1,1,1,nenergy)
 
-    data[:,:,:,inds] .= 0
+    local data = data0.*mask
 
     # mass = dat[:mass]
-    data = dat[:diff_en_fluxes][time_ind,:,:,:]
+    # data = dat[:diff_en_fluxes][time_ind,:,:,:]
 
     sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
 
@@ -171,31 +171,31 @@ function n_3d(dat0,time_ind;energy_range=[0.1,1e8])# 计算SWIA的密度, SWIA�
     density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)[:,1]
     return density
 end
-function j_3d(dat0,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 
+function j_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 
     # general/science/j_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考, 单位cm^-2s^-1
-    local dat= deepcopy(dat0)
-    ntime_local = length(time_ind)
+    local ntime_local = length(time_ind)
     # ntime = dat[:ntime]  
     # nbins = dat[:nbins]  
 
-    nenergy = dat[:nenergy]  
-    energy = dat[:energy]
-    denergy = dat[:denergy]
+    local nenergy = dat[:nenergy]  
+    local energy = dat[:energy]
+    local denergy = dat[:denergy]
 
-    ndeflect = dat[:ndeflect]  
-    theta = reshape(dat[:theta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
-    # dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local ndeflect = dat[:ndeflect]  
+    local theta = reshape(dat[:theta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    # local dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
 
-    nanode = dat[:nanode]  
-    phi = reshape(dat[:phi],1,nanode,1,1)
-    # dphi = dat[:dphi]  
+    local nanode = dat[:nanode]  
+    local phi = reshape(dat[:phi],1,nanode,1,1)
+    # local dphi = dat[:dphi]  
     
-    domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
     # mass = dat[:mass]
-    data = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
+    local data0 = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
 
-    inds = .!(energy_range[1] .<= energy[1,:] .<= energy_range[2])
-    data[:,:,:,inds] .= 0
+    local mask = reshape(energy_range[1] .<= energy[1,:] .<= energy_range[2],1,1,1,nenergy)
+
+    local data = data0.*mask
 
     Const = 1.0
 
@@ -211,47 +211,47 @@ function j_3d(dat0,time_ind;energy_range=[0.1,1e8])# 计算SWIA的通量, SWIA�
     flux3dz = sum(dnrg.*sumdataz,dims=2)[:,1]
     return hcat(flux3dx,flux3dy,flux3dz)
 end
-function v_3d(dat0,time_ind;energy_range=[0.1,1e8],mask=[1])# 计算SWIA的速度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
+function v_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的速度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
     # general/science/v_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考，已经经过检验，速度单位km/s
-    local dat= deepcopy(dat0)
-    ntime_local = length(time_ind)
+    local ntime_local = length(time_ind)
     # ntime = dat[:ntime]  
     # nbins = dat[:nbins]  
 
-    nenergy = dat[:nenergy]  
-    energy = dat[:energy]
-    denergy = dat[:denergy]
+    local nenergy = dat[:nenergy]  
+    local energy = dat[:energy]
+    local denergy = dat[:denergy]
 
-    ndeflect = dat[:ndeflect]  
-    theta = reshape(dat[:theta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
-    # dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local ndeflect = dat[:ndeflect]  
+    local theta = reshape(dat[:theta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    # local dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
 
-    nanode = dat[:nanode]  
-    phi = reshape(dat[:phi],1,nanode,1,1)
-    # dphi = dat[:dphi]  
+    local nanode = dat[:nanode]  
+    local phi = reshape(dat[:phi],1,nanode,1,1)
+    # local dphi = dat[:dphi]  
     
-    domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
     # mass = dat[:mass]
-    data = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
-    
-    inds = .!(energy_range[1] .<= energy[1,:] .<= energy_range[2])
-    data[:,:,:,inds] .= 0
+    local data0 = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
 
-    sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
+    local mask = reshape(energy_range[1] .<= energy[1,:] .<= energy_range[2],1,1,1,nenergy)
 
-    Const = 7.224566339926571e-7
+    local data = data0.*mask
+
+    local sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
+
+    local Const = 7.224566339926571e-7
     density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)
 
-    Const = 1.0
+    local Const = 1.0
 
-    sumdatax = sum(data.*cosd.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
-    sumdatay = sum(data.*sind.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
-    sumdataz = sum(data.*domega.*sind.(theta),dims=2:3)[:,1,1,:]
-    dnrg=Const.*denergy./energy
+    local sumdatax = sum(data.*cosd.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
+    local sumdatay = sum(data.*sind.(phi).*domega.*cosd.(theta),dims=2:3)[:,1,1,:]
+    local sumdataz = sum(data.*domega.*sind.(theta)            ,dims=2:3)[:,1,1,:]
+    local dnrg=Const.*denergy./energy
 
-    flux3dx = sum(dnrg.*sumdatax,dims=2)[:,1]
-    flux3dy = sum(dnrg.*sumdatay,dims=2)[:,1]
-    flux3dz = sum(dnrg.*sumdataz,dims=2)[:,1]
+    local flux3dx = sum(dnrg.*sumdatax,dims=2)[:,1]
+    local flux3dy = sum(dnrg.*sumdatay,dims=2)[:,1]
+    local flux3dz = sum(dnrg.*sumdataz,dims=2)[:,1]
     flux = hcat(flux3dx,flux3dy,flux3dz)
     vel = 1.e-5*flux./density
     return vel,flux,density

@@ -377,12 +377,11 @@ function VDF_2d_slip(ax,velocity, data;
     ax.xlabel = xlabel
     ax.limits = (plot_range, plot_range)
 
-    V = velocity
-    V[:, 1] = V[:, 1] .+ vsc[1]
-    V[:, 2] = V[:, 2] .+ vsc[2]
-    V[:, 3] = V[:, 3] .+ vsc[3]
+    local vsc_2d = reshape(vsc, 1, 3)
+    local V = velocity .+ vsc_2d
 
     new_v = V * rot'
+    new_vsc = rot * vsc
     new_vbluk = rot * vvec
     new_b = rot * bvec
     new_b = normalize(new_b)
@@ -422,9 +421,13 @@ function VDF_2d_slip(ax,velocity, data;
 
     # lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
     # scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)
-    v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
-    #遮盖超过v_max的部分  可以改成闭包?
-    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, Circle(Point2f(0), v_max))]); color=backgroundcolor)
+
+    local v0 = sqrt.(sum(velocity.^2, dims=2))[:,1]
+    local v_range = (minimum(v0), maximum(v0))
+    # v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
+    #遮盖传入速度之外的部分  可以改成闭包?
+    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[2] * 2)), [decompose(Point2f, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[2]))]); color=backgroundcolor)
+    poly!(ax, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[1]); color=backgroundcolor)
     if return_rot_matrix
         return ax, rot
     end

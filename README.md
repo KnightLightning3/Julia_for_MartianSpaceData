@@ -124,7 +124,6 @@ IGRF_calculate.jl
 
 - [x] 云 MAVEN 数据
 - [ ] 利用SPEDAS包的spice核计算各个仪器的坐标变换矩阵并保存为文件
-- [ ] 利用SPEDAS包的spice核计算飞行器的速度, 加速度, 轨道参数等并保存为文件
 - [ ] 全仪器读取
 - [X] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
 - [X] overview 事件绘制 example
@@ -141,5 +140,6 @@ IGRF_calculate.jl
 - [X] 增加项目初始化和文件处理流程的流程图
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
 - [ ] 使用直接读取链接的方式, 优化下载程序: 直接读取yyyy和mm级别的路径,减去请求不存在月份的步骤
+- [ ] 由于julia的公共变量问题,把所有需要掩码计算的物理量以掩码模式进行
 
 随作者需求更新
