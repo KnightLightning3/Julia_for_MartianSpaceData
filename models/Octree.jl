@@ -105,7 +105,7 @@ function is_sphere(x, y, z)
 end
 
 initial_center = [0.0, 0.0, 0.0]
-initial_size = 2.0
+initial_size = 5.0
 epsilon = 0.05
 
 # 2. 找到边界立方体
@@ -116,36 +116,36 @@ println("x: [", bbox[1], ", ", bbox[2], "]")
 println("y: [", bbox[3], ", ", bbox[4], "]")
 println("z: [", bbox[5], ", ", bbox[6], "]")
 
-# 3. 可视化
-fig = Figure()
-ax = Axis3(fig[1, 1])
+# # 3. 可视化
+# fig = Figure()
+# ax = Axis3(fig[1, 1])
 
-# 绘制球体
-sphere = Sphere(Point3f(0,0,0), 1)
-mesh!(ax, sphere, color = (:dodgerblue, 0.5), shading = false)
+# # 绘制球体
+# sphere = Sphere(Point3f(0,0,0), 1)
+# mesh!(ax, sphere, color = (:dodgerblue, 0.5), shading = false)
 
-# 绘制边界立方体
-min_p = Point3f(bbox[1], bbox[3], bbox[5])
-max_p = Point3f(bbox[2], bbox[4], bbox[6])
+# # 绘制边界立方体
+# min_p = Point3f(bbox[1], bbox[3], bbox[5])
+# max_p = Point3f(bbox[2], bbox[4], bbox[6])
 
-# 获取立方体的所有顶点
-v1 = min_p
-v2 = Point3f(max_p[1], min_p[2], min_p[3])
-v3 = Point3f(max_p[1], max_p[2], min_p[3])
-v4 = Point3f(min_p[1], max_p[2], min_p[3])
-v5 = Point3f(min_p[1], min_p[2], max_p[3])
-v6 = Point3f(max_p[1], min_p[2], max_p[3])
-v7 = max_p
-v8 = Point3f(min_p[1], max_p[2], max_p[3])
+# # 获取立方体的所有顶点
+# v1 = min_p
+# v2 = Point3f(max_p[1], min_p[2], min_p[3])
+# v3 = Point3f(max_p[1], max_p[2], min_p[3])
+# v4 = Point3f(min_p[1], max_p[2], min_p[3])
+# v5 = Point3f(min_p[1], min_p[2], max_p[3])
+# v6 = Point3f(max_p[1], min_p[2], max_p[3])
+# v7 = max_p
+# v8 = Point3f(min_p[1], max_p[2], max_p[3])
 
-# 定义立方体的边
-edges = [
-    (v1, v2), (v2, v3), (v3, v4), (v4, v1),
-    (v5, v6), (v6, v7), (v7, v8), (v8, v5),
-    (v1, v5), (v2, v6), (v3, v7), (v4, v8)
-]
+# # 定义立方体的边
+# edges = [
+#     (v1, v2), (v2, v3), (v3, v4), (v4, v1),
+#     (v5, v6), (v6, v7), (v7, v8), (v8, v5),
+#     (v1, v5), (v2, v6), (v3, v7), (v4, v8)
+# ]
 
-# 绘制立方体的线框
-linesegments!(ax, edges, color = :red, linewidth = 2)
+# # 绘制立方体的线框
+# linesegments!(ax, edges, color = :red, linewidth = 2)
 
-fig
+# fig

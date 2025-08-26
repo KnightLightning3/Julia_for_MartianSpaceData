@@ -7,7 +7,9 @@ using DataFrames
 using DataInterpolations
 using LinearAlgebra
 using Statistics
+using Base.Iterators
 using DelaunayTriangulation
+using ProgressMeter
 # using PyCall
 # griddata = pyimport("scipy.interpolate").griddata
 const EV = 1.602176487e-19
@@ -292,15 +294,14 @@ function VDF_2d_slip(ax,velocity, data;
     r_range_rate = 0.1, # 垂直方向的切法
     ylabel="", xlabel="", plot_range=(-120, 120), return_rot_matrix=false, colormap=:viridis,show_data=false,backgroundcolor = :gray80)
     #绘制任何3d空间分布的饼状图，必需要满足： data为一维或多维数据,速度必须为n*3的格式
-    function remove_repeat_points(x, y, z, c; angle=[-30, 30],r_range_rate = 0.1)
+    function remove_repeat_points(x, y, z, c; angle=[-30, 30],r_range = 10)
         points = [x y c]
         theta_xy = [asind(zi / norm([xi, yi, zi])) for (xi, yi, zi) in eachrow([x y z])]
-        r0 = r_range_rate.*maximum(plot_range)
-        println("平行方向范围: $r0")
-        r_xy = abs.(z) 
+        # println("平行方向范围: $r_range")
+        # r_xy = abs.(z) 
         ind1 = angle[1] .<= theta_xy .<= angle[2]
-        ind2 = r_xy .<= r0
-        ind = ind1 .| ind2
+        # ind2 = r_xy .<= r_range
+        ind = ind1 #.| ind2
         data1 = Dict()
         for (p1, p2, ci) in eachrow(points[ind, :])
             push!(get!(data1, (p1, p2), []), ci)
@@ -316,7 +317,7 @@ function VDF_2d_slip(ax,velocity, data;
         new_x = convert(Array{Float64}, new_x)
         new_y = convert(Array{Float64}, new_y)
         new_c = convert(Array{Float64}, new_c)
-        return new_x, new_y, new_c
+        return new_x, new_y, new_c, ind
     end
     function filter_points_optimized(x, y, c, r)  # 当无效点附近存在有效点,去除无效点
         valid = c .!= 1e-20
@@ -379,16 +380,17 @@ function VDF_2d_slip(ax,velocity, data;
 
     local vsc_2d = reshape(vsc, 1, 3)
     local V = velocity .+ vsc_2d
+    local v0 = sqrt.(sum(velocity.^2, dims=2))[:,1]
+    local v_range = (minimum(v0), maximum(v0))
 
-    new_v = V * rot'
+    new_v = V * rot'  # 新坐标系下的速度三维分布
     new_vsc = rot * vsc
     new_vbluk = rot * vvec
     new_b = rot * bvec
     new_b = normalize(new_b)
     x, y, z, c = new_v[:, 1], new_v[:, 2], new_v[:, 3], vec(data)
     c[c .<= 0 ] .= 1e-20
-
-    x, y, c = remove_repeat_points(x, y, z, c; angle=angle_range,r_range_rate=r_range_rate)
+    x, y, c, ind_mask = remove_repeat_points(x, y, z, c; angle=angle_range,r_range=v_range[2]*0.05) # 以最大速度的上下1/10为z方向的限制
     x, y, c = filter_points_optimized(x, y, c, (plot_range[2]-plot_range[1])/50) #绘图部分0.02的分辨率
 
     scatter_colors = color_mapping(c, colorrange; scaler="log10")
@@ -413,7 +415,8 @@ function VDF_2d_slip(ax,velocity, data;
         colors = resample_cmap(colormap, n_colors)
         scatter_color = [colors[i] for i in scatter_colors]
         inds = scatter_colors .!= 1
-        scatter!(ax, x[inds], y[inds], markersize=7, color=:black)
+        # scatter!(ax, x[inds], y[inds], markersize=7, color=:black)
+        scatter!(ax, x, y, markersize=7, color=:black)
         scatter!(ax, x[inds], y[inds], markersize=5, color=scatter_color[inds])
     end
     hlines!(ax, 0, linestyle=:dash, color=:white)
@@ -422,15 +425,205 @@ function VDF_2d_slip(ax,velocity, data;
     # lines!(ax, [0, 1000 * new_b[1]], [0, 1000 * new_b[2]], linestyle=:dash, color=:green)
     # scatter!(ax, new_vbluk[1], new_vbluk[2], color=:red, marker='X', markersize=20)
 
-    local v0 = sqrt.(sum(velocity.^2, dims=2))[:,1]
-    local v_range = (minimum(v0), maximum(v0))
     # v_max = maximum(abs.(sqrt.(sum(new_v[:, :] .^ 2; dims=2))))
     #遮盖传入速度之外的部分  可以改成闭包?
-    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[2] * 2)), [decompose(Point2f, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[2]))]); color=backgroundcolor)
+    # poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[2] * 2)), [decompose(Point2f, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[2]))]); color=backgroundcolor)
     poly!(ax, Circle(Point2f(new_vsc[1],new_vsc[2]), v_range[1]); color=backgroundcolor)
     if return_rot_matrix
-        return ax, rot
+        return ax, rot, ind_mask # 对点的处理以及mask
     end
+    return ax
+end
+function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
+    function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, 返回km/s
+        E0 = 938313.53 * AMU  # 质子静止能量 MeV
+        γ= energy*1e-3/E0 + 1.0
+        β=sqrt(1.0 - 1.0 / γ^2)
+        v = β * 3e5
+        return v
+    end
+    function get_triangle_mesh(r_bounds, theta_bounds, phi_bounds; n_steps=12)
+        triangles = [] # 每个元素都是一个包含3个顶点的数组
+        r1, r2 = r_bounds
+        theta1, theta2 = theta_bounds
+        phi1, phi2 = phi_bounds
+
+        # 细分 theta, phi 范围
+        # rs = range(r1, r2, length=n_steps)
+        thetas = range(theta1, theta2, length=n_steps)
+        phis = range(phi1, phi2, length=n_steps)
+
+        # 1. r=r1 和 r=r2 的两个曲面（球形网格）
+        for i in 1:n_steps-1, j in 1:n_steps-1
+            # 四个顶点
+            v1 = Point3f(r1, thetas[i], phis[j])
+            v2 = Point3f(r2, thetas[i], phis[j])
+            v3 = Point3f(r2, thetas[i+1], phis[j])
+            v4 = Point3f(r1, thetas[i+1], phis[j])
+
+            # 四边形分解为两个三角形
+            push!(triangles, [v1, v2, v3])
+            push!(triangles, [v1, v3, v4])
+        end
+
+        return triangles
+    end
+    function rotate_func(p; translation_vector=0,rot=0) # 转为xyz坐标系
+        r, θ, ϕ = p[1], p[2], p[3]
+        ct = cosd(θ)
+        x = r * ct *  cosd(ϕ)
+        y = r * ct *  sind(ϕ)
+        z = r * sind(θ)
+        v = rot*([x,y,z] .+ translation_vector)
+        return Point2f(v[1], v[2])
+    end
+    function graham_scan(points)
+        N = length(points)
+        if N <= 3
+            return points
+        end
+
+        # 定义你的 ccw (逆时针) 辅助函数
+        function ccw(a::Point2f, b::Point2f, c::Point2f)
+            return ((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]))
+        end
+        # 1. 找到最低最左的点 P0
+        # argmin(f, a) 返回使得 f(a[i]) 最小的索引 i
+        p0_point = argmin(p -> (p[2], p[1]), points)
+        p0_index = findfirst(p -> isapprox(p[1], p0_point[1]) && isapprox(p[2], p0_point[2]), points)
+
+        # 将最低点放到数组的开头
+        points[1], points[p0_index] = points[p0_index], points[1]
+        
+        p0_point = points[1]
+
+        # 2. 对其他点按极角排序
+        # 使用 atan 来排序，这在你提供的函数中是正确的
+        sorted_points = sort(points[2:end], by = item -> atan(item[2] - p0_point[2], item[1] - p0_point[1]))
+
+        # 将排序后的点放回到原始数组中
+        @inbounds for i in 1:length(sorted_points)
+            points[i+1] = sorted_points[i]
+        end
+
+        # 3. 初始化栈（这里用 points 数组的前缀来模拟）
+        # 第一个点总是凸包的一部分
+        hull_points = Point[points[1]]
+
+        # 4. 遍历剩下的点，构建凸包
+        for i in 2:N
+            # 移除栈顶的右转点
+            while length(hull_points) >= 2 && ccw(hull_points[end-1], hull_points[end], points[i]) <= 0
+                pop!(hull_points)
+            end
+            push!(hull_points, points[i])
+        end
+
+        return hull_points
+    end
+    function get_shadow_boundary_polar(projected_points; step_deg=1, overlap_deg=1.5)
+        function cartesian_to_polar(x, y)
+            r = sqrt(x^2 + y^2)
+            theta = atan(y, x)
+            if theta < 0
+                theta += 2 * pi
+            end
+            return r, theta
+        end
+
+        # 1. 坐标转换并按角度排序
+        polar_points = [cartesian_to_polar(p[1], p[2]) for p in projected_points]
+        sort!(polar_points, by=p -> p[2])
+        num_points = length(polar_points)
+
+        # 2. 创建角度网格和数据结构
+        step_rad = deg2rad(step_deg)
+        overlap_rad = deg2rad(overlap_deg)
+        num_steps = round(Int, 360 / step_deg)
+        theta_grid = range(0, 2pi - step_rad, length=num_steps)
+        
+        r_max_data = zeros(num_steps)
+        r_min_data = fill(Inf, num_steps)
+
+        # 3. 遍历点，更新网格数据
+        # 这里我们遍历所有点，并根据每个点更新它影响到的所有网格
+        for (r, theta) in polar_points
+            # 找到点所在的中心网格索引
+            base_idx = floor(Int, theta / step_rad) + 1
+
+            # 计算这个点的影响范围（窗口）
+            window_start_rad = theta - overlap_rad
+            window_end_rad = theta + overlap_rad
+            
+            # 找到影响范围内的起始和结束网格索引
+            start_idx = floor(Int, window_start_rad / step_rad) + 1
+            end_idx = floor(Int, window_end_rad / step_rad) + 1
+
+            # 遍历影响范围内的网格并更新
+            @inbounds for j in start_idx:end_idx
+                # 处理索引越界和循环
+                idx = mod(j - 1, num_steps) + 1
+                
+                r_max_data[idx] = max(r_max_data[idx], r)
+                r_min_data[idx] = min(r_min_data[idx], r)
+            end
+        end
+
+        # 4. 构建轮廓
+        final_theta_min = theta_grid[r_min_data .!= Inf]
+        final_r_min = r_min_data[r_min_data .!= Inf]
+        
+        outer_boundary = [Point2f(r * cos(t), r * sin(t)) for (r, t) in zip(r_max_data, theta_grid)]
+        inner_boundary = [Point2f(r * cos(t), r * sin(t)) for (r, t) in zip(final_r_min, final_theta_min)]
+
+        return outer_boundary, inner_boundary
+    end
+    # v_range = [(v1,v2)...etc]
+    # 制作一个基于v和角度变化范围的掩码函数用于程序的遮掩
+    # local v1 = ion_energy2v.(range_data[:energy],range_data[:m_int])
+    # local v2 = ion_energy2v.(range_data[:energy] .+ range_data[:denergy],range_data[:m_int])
+    local v1 = ion_energy2v.(range_data[:energy],range_data[:m_int])
+    local v2 = ion_energy2v.(range_data[:energy] .+ range_data[:denergy],range_data[:m_int])
+
+    local v_max = maximum(v2)
+    local v_range = [(x1,x2) for (x1, x2) in zip(v1,v2)]
+    local t_range = [(x1,x2) for (x1, x2) in zip(
+        range_data[:theta] .- range_data[:dtheta]./2,
+        range_data[:theta] .+ range_data[:dtheta]./2
+        )]
+    local p_range = [(x1,x2) for (x1, x2) in zip(
+        range_data[:phi] .- range_data[:dphi]./2,
+        range_data[:phi] .+ range_data[:dphi]./2
+        )]
+
+    local inds = eachindex(v_range)
+
+    local ponits_all = [] # 所有体积元的顶点
+    # print("计算顶点")
+    @inbounds @showprogress desc="Computing boundray..." for i in inds
+        local ponits_dV = [] # 同一个体积元的所有顶点
+        local tris = get_triangle_mesh(v_range[i], t_range[i], p_range[i])
+        for tri in tris
+            local v1_xyz = rotate_func(tri[1]; translation_vector=vsc, rot=rot)
+            local v2_xyz = rotate_func(tri[2]; translation_vector=vsc, rot=rot)
+            local v3_xyz = rotate_func(tri[3]; translation_vector=vsc, rot=rot)
+            push!(ponits_dV, v1_xyz)
+            push!(ponits_dV, v2_xyz)
+            push!(ponits_dV, v3_xyz)
+        end
+        # ponits_dV = graham_scan(ponits_dV)
+        for i in ponits_dV
+            push!(ponits_all, i)
+        end
+    end
+    ponits_all1,ponits_all2 = get_shadow_boundary_polar(ponits_all)
+    # scatter!(ax, ponits_all; color=:black, markersize=3)
+    # scatter!(ax, ponits_all1; color=:red, markersize=3)
+    # lines!(ax,ponits_all1,color=:red)
+    # scatter!(ax, ponits_all2; color=:red, markersize=3)
+    poly!(ax, Polygon(decompose(Point2f, Circle(Point2f(0), v_max * 2)), [decompose(Point2f, ponits_all1)]); color=backgroundcolor)
+    poly!(ax, Polygon(decompose(Point2f, ponits_all2)); color=backgroundcolor)
+    
     return ax
 end
 function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10))
