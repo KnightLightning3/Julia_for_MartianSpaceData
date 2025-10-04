@@ -24,10 +24,15 @@ function rotation_matrix(θ, φ)
     # 计算总旋转矩阵，先绕y轴旋转，然后绕z轴旋转
     return Rz * Ry
 end
-function Quaternion_Rot(u::AbstractVector,q::QuaternionF64)
+function Quaternion_Rot(u::AbstractVector,q::QuaternionF64) # rotate_vector_with_quat
     #使用四元数计算坐标系变换。
     q_u = QuaternionF64(0, u[1], u[2], u[3])
     q_v = q*q_u*conj(q)
+    return [imag_part(q_v)...]
+end
+function Quaternion_Rot_reverse(u::AbstractVector, q::QuaternionF64)
+    local q_u = QuaternionF64(0, u[1], u[2], u[3])
+    local q_v = conj(q) * q_u * q
     return [imag_part(q_v)...]
 end
 function eflux2F(energy,eflux)

@@ -71,9 +71,14 @@ if vpn_proxy != None:
     "http": vpn_proxy[0],
     "https": vpn_proxy[0],
     }
+print(f"使用线程数:{max_threads}")
+if max_threads == 1:
+    string_end = "\r"
+else:
+    string_end = "\n"
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
-        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r")
+        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end=string_end,flush=True)
         sleep(1)
     return None
 def test_proxies():
@@ -144,12 +149,12 @@ def requests_download(url,save_path):
     global disable_tqdm_bar
     sleep_local(step_time)
     try:
-        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",flush=True,end='\r')
+        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",flush=True,end=string_end)
         response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         while(response.status_code == 429):
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
-            print(f"Requesting:{url}...\033[K",flush=True,end='\r')
+            # print(f"Requesting:{url}...\033[K",flush=True,end='\r')
             response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
             total_size = int(response.headers.get("content-length", 0))
@@ -157,7 +162,7 @@ def requests_download(url,save_path):
             progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=disable_tqdm_bar)
             time_start = time.time()
             if disable_tqdm_bar:
-                print(f"\033[1;32mLoading from\033[0m: {url}...\033[K",flush=True,end='\r')
+                print(f"\033[1;32mLoading from\033[0m: {url}...\033[K",flush=True,end=string_end)
             buffer = bytearray()  # 创建字节缓冲区
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
@@ -172,7 +177,7 @@ def requests_download(url,save_path):
                     os.makedirs(dir_save_path)
             # 将缓冲区中的数据写入文件
             with open(save_path, "wb") as file:
-                print(f"\033[F\033[FWriting into: {save_path}",end='\r')
+                print(f"\033[F\033[FWriting into: {save_path}",end=string_end)
                 file.write(buffer)
             elapsed = time.time() - time_start
             speed = total_size/elapsed
@@ -362,6 +367,7 @@ def download_from_head(head,num_links_added,num_links):
 #     return results
 
 if __name__ == '__main__':
+    os.makedirs(save_dir+"lists/", exist_ok=True)
     if check_download_file:
         for model in json_data["data_model"].keys():
             url_path,save_path,file_style = download_model(model)
@@ -474,7 +480,18 @@ if __name__ == '__main__':
     if not continue_download:
         with open(download_heads_file, 'w', encoding='utf-8') as f:
             json.dump(download_heads, f, ensure_ascii=False, indent=4)
-    num_links = len(download_heads)
+    # 清理已经存在的文件
+    skip_num = 0
+    download_heads_cleaned = []
+    for head in download_heads:
+        model,date,url_path,filename,save_path = head
+        if not os.path.exists(save_path+filename):
+            download_heads_cleaned.append(head)
+        else:
+            skip_num += 1
+    if skip_num > 0:
+        print(f"\033[1;32m{skip_num}\033[0m files already exist, skip downloading.", flush=True,end='\n')
+    num_links = len(download_heads_cleaned)
     num_links_added = 0
 
     # 启动下载记录
@@ -483,7 +500,7 @@ if __name__ == '__main__':
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         future_to_task_info = {
             executor.submit(download_from_head, head, i + 1, num_links): (head, i + 1)
-            for i, head in enumerate(download_heads)
+            for i, head in enumerate(download_heads_cleaned)
             }
         print("\n--- 正在等待下载任务完成，并实时打印结果... ---\n")
         for future in as_completed(future_to_task_info):
@@ -491,9 +508,9 @@ if __name__ == '__main__':
             try:
                 # 获取任务函数的实际返回值
                 result_string = future.result()
-                result_string_0 = f"✅ [完成] {result_string}"
+                result_string_0 = f"✅ {result_string}"
             except Exception as exc:
-                result_string_0 = f"❌ [失败] 任务 {task_id} (处理 '{original_head}') 执行出错: {exc}"
+                result_string_0 = f"❌ 任务:{task_id} (处理 '{original_head}') 执行出错: {exc}"
             print(result_string_0, flush=True,end='\n') # 实时打印完成结果
             io_download_log.write(result_string_0+'\n')
             io_download_log.flush()

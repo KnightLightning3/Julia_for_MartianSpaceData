@@ -34,6 +34,7 @@ Pkg_list = [
     "PyCall"
     "PyPlot"
     "Quaternions"
+    "Rotations"
     "StatsBase"
     "XLSX"
     "Dates"

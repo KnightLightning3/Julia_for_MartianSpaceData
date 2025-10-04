@@ -4,8 +4,8 @@
 module MAVEN_SWEA
 using TimesDates, Dates
 using Statistics
-using Quaternions
-
+# using Quaternions
+using Rotations
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d
@@ -97,15 +97,12 @@ function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data
 end
-function rotate_vector_with_quat(u::AbstractVector,q::QuaternionF64)
-    q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = q*q_u*conj(q)
-    return [imag_part(q_v)...]
-end
-function rotate_vector_with_quat_reverse(u::AbstractVector, q::QuaternionF64)
-    q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = conj(q) * q_u * q
-    return [imag_part(q_v)...]
+function eflux2df!(dat) #projects/maven/swia/mvn_swia_convert_units.pro, 返回单位:1/(cm^3-(km/s)^3)
+    energy = reshape(dat[:energy],1,1,1,48)
+    mass = dat[:mass]
+    df = dat[:diff_en_fluxes] ./ (energy.^2 * 2.0 ./mass./mass.*1e5)
+    dat[:df] = df
+    return dat
 end
 function sphere2xyz_for_SWIA(r,θ,ϕ) #general/science/sphere_to_cart.pro
     local ct = cosd(θ)
@@ -118,13 +115,6 @@ function sphere2xyz_for_SWIA(r,θ,ϕ) #general/science/sphere_to_cart.pro
     # z = r * cosd(θ)
     return [x,y,z]
 end;
-function eflux2df!(dat) #projects/maven/swia/mvn_swia_convert_units.pro, 返回单位:1/(cm^3-(km/s)^3)
-    energy = reshape(dat[:energy],1,1,1,48)
-    mass = dat[:mass]
-    df = dat[:diff_en_fluxes] ./ (energy.^2 * 2.0 ./mass./mass.*1e5)
-    dat[:df] = df
-    return dat
-end
 function xyz2sphere_for_SWIA(x,y,z)
     r=sqrt(x^2 + y^2 + z^2)
     theta = 90.0 - acosd(z/r)

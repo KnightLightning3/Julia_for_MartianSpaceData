@@ -14,7 +14,8 @@ using JSON
 using IniFile
 using JLD2
 using Statistics
-using Quaternions
+# using Quaternions
+using Rotations
 using FortranFiles
 # -------------------------Export parts-------------------------
 export load_MAVEN_data
@@ -485,9 +486,11 @@ function load_quat(filename::String)::Dict{Symbol,Any}#读取idl导出的quat数
             @inbounds data[i, :] .= (ut, mso1, mso2, mso3, mso4)
         end
     end
-    local quat_s = [QuaternionF64(data[i, 2],data[i, 3],data[i, 4],data[i, 5]) for i in 1:n]
+    # local quat_s = [QuaternionF64(data[i, 2],data[i, 3],data[i, 4],data[i, 5]) for i in 1:n]
+    local quat_s = [QuatRotation(data[i,2:5]) for i in 1:n]
     dd0 = Dict{Symbol,Any}(
         :epoch => unix2datetime.(data[:, 1]),
+        :time_unix => data[:, 1],
         :quat => quat_s,
         :coordinate => "SWIA to mso", # 读取文件名中的坐标系
     )
@@ -730,11 +733,6 @@ end
 function rotate_vector_with_Martrix(in_data, Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data
-end
-function rotate_vector_with_quat(u::AbstractVector, q::QuaternionF64)
-    q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = q * q_u * conj(q)
-    return [imag_part(q_v)...]
 end
 function eflux2F(energy, eflux)  # 电子eflux转PSD
     M = me

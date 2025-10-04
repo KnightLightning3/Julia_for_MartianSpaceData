@@ -73,6 +73,7 @@ function load_mag_2c_bydlm(file::String);
     data=Dict{Symbol,Any}(
         :data_load_flag => true,
         :time => times |> Array,
+        :epoch => times |> Array,
         :B => BMSO1hz |> Array,
         :B_total => B_total |> Array,
         :position => position |> Array,
@@ -84,7 +85,7 @@ function load_mag_2c_bydlm(file::String);
     return data
 end
 
-function caculate_mag(position;models=["alt"])
+function calculate_mag(position;models=["alt"])
     function c_alt(position) 
         alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
         alt = alt[:,1]
@@ -108,14 +109,14 @@ function caculate_mag(position;models=["alt"])
     end
 end
 
-function get_spc2mso_rot_martrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回值\
+function get_spc2mso_rot_matrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回值\
     ntime = length(dat[:time])
     rot_matrix = zeros(ntime,3,3)
 
-    pitch = dat[:pitch].|>deg2rad
-    yaw   = dat[:yaw]  .|>deg2rad
-    roll  = dat[:roll] .|>deg2rad
-    rot_martrix = zeros(Float64, ntime, 3, 3)
+    local pitch = dat[:pitch].|>deg2rad
+    local yaw   = dat[:yaw]  .|>deg2rad
+    local roll  = dat[:roll] .|>deg2rad
+    rot_matrix = zeros(Float64, ntime, 3, 3)
     for i in 1:ntime
         local r,p,y = roll[i],pitch[i],yaw[i]
         local cp = cos(p)
@@ -124,11 +125,11 @@ function get_spc2mso_rot_martrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回�
         local sy = sin(y)
         local cr = cos(r)
         local sr = sin(r)
-        rot_martrix[i,1,:] = [cp*cy, sy*cr+sr*sp*cy, sr*sy-cr*sp*cy]
-        rot_martrix[i,2,:] =  [-cp*sy, cr*cy-sr*sp*sy, sr*cy+cr*sp*sy]
-        rot_martrix[i,3,:] = [sp, -sr*cp, cr*cp]
+        rot_matrix[i,1,:] = [cp*cy, sy*cr+sr*sp*cy, sr*sy-cr*sp*cy]
+        rot_matrix[i,2,:] =  [-cp*sy, cr*cy-sr*sp*sy, sr*cy+cr*sp*sy]
+        rot_matrix[i,3,:] = [sp, -sr*cp, cr*cp]
     end
-    return dat[:time],rot_martrix
+    return dat[:time],rot_matrix
 end
 function read_list()
     list_path = root_path*"List/"*"mag_list.txt"

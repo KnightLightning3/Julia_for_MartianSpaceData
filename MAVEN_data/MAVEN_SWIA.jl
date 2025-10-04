@@ -5,13 +5,14 @@ module MAVEN_SWIA
 using TimesDates, Dates
 using Statistics
 using Quaternions
-
+using Rotations
+using DataInterpolations
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d
 # export ion_energy2v,ion_v2energy
 #---------------------------初始化-------------------------------- 由于SWIA的糟糕数据,需要对其读取后进行初始化处理
-function get_3dc!(dat)#projects/maven/swia/mvn_swia_get_3dc.pro,直接处理dat,需要SWIA coarse data 3D
+function get_3dc!(dat;quat_data = nothing)#projects/maven/swia/mvn_swia_get_3dc.pro,直接处理dat,需要SWIA coarse data 3D
     ntime = length(dat[:epoch])
     nanode = 16
     ndeflect = 4
@@ -53,21 +54,38 @@ function get_3dc!(dat)#projects/maven/swia/mvn_swia_get_3dc.pro,直接处理dat,
     dat[:denergy] = denergy
 
     dat[:ndeflect] = ndeflect
+    dat[:ntheta] = ndeflect
     dat[:theta] = theta
     dat[:dtheta] = dtheta
 
     dat[:nanode] = nanode
+    dat[:nphi] = nanode
     dat[:phi] = phi
     dat[:dphi] = dphi
     
     dat[:domega] = domega
     dat[:mass] = 5.68566e-6*1836.0
 
+    # 处理quat数据
+    if quat_data === nothing
+        @warn "No quat data used"
+        return dat
+    end
+    local time_dat  = dat[:time_unix]
+    local time_quat = quat_data[:time_unix]
+    local dat[:quat_mso] = fill(one(QuatRotation),ntime)
+    @inbounds for i in 1:ntime
+        local ii = findmin(abs.(time_quat .- time_dat[i]))
+        if ii[1] > 4
+            @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(ii[1])秒"
+            # continue
+        end
+        dat[:quat_mso][i] = quat_data[:quat][ii[2]]
+    end
     return dat
     # [:filename, :theta_coarse, :theta_atten_coarse, :g_phi_atten_coarse, :g_theta_atten_coarse, :g_phi_coarse, :energy_coarse, :time_unix, :time_met, :diff_en_fluxes, :atten_state, :g_theta_coarse, :counts, :phi_coarse, :data_load_flag, :dindex, :num_accum, :grouping, :epoch]
-
 end
-function get_3df!(dat) #projects/maven/swia/mvn_swia_get_3df.pro,直接处理dat,需要SWIA fine data 3D
+function get_3df!(dat;quat_data = nothing) #projects/maven/swia/mvn_swia_get_3df.pro,直接处理dat,需要SWIA fine data 3D
     # keys(dat) = [:geom_factor, :filename, :theta_fine, :theta_atten_fine, :time_unix, :time_met, :diff_en_fluxes, :g_theta_fine, :atten_state, :estep_first, :phi_fine, :g_phi_fine, :eindex, :num_dists, :energy_fine, :dstep_first, :counts, :data_load_flag, :g_phi_atten_fine, :accum_time_fine, :g_theta_atten_fine, :dindex, :grouping, :de_over_e_fine, :epoch]
     ntime = length(dat[:epoch])
     nanode = 10
@@ -120,16 +138,37 @@ function get_3df!(dat) #projects/maven/swia/mvn_swia_get_3df.pro,直接处理dat
     dat[:denergy] = denergy
 
     dat[:ndeflect] = ndeflect
+    dat[:ntheta] = ndeflect
     dat[:theta] = theta
     dat[:dtheta] = dtheta
 
     dat[:nanode] = nanode
+    dat[:nphi] = nanode
     dat[:phi] = phi
     dat[:dphi] = dphi
     
     dat[:domega] = domega
     dat[:mass] = 5.68566e-6*1836.0
 
+    # 处理quat数据
+    if quat_data === nothing
+        @warn "No quat data used"
+        return dat
+    end
+    local time_dat  = dat[:epoch] .|> datetime2unix
+    local time_quat = quat_data[:epoch] .|> datetime2unix
+    local time00 = time_dat[1]
+    local time_quat .-= time00
+    local time_dat .-= time00
+    local dat[:quat_mso] = fill(one(QuatRotation),ntime)
+    @inbounds for i in 1:ntime
+        local ii = findmin(abs.(time_quat .- time_dat[i]))
+        if ii[1] > 4
+            @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(ii[1])秒"
+            # continue
+        end
+        dat[:quat_mso][i] = quat_data[:quat][ii[2]]
+    end
     return dat
     # [:filename, :theta_coarse, :theta_atten_coarse, :g_phi_atten_coarse, :g_theta_atten_coarse, :g_phi_coarse, :energy_coarse, :time_unix, :time_met, :diff_en_fluxes, :atten_state, :g_theta_coarse, :counts, :phi_coarse, :data_load_flag, :dindex, :num_accum, :grouping, :epoch]
 end
@@ -299,16 +338,6 @@ end
 function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
     out_data = Rotation_Martrix * in_data
     return out_data
-end
-function rotate_vector_with_quat(u::AbstractVector,q::QuaternionF64)
-    q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = q*q_u*conj(q)
-    return [imag_part(q_v)...]
-end
-function rotate_vector_with_quat_reverse(u::AbstractVector, q::QuaternionF64)
-    q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = conj(q) * q_u * q
-    return [imag_part(q_v)...]
 end
 function sphere2xyz_for_SWIA(r,θ,ϕ) #general/science/sphere_to_cart.pro
     local ct = cosd(θ)

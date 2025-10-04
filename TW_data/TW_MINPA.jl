@@ -51,6 +51,11 @@ function load_mod1(filename::String)
     dθ[end] = θ[end] - θ[end-1]
     
     dϕ = ϕ[2]-ϕ[1]
+
+    # 能量的体积元可能不对
+    denergy = (circshift(energy,(-1)) - circshift(energy,(1)))/2
+    denergy[1] = energy[2] - energy[1]
+    denergy[end] = energy[end] - energy[end-1]
     
     # 记录表:18-20：xyz  IAU
     # 记录表:28-30：xyz  J2000
@@ -65,6 +70,8 @@ function load_mod1(filename::String)
     # 原始数据为differential_flux，单位1/(s cm^2 sr eV)
     dfi= reshape(Array(data[:,60:20539]), ntime, nmass,nϕ, nθ, nenergy) #时间 质量数 方位角 俯仰角 能道 #
     dfi[dfi .< 0.0] .= 0.0
+
+    # denergy = 0.15 .* energy
     
     # mass_n = [1, 4, 16]
     # energy_nh = [29.3, 64.4, 118.2, 200.8, 327.5, 521.8, 820, 1277.3] .+ [80.2, 176.3, 323.7, 549.8, 896.7, 1428.9, 2245.3, 3497.8] #
@@ -129,12 +136,13 @@ function load_mod1(filename::String)
         :time_unix => ut,
         :ntime => ntime,
         :nenergy => nenergy,
+        :denergy => denergy,
         :nmass => nmass,
         :ntheta => nθ,
         :nphi => nϕ,
         :dtheta => dθ,
         :dphi => dϕ,
-        :energy => energy,
+        # :energy => energy,
         :mass => mass,
         :phi => ϕ, #rad
         :theta => θ,
@@ -208,12 +216,13 @@ function MINPA_energy2v(dat;m_int=1) #  取得质量数为m_int的速度分布,�
     vv = MINPA_sphere2xyz.(v0,theta,phi)# 内含角度修正
 
     # vv = stack(vv,dims=1)
-    dx = [x[1] for x in vv] |> vec
-    dy = [x[2] for x in vv] |> vec
-    dz = [x[3] for x in vv] |> vec
-    vv = hcat(dx,dy,dz)
-    vv = -vv #视场方向反向于实际方向
-    return vv
+    # dx = [x[1] for x in vv] |> vec
+    # dy = [x[2] for x in vv] |> vec
+    # dz = [x[3] for x in vv] |> vec
+    # vv = hcat(dx,dy,dz)
+    # vv = -vv #视场方向反向于实际方向
+    vv .*= -1.0 #视场方向反向于实际方向
+    return vv,v0
 end
 function MINPA_get_psd(dat) # 通过角度，能量，质量数，计算PSD
 
@@ -236,7 +245,7 @@ function MINPA_get_psd(dat) # 通过角度，能量，质量数，计算PSD
     Scale = mass.^2 ./ energy .*Const # 方向通量除以速度4次方乘2
     F = dflux .* Scale
 
-    dat[:psd] = F
+    dat[:psd] = F  # 单位 IS
     return dat
 end
 function v3d(dat) # 通过角度，能量，质量数，计算PSD
@@ -295,7 +304,7 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
 
     flux = vel .* den .* 1e5 #通量，cm^-2s^-1
     
-    return vel,flux,den #速度(ntime,nmass,3),km/s,密度(ntime,nmass),cm^-3
+    return vel,flux,den #速度(ntime,nmass,3),km/s,通量，cm^-2s^-1, 密度(ntime,nmass),cm^-3
 end
 function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PSD
     dflux = dat[:differential_flux][time_ind,:,:,:,:]

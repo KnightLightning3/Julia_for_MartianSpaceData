@@ -72,6 +72,7 @@ def search_downloaded_files(save_path,file_style):
 #                 filehash_list.append(filedir+","+filehash.hexdigest())
 #     return filehash_list
 if __name__ == '__main__':
+    os.makedirs(save_dir+"lists/", exist_ok=True)
     for model in json_data["data_model"].keys():
         save_path,file_style = download_model(model)
         print(save_path)

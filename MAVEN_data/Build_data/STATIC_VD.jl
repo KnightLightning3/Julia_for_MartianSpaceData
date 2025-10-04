@@ -5,7 +5,7 @@ using Dates
 using ProgressMeter
 using FortranFiles
 using Base.Threads
-using Quaternions
+# using Quaternions
 @spawn :interactive f()
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
@@ -47,20 +47,20 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         end
         dat_slip = MAVEN_STATIC.static_slip(ion_data, time_ind)
         # dat_slip = MAVEN_STATIC.static_rotation(dat_slip; frame="MSO")
-        rotation_Q = QuaternionF64(dat_slip[:quat_mso][1], dat_slip[:quat_mso][2], dat_slip[:quat_mso][3], dat_slip[:quat_mso][4]);
+        rotation_Q = QuatRotation(dat_slip[:quat_mso]);
 
         dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
         vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[20, 40], m_int=32,unit_cover=false)
-        O2_vel[time_ind, 1:3] = MAVEN_STATIC.rotate_vector_with_quat(vel, rotation_Q) .+ vsc[time_vsc_ind,:]
-        O2_f[time_ind,1:3] = MAVEN_STATIC.rotate_vector_with_quat(flux, rotation_Q)
+        O2_vel[time_ind, 1:3] =rotation_Q * vel .+ vsc[time_vsc_ind,:]
+        O2_f[time_ind,1:3] = rotation_Q * flux
         O2_den[time_ind] = den
         vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[10, 20], m_int=16,unit_cover=false)
-        O_vel[time_ind, 1:3] = MAVEN_STATIC.rotate_vector_with_quat(vel, rotation_Q) .+ vsc[time_vsc_ind,:]
-        O_f[time_ind,1:3] = MAVEN_STATIC.rotate_vector_with_quat(flux, rotation_Q)
+        O_vel[time_ind, 1:3] = rotation_Q * vel .+ vsc[time_vsc_ind,:]
+        O_f[time_ind,1:3] = rotation_Q * flux
         O_den[time_ind] = den
         vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[0, 2], m_int=1,unit_cover=false)
-        H_vel[time_ind, 1:3] = MAVEN_STATIC.rotate_vector_with_quat(vel, rotation_Q) .+ vsc[time_vsc_ind,:]
-        H_f[time_ind,1:3] = MAVEN_STATIC.rotate_vector_with_quat(flux, rotation_Q)
+        H_vel[time_ind, 1:3] = rotation_Q * vel .+ vsc[time_vsc_ind,:]
+        H_f[time_ind,1:3] = rotation_Q * flux
         H_den[time_ind] = den
     end
     datas_dict = Dict{Symbol,Any}(
