@@ -157,8 +157,8 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     return dat
 end
 function STA_count2df_all(dat0) #计算df,对非时间切片数据
-    dat = deepcopy(dat0)
-    ntime   = dat[:num_dists]
+    local dat = deepcopy(dat0)
+    local ntime   = dat[:num_dists]
 
     local nmass   = dat[:nmass]
     local nbins   = dat[:nbins]
@@ -166,40 +166,40 @@ function STA_count2df_all(dat0) #计算df,对非时间切片数据
     local energy  = dat[:energy]
     local dims4 = (ntime,nmass,nbins,nenergy) 
     if nbins == 1
-        gf     = zeros(ntime,1,nenergy)
-        eff    = zeros(ntime,nmass,nenergy)
-        mass   = zeros(ntime,nmass,nenergy)
-        energy = zeros(ntime,nmass,nenergy)
-        dt   = reshape(dat[:time_integ],ntime, 1,  1)
+        local gf     = zeros(ntime,1,nenergy)
+        local eff    = zeros(ntime,nmass,nenergy)
+        local mass   = zeros(ntime,nmass,nenergy)
+        local energy = zeros(ntime,nmass,nenergy)
+        local dt   = reshape(dat[:time_integ],ntime, 1,  1)
     
-        dead = dat[:dead]
-        bkg = dat[:bkg]
-        tmp = dat[:data]
+        local dead = dat[:dead]
+        local bkg = dat[:bkg]
+        local tmp = dat[:data]
     
         @inbounds for i in 1:ntime
-            swp_ind = dat[:swp_ind][i]
-            att_ind = dat[:att_ind][i]
-            eff_ind = dat[:eff_ind][i]
+            local swp_ind = dat[:swp_ind][i]
+            local att_ind = dat[:att_ind][i]
+            local eff_ind = dat[:eff_ind][i]
             gf[i,:,:]   = dat[:gf][att_ind+1,:,swp_ind+1]
             eff[i,:,:]  = dat[:eff][:,:,eff_ind+1]
             mass[i,:,:] = dat[:mass].*dat[:mass_arr][:,:,swp_ind+1]
             energy[i,:,:] = dat[:energy][:,:,swp_ind+1]
         end
     else
-        gf     = zeros(ntime,1,nbins,nenergy)
-        eff    = zeros(ntime,nmass,nbins,nenergy)
-        mass   = zeros(ntime,nmass,nbins,nenergy)
-        energy = zeros(ntime,nmass,nbins,nenergy)
-        dt   = reshape(dat[:time_integ],ntime, 1, 1, 1)
+        local gf     = zeros(ntime,1,nbins,nenergy)
+        local eff    = zeros(ntime,nmass,nbins,nenergy)
+        local mass   = zeros(ntime,nmass,nbins,nenergy)
+        local energy = zeros(ntime,nmass,nbins,nenergy)
+        local dt   = reshape(dat[:time_integ],ntime, 1, 1, 1)
 
-        dead = dat[:dead]
-        bkg = dat[:bkg]
-        tmp = dat[:data]
+        local dead = dat[:dead]
+        local bkg = dat[:bkg]
+        local tmp = dat[:data]
 
         @inbounds for i in 1:ntime
-            swp_ind = dat[:swp_ind][i]
-            att_ind = dat[:att_ind][i]
-            eff_ind = dat[:eff_ind][i]
+            local swp_ind = dat[:swp_ind][i]
+            local att_ind = dat[:att_ind][i]
+            local eff_ind = dat[:eff_ind][i]
             gf[i,:,:,:]   = dat[:gf][att_ind+1,:,:,swp_ind+1]
             eff[i,:,:,:]  = dat[:eff][:,:,:,eff_ind+1]
             mass[i,:,:,:] = dat[:mass].*dat[:mass_arr][:,:,:,swp_ind+1]
@@ -207,11 +207,13 @@ function STA_count2df_all(dat0) #计算df,对非时间切片数据
         end
     end
 
-    G = dat[:geom_factor].*eff.*gf
+    local G = dat[:geom_factor].*eff.*gf
 
-    tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
-    dat[:df] = scale .* tmp
+    local tmp = (tmp .- bkg ).*dead
+    # scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
+    local scale = 1 ./(dt.* G .* energy.^2 .* 2 .*1e5)
+    dat[:df] = scale .* tmp .* mass.^2
+    dat[:df_mass_mass] = scale .* tmp .* dat[:mass]^2
     return dat
 end
 function STA_count2eflux_all(dat) #计算df,对非时间切片数据
@@ -277,7 +279,7 @@ function STA_eflux2df(dat;m_int=m_int)
 end
 #数据切片
 function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑
-    dat_slip =Dict{Symbol,Any}()
+    local dat_slip =Dict{Symbol,Any}()
     for key in keys(dat)
         dat_slip[key] = dat[key]
     end
@@ -313,13 +315,22 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip[:gf]       = dat[:gf][att_ind+1,:,:,swp_ind+1]
     dat_slip[:eff]      = dat[:eff][:,:,:,eff_ind+1]
 
+    try
+        dat_slip[:df_mass_mass] = dat[:df_mass_mass][time_ind,:,:,:]
+        dat_slip[:df] = dat[:df][time_ind,:,:,:]
+    # catch
+    finally
+        return dat_slip
+        # @info "不包含通量处理信息"
+        # dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
+    end
     # # time:			tt1,					
     # # end_time:		tt2,					
     # delta_t = dat[:endtime][time_ind] - dat[:time_unix][time_ind]		
     # dt_cor = 3.89/4.0
     # dat_slip[:integ_t]=delta_t/(dat[:nenergy]*dat[:ndef])*dt_cor
 
-    return dat_slip
+    # return dat_slip
 end
 # 速度计算
 function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
@@ -526,45 +537,45 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
     return dat2
 end
 function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use slip_data
-    nenergy  = dat[:nenergy]
-    nbins    = dat[:nbins]
-    energy   = dat[:energy]      
-    phi      = dat[:phi]        
-    theta    = dat[:theta]         
-    mass_arr = dat[:mass_arr]   
-    sc_pot   = dat[:sc_pot]     
+    local nenergy  = dat[:nenergy]
+    local nbins    = dat[:nbins]
+    local energy   = dat[:energy]      
+    local phi      = dat[:phi]        
+    local theta    = dat[:theta]         
+    local mass_arr = dat[:mass_arr]   
+    local sc_pot   = dat[:sc_pot]     
 
     # dat = STA_count2df(dat;m_int=m_int)
     # dat = STA_eflux2df(dat;m_int=m_int)
-    df_data = dat[:df]
-    ef_data = dat[:eflux]
+    local df_data = dat[:df]
+    local ef_data = dat[:eflux]
+
+    local mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
+    local energy_mass = energy[1,:,:]
+    local phi_mass = phi[1,:,:]
+    local theta_mass = theta[1,:,:]
+
+    local df_data1 = sum(df_data.*mask,dims=1)[1,:,:]
+    local ef_data1 = sum(ef_data.*mask,dims=1)[1,:,:]
     
-    mask = (mass_arr .>= mass_range[1]) .& (mass_arr .<= mass_range[2])
-    energy_mass = energy[1,:,:]
-    phi_mass = phi[1,:,:]
-    theta_mass = theta[1,:,:]
+    local V_ = zeros(nbins,nenergy,3)
     
-    df_data1 = sum(df_data.*mask,dims=1)[1,:,:]
-    ef_data1 = sum(ef_data.*mask,dims=1)[1,:,:]
-    
-    V_ = zeros(nbins,nenergy,3)
-    
-    energy_t = energy_mass .+ sc_pot
+    local energy_t = energy_mass .+ sc_pot
     energy_t[energy_t .<= 0] .= 0.001
     
-    v0 = ion_energy2v.(energy_t,m_int) ./1e3
+    local v0 = ion_energy2v.(energy_t,m_int) ./1e3
     
-    APP_position = sphere2xyz_for_STATIC.(v0,theta_mass,phi_mass)
+    local APP_position = sphere2xyz_for_STATIC.(v0,theta_mass,phi_mass)
     
     V_[:,:,1] = [x[1] for x in APP_position]
     V_[:,:,2] = [x[2] for x in APP_position]
     V_[:,:,3] = [x[3] for x in APP_position]
 
-    vsc1 = reshape(vsc,1,1,3)
+    local vsc1 = reshape(vsc,1,1,3)
 
     V_ =V_ .+ vsc1
     
-    return_data = Dict{Symbol,Any}(
+    local return_data = Dict{Symbol,Any}(
         :df=> df_data1,
         :eflux=> ef_data1,
         :v => V_,

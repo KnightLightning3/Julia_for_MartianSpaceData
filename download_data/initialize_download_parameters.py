@@ -9,6 +9,7 @@ config = configparser.ConfigParser()
 config.optionxform = str
 config['DEFAULT'] = {
     'Save_dir': 'E:/MAVEN/',
+    'CDF_LIB' : 'D:/software/CDF.3.9_64bit/lib\n;CDF库文件路径,请根据实际安装路径修改\n;Path to CDF library, please modify according to the actual installation path',
     # 'MAVEN_server_ucla': 'https://pds-ppi.igpp.ucla.edu/data/',
     # 'MAVEN_server_colorado': 'https://lasp.colorado.edu/maven/sdc/public/data/sci/',
     # 'USTC_Server_url': 'http://222.195.76.155:8000/MAVEN/',

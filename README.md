@@ -8,7 +8,11 @@
 - [介绍](#介绍)
 - [下载数据](#下载数据)
 - [读取数据](#读取数据)
-- [火星磁场模型](#火星磁场模型)
+- [其他模型](#其他模型)
+  - [火星磁场模型](#火星磁场模型)
+  - [冷等离子体色散关系](#冷等离子体色散关系)
+  - [麦克斯韦分布拟合](#麦克斯韦分布拟合)
+  - [单粒子轨道追踪](#单粒子轨道追踪)
 - [自建数据说明](#自建数据说明)
   - [KP\_l3数据](#kp_l3数据)
   - [MAG\_l3数据](#mag_l3数据)
@@ -16,6 +20,8 @@
   - [STATIC\_d1\_v4d 数据](#static_d1_v4d-数据)
 - [MAVEN 数据 Tips](#maven-数据-tips)
   - [STATIC 数据:](#static-数据)
+- [其他](#其他)
+  - [闰秒修正](#闰秒修正)
 - [ToDo List](#todo-list)
 # 介绍
 
@@ -52,7 +58,7 @@ pip install -r requirements.txt
 - LASP源,服务器稳定: https://lasp.colorado.edu/maven/sdc/public/data/sci/
 - berkeley源,格式与LASP类似,SPADES库默认服务器,相当部分的数据需要账户密码,不可直接访问: http://sprg.ssl.berkeley.edu/data/maven/data/sci/
 
-其中https://pds-ppi.igpp.ucla.edu/data/的文件树与后两者不同,且没有NGIM数据
+其中'https://pds-ppi.igpp.ucla.edu/data/'的文件树与后两者不同,且没有NGIM数据
 
 # 读取数据
 
@@ -75,13 +81,23 @@ import .IGRF_calculate
 ```
 具体读取方法: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
 
+# 其他模型
+## 火星磁场模型
 
-# 火星磁场模型
-
-IGRF_calculate.jl
-利用 IGRF 模型计算火星模拟磁场
+./Magnetic_Model/IGRF_calculate.jl
+利用 IGRF 模型计算火星模拟磁场, 含有Fortran导出的dll库, 因此需要电脑存在对应的C++和Fortran环境.
 
 模型来源: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combining Data Sets of MAVEN and MGS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021EA001860)
+
+## 冷等离子体色散关系
+./models/Cold_Plasma_Dispersion_Relation.jl
+
+## 麦克斯韦分布拟合
+./models/Maxwellian_distribution.jl
+
+## 单粒子轨道追踪
+./models/Maxwellian_distribution.jl
+考虑内核改为Fortran以加快计算
 
 # 自建数据说明
 
@@ -120,6 +136,27 @@ IGRF_calculate.jl
 - STATIC 返回的 theta 和 phi,对应球坐标系的 90-theta 和 phi,处于仪器参考系下. 文件中的 quat_mso 和 quat_sc 为四元数,可以用于将仪器参考系投影到 mso 和 sc 参考系.
 - STATIC, SWEA, SWIA 使用的参考系为对应球坐标系的 90-theta 和 phi. ref:spedas_6_1\general\science\sphere_to_cart.pro
 
+# 其他
+  ## 闰秒修正 
+  MAVEN的CDF文件普遍使用**CDF_TIME_TT2000**, 等价于**J2000**,该时间由**TAI** (国际原子时 - International Atomic Time)得到. 
+  
+  $$\text{TT} = \text{TAI} + 32.184 \text{ s}$$
+  
+  与此同时, 由于地球自转的不均匀性, **UTC** (协调世界时 - Coordinated Universal Time) 会在**TAI**的基础上, 定期加入闰秒修正来匹配地球的自然自转, 根据闰秒表, 可以得到每段时间的闰秒差异.
+  
+  $$\text{TAI} = \text{UTC} + (\text{累积闰秒数})$$
+
+  由此, 当我们将MAVEN中的J2000时间戳与**UTC**相匹配时, 需要考虑闰秒问题:
+
+  $$\text{TT} = \text{UTC} + (\text{累积闰秒数}) + 32.184 \text{ s}$$
+
+  预计可以使用一个函数来将原始的**CDF_TIME_TT2000**时间戳改为**UTC**时间戳. 只是使用MAVEN数据时不用考虑闰秒问题.
+
+  目前, 程序读取CDF文件epoch使用的cdflib方法,会自动处理闰秒问题. SPEDAS和spacepy同理. IDL中直接使用公式转换**CDF_TIME_TT2000**的方法可能存在闰秒修正的潜在问题.
+  ```julia
+  unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
+  ```
+  潜在问题: 计算通常以unix时间戳为主, julia是否在处理unix时间戳和UTC时间的关系时考虑闰秒
 # ToDo List
 
 - [x] 云 MAVEN 数据
@@ -141,5 +178,6 @@ IGRF_calculate.jl
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
 - [ ] 使用直接读取链接的方式, 优化下载程序: 直接读取yyyy和mm级别的路径,减去请求不存在月份的步骤
 - [ ] 由于julia的公共变量问题,把所有需要掩码计算的物理量以掩码模式进行
+- [ ] 闰秒处理
 
 随作者需求更新

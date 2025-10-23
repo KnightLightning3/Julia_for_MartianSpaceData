@@ -20,6 +20,25 @@ using FortranFiles
 # -------------------------Export parts-------------------------
 export load_MAVEN_data
 export mean_SWEA_pad_pa, carclu_SWEA_pad
+
+const Q = 1.602176487e-19 # 库仑
+const EV = 1.602176487e-19
+const C = 3.0e8
+const Me = 9.109e-31
+const Mp = 1.672621637e-27
+const RADG = 180.0 / π
+
+dir = dirname(@__FILE__)
+open(dir * "/MAVEN_data_format.json", "r") do f
+    data = JSON.parse(f)
+    global kp_dict = data["kp_dict"]
+    global data_model = data["data_model"]
+end
+root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
+# cdf_lib_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "CDF_LIB") # 所有文件的根目录
+# using PyCall
+# ENV["CDF_LIB"] = cdf_lib_path
+# spacepy_cdf = pyimport("spacepy.pycdf")
 # -------------------------Read filelist parts-------------------------
 """     
 打印所有可支持的数据的读取.
@@ -102,29 +121,31 @@ function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读
 end
 ##----------------load parts------------------------
 function load_cdf(file::String)  # 将CDF文件读为字典
-    local data = []
+        local data = []
 
-    try
-        data = cdflib.cdfread.CDF(file)
-    catch e
-        println("Error: ", file)
-        println(e)
-        return Dict(:data_load_flag => false)
-    end
-
-    local data_dict = Dict{Symbol,Any}()
-    local var_list = data.cdf_info()["zVariables"]
-    local vars = get.(Ref(data), var_list)
-    for (var_name, var) in zip(var_list, vars)
-        if typeof(var) == PyObject || var_name == "epoch"
-            # println(var_name)
-            continue
+        try
+            data = cdflib.cdfread.CDF(file)
+        catch e
+            println("Error: ", file)
+            println(e)
+            return Dict(:data_load_flag => false)
         end
-        data_dict[Symbol(var_name)] = var
-    end
 
-    data_dict[:epoch] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
-    return data_dict
+        local data_dict = Dict{Symbol,Any}()
+        local var_list = data.cdf_info()["zVariables"]
+        local vars = get.(Ref(data), var_list)
+        for (var_name, var) in zip(var_list, vars)
+            if typeof(var) == PyObject || var_name == "epoch"
+                continue
+            end
+            data_dict[Symbol(var_name)] = var
+        end
+        if :time_unix in keys(data_dict)
+          data_dict[:epoch] = unix2datetime.(data_dict[:time_unix])
+        else 
+          data_dict[:epoch] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
+        end
+        return data_dict
 end
 function load_STATIC(file::String)
     local data = []
@@ -141,7 +162,7 @@ function load_STATIC(file::String)
         # "compno_3", "compno_4", "compno_8", "compno_32", "compno_64",
         # "dead_time_1", "dead_time_2", "dead_time_3"
         ]
-        var_tpyes = Dict(
+        var_types = Dict(
             "CDF_FLOAT" => Float64,
             "CDF_DOUBLE" => Float64,
             "CDF_INT2" => Int64,
@@ -153,14 +174,14 @@ function load_STATIC(file::String)
         var_s = Symbol(var_name)
         if typeof(var) == PyObject
             data_dict[var_s] = convert(
-                var_tpyes[convert(String,data.varinq(var_name)["Data_Type_Description"])],
+                var_types[convert(String,data.varinq(var_name)["Data_Type_Description"])],
                 var
                 )
             continue
         end
         data_dict[var_s] = var
     end
-    data_dict[:epoch] = unix2datetime.(get(data, "time_unix"))
+    data_dict[:epoch] = unix2datetime.(data_dict[:time_unix])
     return data_dict
 end
 function load_mag_l2(file::String)
@@ -941,35 +962,13 @@ function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],
     par_away[.!B_out] .= par_antipara[.!B_out]
     return par_twd,par_away,par_mid
 end
-const Q = 1.602176487e-19 # 库仑
-const EV = 1.602176487e-19
-const C = 3.0e8
-const Me = 9.109e-31
-const Mp = 1.672621637e-27
-const RADG = 180.0 / π
-
-dir = dirname(@__FILE__)
-porject_path = dirname(dir)
-open(dir * "/MAVEN_data_format.json", "r") do f
-    data = JSON.parse(f)
-    global kp_dict = data["kp_dict"]
-    global data_model = data["data_model"]
-end
-# conf = ConfParse(dirname(dir) * "/download_data/MAVEN_download_config.ini")
-# parse_conf!(conf)
-# root_path = retrieve(conf, "DEFAULT", "Save_dir")#所有文件的根目录
-
-root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
 
 kp_dict = change_kp_read_data(kp_dict)
-
 read_models = Dict{String,Tuple{String,Function}}()
 for (key, value) in data_model
     func = eval(Meta.parse(value[4]))
     read_models[key] = (value[3], func)
 end
-
-# data = JSON.parsefile(root_path*"lists/"*"filename_lists.json")
 open(dir * "/" * "filename_lists.json", "r") do f
     global filename_list = JSON.parse(f)
 end
