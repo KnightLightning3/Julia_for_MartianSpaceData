@@ -101,6 +101,70 @@ function cyclotron_frequency(B;nM=1,nQ=-1)
     f = 1  / (cc *2*π)
     return f
 end
+function Linear_fit(x::AbstractVector, y::AbstractVector)
+    # 确保输入数据长度一致
+    if length(x) != length(y)
+        error("输入向量 x 和 y 的长度必须一致。")
+    end
+    
+    n = length(x)
+    if n < 2
+        error("至少需要两个数据点进行线性拟合。")
+    end
+
+    # --- 1. 计算必要的统计量 (使用高效的求和) ---
+    
+    # 均值
+    x_mean = sum(x) / n
+    y_mean = sum(y) / n
+    
+    # 协方差的分子 (S_xy) 和 x 的方差的分子 (S_xx)
+    S_xy = 0.0
+    S_xx = 0.0
+    
+    # 循环一次计算所有差值的乘积和平方和
+    for i in 1:n
+        x_diff = x[i] - x_mean
+        y_diff = y[i] - y_mean
+        
+        S_xy += x_diff * y_diff # ∑(xᵢ - x̄)(yᵢ - ȳ)
+        S_xx += x_diff * x_diff # ∑(xᵢ - x̄)²
+    end
+
+    # --- 2. 计算斜率 (P₂) 和截距 (P₁) ---
+
+    if S_xx ≈ 0.0
+        # 如果 S_xx 接近于零，意味着所有 x 值都相同
+        error("所有 x 值都相同 (S_xx ≈ 0)。无法计算唯一的斜率。")
+    end
+
+    # 斜率 (Slope): P₂
+    P2 = S_xy / S_xx
+    
+    # 截距 (Intercept): P₁ (利用通过均值点 (x̄, ȳ) 的特性)
+    P1 = y_mean - P2 * x_mean
+
+    # --- 3. 计算拟合优度 (可选但推荐) ---
+    
+    # 总平方和 (SST) - y 的总变异性
+    SST = sum((y .- y_mean).^2)
+    
+    # 残差平方和 (SSR)
+    Y_predicted = P1 .+ P2 .* x
+    SSR = sum((y .- Y_predicted).^2)
+    
+    # 决定系数 (R²)
+    r_squared = (SST > eps()) ? (1.0 - (SSR / SST)) : 1.0
+
+    # --- 4. 返回结果 ---
+    return (
+        P1 = P1, # 截距
+        P2 = P2, # 斜率
+        r_squared = r_squared, # 拟合优度
+        # 返回拟合函数本身，方便后续计算预测值
+        fit_function = new_x -> P1 .+ P2 .* new_x
+    )
+end
 const EV=1.602176487e-19
 const C=3.0e8
 const Me=9.109e-31
