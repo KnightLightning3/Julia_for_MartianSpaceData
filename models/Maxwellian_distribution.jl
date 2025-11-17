@@ -95,7 +95,7 @@ function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0
     # 确保 a1_fit 为正，否则无法计算有效温度
     if a1_fit < 0 
         @warn "拟合为负值"
-        return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN)
+        return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN,v0_estimated = NaN,fit_function = vs-> NaN)
     end
     T_estimated = (a1_fit > 0) ? (m / (2 * κ * a1_fit)) : NaN
 
@@ -130,6 +130,7 @@ function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0
         N_estimated=N_estimated,
         C_fit = C_fit, 
         a1_fit = a1_fit, 
+        v0_estimated = v0,
         ssr = ssr, 
         r_squared = r_squared,
         # 取得拟合函数
@@ -150,7 +151,7 @@ function fit_velocity_distribution_nonlinear(v, fd; m=mp)
     end
     if length(fd) <= 1
         @warn "数据点不够"
-        return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN)
+        return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN,v0_estimated = NaN,fit_function = vs-> NaN)
     end
     # ------------------ 1. 设定初值 (Initial Guess) ------------------
     # 好的初值对非线性拟合至关重要。
@@ -183,7 +184,7 @@ function fit_velocity_distribution_nonlinear(v, fd; m=mp)
     
     if a1_fit < 0
          @warn "拟合参数 a1 为负值，物理温度无效。"
-         return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN)
+         return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN,v0_estimated = NaN,fit_function = vs-> NaN)
     end
 
     # 温度 T 的估计

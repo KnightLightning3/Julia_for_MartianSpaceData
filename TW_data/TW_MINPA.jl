@@ -130,7 +130,8 @@ function load_mod1(filename::String)
 
     data_dict = Dict{Symbol,Any}(
         :data => data,
-        :differential_flux => dfi, # differential flux
+        :differential_flux => dfi, # differential flux 单位1/(s cm^2 sr eV)
+        :eflux => dfi.*reshape(energy,1,1,1,1,40), # energy differential flux 单位eV/(s cm^2 sr eV)
         :energy => energy,
         :epoch => epoch,
         :time_unix => ut,
