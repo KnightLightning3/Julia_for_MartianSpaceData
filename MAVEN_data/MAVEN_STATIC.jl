@@ -645,7 +645,7 @@ function STA_count3df(dat;time_ind = []) #计算c6数据的df,必须有时间轴
     dat[:df_mass_mass] = df_t # 没有乘以质量数的平方
     return dat
 end
-function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_ind = [])#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3
+function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_ind = [])#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3 time_ind暂时无效，计算全域数据
     local dat= deepcopy(dat0)
     ntime = dat[:num_dists]
     # if time_ind == []
@@ -655,28 +655,23 @@ function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_
     # end
     
     local data0=dat[:df_mass_mass] .*m_int^2
-    # energy = dat[:energy3d]
-    # denergy = dat[:denergy3d]
-    # theta = dat[:theta3d]./RADG
-    # phi = dat[:phi3d] ./RADG
-    # dtheta = dat[:dtheta3d] ./RADG
-    # dphi = dat[:dphi3d] ./RADG
-    # mass_arr = dat[:mass_arr3d]
-    # pot = reshape(dat[:sc_pot],ntime,1,1)
+    local energy = dat[:energy3d]
+    local denergy = dat[:denergy3d]
+    local theta = dat[:theta3d]./RADG
+    local phi = dat[:phi3d] ./RADG
+    local dtheta = dat[:dtheta3d] ./RADG
+    local dphi = dat[:dphi3d] ./RADG
+    local mass_arr = dat[:mass_arr3d]
+    local pot = reshape(dat[:sc_pot],ntime,1,1)
 
-    # ind = findall(x->x <= energy_range[1] || x >= energy_range[2],energy)
-    # data[ind].=0.0
-
-    # ind = findall(x->x <= mass_range[1] || x >= mass_range[2],mass_arr)
-    # data[ind].=0.0
-    local energy = dat[:energy] 
-    local denergy = dat[:denergy] 
-    local theta = dat[:theta]./RADG
-    local phi = dat[:phi] ./RADG
-    local dtheta = dat[:dtheta] ./RADG
-    local dphi = dat[:dphi] ./RADG
-    local mass_arr = dat[:mass_arr]
-    local pot = dat[:sc_pot]
+    # local energy = dat[:energy] 
+    # local denergy = dat[:denergy] 
+    # local theta = dat[:theta]./RADG
+    # local phi = dat[:phi] ./RADG
+    # local dtheta = dat[:dtheta] ./RADG
+    # local dphi = dat[:dphi] ./RADG
+    # local mass_arr = dat[:mass_arr]
+    # local pot = dat[:sc_pot]
 
     local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
     local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
