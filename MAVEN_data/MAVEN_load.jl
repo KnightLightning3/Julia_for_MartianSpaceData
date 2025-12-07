@@ -234,8 +234,10 @@ function load_mag_l3(file::String)
     close(f)
 
     times = Dates.julian2datetime.(timeB)
+    time_unix = Dates.datetime2unix.(times)
     coordinate = file[end-36:end-33]
     data = Dict{Symbol,Any}(
+        :time_unix => time_unix,
         :epoch => times,
         :coordinate => coordinate,
         :B_total => BB,
@@ -256,6 +258,7 @@ function load_mag_vsc(file::String)
     # coordinate = file[end-32:end-29]
     data = Dict{Symbol,Any}(
         :epoch => times,
+        :time_unix => time_unix,
         # :coordinate => coordinate,
         :vsc => vsc,
         :position => position,
@@ -428,6 +431,7 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     close(f)
     data = Dict{Symbol,Any}(
         :epoch => unix2datetime.(time_unix),
+        :time_unix => time_unix,
         :H_vel => H_vel,
         :O_vel => O_vel,
         :O2_vel => O2_vel,
@@ -465,6 +469,7 @@ function load_c6_v3d(file::String) # build using STATIC d1 data. already been co
 
     data = Dict{Symbol,Any}(
         :epoch => unix2datetime.(time_unix),
+        :time_unix => time_unix,
         :H_vel => H_vel,
         :O_vel => O_vel,
         :O2_vel => O2_vel,

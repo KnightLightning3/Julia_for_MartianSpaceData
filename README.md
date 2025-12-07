@@ -4,6 +4,7 @@
 <h1 align="center">Julia Pkg for Mars</h1>
 
 # 索引
+
 - [索引](#索引)
 - [介绍](#介绍)
 - [下载数据](#下载数据)
@@ -13,16 +14,11 @@
   - [冷等离子体色散关系](#冷等离子体色散关系)
   - [麦克斯韦分布拟合](#麦克斯韦分布拟合)
   - [单粒子轨道追踪](#单粒子轨道追踪)
-- [自建数据说明](#自建数据说明)
-  - [KP\_l3数据](#kp_l3数据)
-  - [MAG\_l3数据](#mag_l3数据)
-  - [VSC 数据:](#vsc-数据)
-  - [STATIC\_d1\_v4d 数据](#static_d1_v4d-数据)
-- [MAVEN 数据 Tips](#maven-数据-tips)
-  - [STATIC 数据:](#static-数据)
+- [MAVEN数据说明](#maven数据说明)
 - [其他](#其他)
   - [闰秒修正](#闰秒修正)
 - [ToDo List](#todo-list)
+
 # 介绍
 
 [English](README_EN.md) / 简体中文
@@ -35,7 +31,7 @@
 
 # 下载数据
 
-使用 python 程序, 下载文件的方式与 Julia 相同  
+使用 python 程序, 下载文件的方式与 Julia 相同
 如果不想手动下载对应的包, 建议使用虚环境, requirements.txt
 
 ```
@@ -44,15 +40,16 @@ pip install -r requirements.txt
 
 首次下载时,**需要先产生初始化设置文件**:
 
-运行'download_data\initialize_download_parameters.py'
+运行[download_data\initialize_download_parameters.py](download_data\initialize_download_parameters.py)
 
-完成设置文件的初始化后,修改'download_data\MAVEN_download_config.ini'调整下载模式, 默认模式为从USTC源下载2014-10 至 2023-02 的全部数据
+完成设置文件的初始化后,修改[download_data\MAVEN_download_config.ini](download_data\MAVEN_download_config.ini)调整下载模式, 默认模式为从USTC源下载2014-10 至 2023-02 的全部数据
 
-'download_data\MAVEN_download.py'将会下载指定服务器上的数据文件, 建议从科大源下载(Server_ind = 0)
+[download_data\MAVEN_download.py](download_data\MAVEN_download.py)将会下载指定服务器上的数据文件, 建议从科大源下载(Server_ind = 0)
 
-此外,'download_data\磁场重构.jl'和'download_data\KP 重构.jl'可以将 MAVEN 官方的磁场和 KP 文件转写为 Fortran 二进制和 JULIA 二进制文件以便读取
+此外,[download_data\磁场重构.jl](download_data\磁场重构.jl)和[download_data\KP 重构.jl](download_data\KP 重构.jl)可以将 MAVEN 官方的磁场和 KP 文件转写为 Fortran 二进制和 JULIA 二进制文件以便读取
 
 可以使用的MAVEN外部服务器(可能需要VPN):
+
 - USTC源,校内速度快,服务器不一定运行,数据不一定完整: http://222.195.76.155:8000/MAVEN/
 - UCLA源,服务器稳定,没有NGIMS数据: https://pds-ppi.igpp.ucla.edu/data/
 - LASP源,服务器稳定: https://lasp.colorado.edu/maven/sdc/public/data/sci/
@@ -60,28 +57,32 @@ pip install -r requirements.txt
 
 其中'https://pds-ppi.igpp.ucla.edu/data/'的文件树与后两者不同,且没有NGIM数据
 
+每次更新下载数据后，需要执行[download_data/check_exist_files.py](download_data/check_exist_files.py)来更新此文件
+
 # 读取数据
 
-MAVEN 数据读取 MAVEN_data_load.jl,
+MAVEN 数据读取 MAVEN_load.jl,
 
 ```
 Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
-此程序需要特定的读取文件树格式,  
+此程序需要特定的读取文件树格式,
 与下载部分共用文件树格式
 
 Julia 中的引用方式:
 
-```
-include("path/MAVEN_data_load.jl")
+```Julia
+include("path/MAVEN_load.jl")
 include("path/IGRF_calculate.jl")
-import .MAVEN_data_load
+import .MAVEN_load
 import .IGRF_calculate
 ```
+
 具体读取方法: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
 
 # 其他模型
+
 ## 火星磁场模型
 
 ./Magnetic_Model/IGRF_calculate.jl
@@ -90,95 +91,73 @@ import .IGRF_calculate
 模型来源: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combining Data Sets of MAVEN and MGS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021EA001860)
 
 ## 冷等离子体色散关系
+
 ./models/Cold_Plasma_Dispersion_Relation.jl
 
 ## 麦克斯韦分布拟合
+
 ./models/Maxwellian_distribution.jl
 
 ## 单粒子轨道追踪
+
 ./models/Maxwellian_distribution.jl
 考虑内核改为Fortran以加快计算
 
-# 自建数据说明
+# MAVEN数据说明
 
-为部分数据做了额外调整以方便使用
-
-## KP_l3数据
-以JLD2格式将KP数据保存为字典模式, epoch对应时间, 变量序号为数字对于kp说明文档中的序号, 同时额外将坐标变换矩阵martrix专门保存为3 $\times$ 3的矩阵的列表.
-
-保存于KP/l3/
-
-## MAG_l3数据
-将磁场数据以Fortran77无格式形式保存, 减少原数据的空间占用, 提高读取速度, 保存于MAG/l3/
-
-## VSC 数据:
-飞行器速度, vsc数据本身可以由spice程序包计算. 但是其存在学习门槛. 
-
-此数据集通过使用mag中以1秒为精度的位置数据计算二次函数拟合取得vsc数据.
-
-保存于MAG/vsc/, 单位km/s
-
-## STATIC_d1_v4d 数据
-基于SPEDAS库中的v_4d程序编写和计算, 使用mag取得的vsc和STATIC自带的电势修正. 
-
-计算了全能量, 角度域的 $\textsf H^+$,$\textsf O^+$,$\textsf O_2^+$ 的速度vel(km/s), 
-密度den( $\textsf{cm}^{-3}$ ), 流量flux.
-
-保存于STATIC/l3/
-
-# MAVEN 数据 Tips
-
-## STATIC 数据:
-
-- STATIC 会返回每个时刻的(方位角,能量,离子质量数)的三维矩阵数据, 对应其中的 energy,phi,theta,mass_arr 矩阵
-- 扫描模式: STATIC 有多个不同的扫描模式,对应不同的能量范围,由 swd_ind 参数[0-26]决定,对应 energy,phi,theta,mass_arr 矩阵中的最后一个维度. 在 julia 这种以 1 开始计数的语言中,要将 swd_ind 参数加一
-- 衰减器 衰减器 attenuator 会根据具体情况对小于 15eV 的低能量段 STA 数据乘以(1., 1/10, 1/100, 1/1000)以防止过饱和,官方宣称其更换时间不会小于 5min,然而一些数据可以用临时的过饱和解释,而且有切换 attenuator
-- STATIC 返回的 theta 和 phi,对应球坐标系的 90-theta 和 phi,处于仪器参考系下. 文件中的 quat_mso 和 quat_sc 为四元数,可以用于将仪器参考系投影到 mso 和 sc 参考系.
-- STATIC, SWEA, SWIA 使用的参考系为对应球坐标系的 90-theta 和 phi. ref:spedas_6_1\general\science\sphere_to_cart.pro
-- STATIC以及SWIA的能量步长关系很可能是: 
-  $$R = dE/E$$
-  $$\sqrt{k} = \frac{R}{2} + \sqrt{\left(\frac{R}{2}\right)^2 + 1}$$
-  $$E_{i, \text{start}} = \frac{E_i}{\sqrt{k}}$$
-  $$E_{i, \text{end}} = E_i \cdot \sqrt{k}$$
+见[MAVEN数据读取](doc/MAVEN数据读取.md)
 
 # 其他
-  ## 闰秒修正 
-  MAVEN的CDF文件普遍使用**CDF_TIME_TT2000**, 等价于**J2000**,该时间由**TAI** (国际原子时 - International Atomic Time)得到. 
-  
-  $$\text{TT} = \text{TAI} + 32.184 \text{ s}$$
-  
+
+## 闰秒修正
+
+  MAVEN的CDF文件普遍使用**CDF_TIME_TT2000**, 等价于**J2000**,该时间由**TAI** (国际原子时 - International Atomic Time)得到.
+
+$$
+$$\text{TT} = \text{TAI} + 32.184 \text{ s}
+$$
+
   与此同时, 由于地球自转的不均匀性, **UTC** (协调世界时 - Coordinated Universal Time) 会在**TAI**的基础上, 定期加入闰秒修正来匹配地球的自然自转, 根据闰秒表, 可以得到每段时间的闰秒差异.
-  
-  $$\text{TAI} = \text{UTC} + (\text{累积闰秒数})$$
+
+$$
+$$\text{TAI} = \text{UTC} + (\text{累积闰秒数})
+$$
 
   由此, 当我们将MAVEN中的J2000时间戳与**UTC**相匹配时, 需要考虑闰秒问题:
 
-  $$\text{TT} = \text{UTC} + (\text{累积闰秒数}) + 32.184 \text{ s}$$
+$$
+$$\text{TT} = \text{UTC} + (\text{累积闰秒数}) + 32.184 \text{ s}
+$$
 
   预计可以使用一个函数来将原始的**CDF_TIME_TT2000**时间戳改为**UTC**时间戳. 只是使用MAVEN数据时不用考虑闰秒问题.
 
   目前, 程序读取CDF文件epoch使用的cdflib方法,会自动处理闰秒问题. SPEDAS和spacepy同理. IDL中直接使用公式转换**CDF_TIME_TT2000**的方法可能存在闰秒修正的潜在问题.
-  ```julia
+
+```julia
   unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
-  ```
+```
+
   潜在问题: 计算通常以unix时间戳为主, julia是否在处理unix时间戳和UTC时间的关系时考虑闰秒
+
 # ToDo List
 
-- [x] 云 MAVEN 数据
+- [X] 云 MAVEN 数据
 - [ ] 利用SPEDAS包的spice核计算各个仪器的坐标变换矩阵并保存为文件
 - [ ] 全仪器读取
 - [X] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
 - [X] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
+- [ ] 优化KP_l3的读取，写一个数字->变量名的程序来处理之
+- [ ] 让所有的数据在读取时就返回UNIX时间戳的结果
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
 - [X] 下载程序可以检查数据版本
-- [x] 简易 Julia 绘图包
-- [x] 外接读取文件树
+- [X] 简易 Julia 绘图包
+- [X] 外接读取文件树
 - [ ] 更多磁场模型
-- [x] 天问数据
-- [x] 磁力线追踪
-- [x] 文件树去适配 SPEDAS 的结构
-- [x] MAVEN STATIC
+- [X] 天问数据
+- [X] 磁力线追踪
+- [X] 文件树去适配 SPEDAS 的结构
+- [X] MAVEN STATIC
 - [X] 增加项目初始化和文件处理流程的流程图
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
 - [ ] 使用直接读取链接的方式, 优化下载程序: 直接读取yyyy和mm级别的路径,减去请求不存在月份的步骤

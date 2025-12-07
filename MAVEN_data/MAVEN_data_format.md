@@ -16,7 +16,7 @@ sta_slip_data = MAVEN_load.static_rotation(sta_slip_data;frame="MSO");
 vel,_,_ = MAVEN_load.sta_v_4d(sta_slip_data; energy_range=[0,1e4],mass_range=[0,2],m_int = 1) 
 # 将坐标换成速度分布
 V_data = MAVEN_load.static_slip_2_V(sta_slip_data;mass_range=[0,2],m_int = 1);
-# 绘制tri图片
+# 绘制tri图片![alt text](image.png)
 ax = MAVEN_plot.STA_2d_slip(ax,V_data;frame="perp_xy",colorrange=(1e-12,1e-4),vbluk=vel)
 ```
 
@@ -29,8 +29,8 @@ ax = MAVEN_plot.STA_2d_slip(ax,V_data;frame="perp_xy",colorrange=(1e-12,1e-4),vb
 - SCP - SpaceCraft Potential available and used as computed by STATIC, SC0 - SpaceCraft potential not available
 - Inbound ('I') is from geometric apoapsis to next geometric periapsis in time, outbound ('O') is the reverse 
 文件格式:  
-fortan部分
-```fortran
+Fortan部分
+```Fortran
 版本号: I2,对应v15,v19等
 时间维度ntime,对应数据的行数
 总变量数n,对应数据的列数
@@ -38,7 +38,7 @@ fortan部分
 其余变量:ntime*(n-1)个量,Float64
 ```
 
-```python
+```Python
 data={
     变量编号:{
         "Varname":变量名
