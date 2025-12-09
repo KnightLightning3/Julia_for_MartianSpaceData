@@ -81,6 +81,8 @@ import .IGRF_calculate
 
 具体读取方法: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
 
+读取介绍：[MAVEN数据读取.md](doc/MAVEN数据读取.md)
+
 # 其他模型
 
 ## 火星磁场模型
@@ -142,13 +144,17 @@ $$
 # ToDo List
 
 - [X] 云 MAVEN 数据
+  - [ ] 支持从刘佳佳老师的LINUX服务器上以ssh-scp方式下载数据
 - [ ] 利用SPEDAS包的spice核计算各个仪器的坐标变换矩阵并保存为文件
+  - [X] SWIA
+  - [ ] SEP
+  - [ ] SWEA
 - [ ] 全仪器读取
 - [X] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
 - [X] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
 - [ ] 优化KP_l3的读取，写一个数字->变量名的程序来处理之
-- [ ] 让所有的数据在读取时就返回UNIX时间戳的结果
+- [ ] 让所有的数据在读取后包含UNIX时间戳的结果
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
 - [X] 下载程序可以检查数据版本
 - [X] 简易 Julia 绘图包
@@ -162,6 +168,6 @@ $$
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
 - [ ] 使用直接读取链接的方式, 优化下载程序: 直接读取yyyy和mm级别的路径,减去请求不存在月份的步骤
 - [ ] 由于julia的公共变量问题,把所有需要掩码计算的物理量以掩码模式进行
-- [ ] 闰秒处理
+- [X] 闰秒处理：cdflib自带闰秒处理
 
 随作者需求更新
