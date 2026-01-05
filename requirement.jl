@@ -39,6 +39,7 @@ Pkg_list = [
     "XLSX"
     "Dates"
     "Markdown"
+    "CommonDataFormat"
 ]
 
 using Pkg

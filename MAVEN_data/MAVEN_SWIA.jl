@@ -7,28 +7,29 @@ using Statistics
 using Quaternions
 using Rotations
 using DataInterpolations
+using CommonDataFormat
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d
 # export ion_energy2v,ion_v2energy
 #---------------------------初始化-------------------------------- 由于SWIA的糟糕数据,需要对其读取后进行初始化处理
 function get_3dc!(dat;quat_data = nothing)#projects/maven/swia/mvn_swia_get_3dc.pro,直接处理dat,需要SWIA coarse data 3D
-    ntime = length(dat[:epoch])
-    nanode = 16
-    ndeflect = 4
-    nbins = 64
-    nenergy = 48
+    local ntime = length(dat[:epoch])
+    local nanode = 16
+    local ndeflect = 4
+    local nbins = 64
+    local nenergy = 48
 
-    energy= reshape(dat[:energy_coarse],1,48)
-    denergy = energy .* 0.15 #dat[:de_over_e_coarse]
+    local energy= reshape(dat[:energy_coarse],1,48)
+    local denergy = energy .* 0.15 #dat[:de_over_e_coarse]
 
-    phi = dat[:phi_coarse]
-    dphi = 22.5
-    atten = dat[:atten_state]
-    theta_coarse =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
-    theta_atten_coarse = dat[:theta_atten_coarse]
+    local phi = dat[:phi_coarse]
+    local dphi = 22.5
+    local atten = dat[:atten_state]
+    local theta_coarse =  dat[:theta_coarse] # : dat[:theta_atten_coarse]
+    local theta_atten_coarse = dat[:theta_atten_coarse]
 
-    theta = zeros(ntime,ndeflect,nenergy)
+    local theta = zeros(ntime,ndeflect,nenergy)
 
     for i in 1:ntime
         if atten[i] <= 1
@@ -38,13 +39,13 @@ function get_3dc!(dat;quat_data = nothing)#projects/maven/swia/mvn_swia_get_3dc.
         end
     end
 
-    dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
+    local dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
     dtheta[:,1,:] = theta[:,2,:] - theta[:,1,:]
     dtheta[:,end,:] = theta[:,end,:] - theta[:,end-1,:]
-    theta = reshape(theta,ntime,4,48)
-    dtheta = reshape(dtheta,ntime,4,48)
+    local theta = reshape(theta,ntime,4,48)
+    local dtheta = reshape(dtheta,ntime,4,48)
 
-    domega = 2.0*deg2rad(dphi)*cosd.(theta).*sind.(0.5*dtheta)
+    local domega = 2.0*deg2rad(dphi)*cosd.(theta).*sind.(0.5*dtheta)
 
     dat[:ntime] = ntime
     dat[:nbins] = nbins
@@ -67,17 +68,20 @@ function get_3dc!(dat;quat_data = nothing)#projects/maven/swia/mvn_swia_get_3dc.
     dat[:mass] = 5.68566e-6*1836.0
 
     # 处理quat数据
-    if quat_data === nothing
+    if quat_data === nothing || quat_data[:data_load_flag] == false
         @warn "No quat data used"
+        dat[:quat_quality] = fill(false,ntime)
         return dat
     end
     local time_dat  = dat[:time_unix]
     local time_quat = quat_data[:time_unix]
     local dat[:quat_mso] = fill(one(QuatRotation),ntime)
+    local dat[:quat_quality] = fill(true,ntime)
     @inbounds for i in 1:ntime
         local ii = findmin(abs.(time_quat .- time_dat[i]))
         if ii[1] > 4
-            @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(ii[1])秒"
+            # @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(round(ii[1]))秒，请检查:quat_quality项"
+            dat[:quat_quality][i]=false
             # continue
         end
         dat[:quat_mso][i] = quat_data[:quat][ii[2]]
@@ -87,28 +91,28 @@ function get_3dc!(dat;quat_data = nothing)#projects/maven/swia/mvn_swia_get_3dc.
 end
 function get_3df!(dat;quat_data = nothing) #projects/maven/swia/mvn_swia_get_3df.pro,直接处理dat,需要SWIA fine data 3D
     # keys(dat) = [:geom_factor, :filename, :theta_fine, :theta_atten_fine, :time_unix, :time_met, :diff_en_fluxes, :g_theta_fine, :atten_state, :estep_first, :phi_fine, :g_phi_fine, :eindex, :num_dists, :energy_fine, :dstep_first, :counts, :data_load_flag, :g_phi_atten_fine, :accum_time_fine, :g_theta_atten_fine, :dindex, :grouping, :de_over_e_fine, :epoch]
-    ntime = length(dat[:epoch])
-    nanode = 10
-    ndeflect = 12
-    nbins = 120
-    nenergy = 48
+    local ntime = length(dat[:epoch])
+    local nanode = 10
+    local ndeflect = 12
+    local nbins = 120
+    local nenergy = 48
 
     # startt = dat[:time_unix]
-	atten = dat[:atten_state]
+	local atten = dat[:atten_state]
 	# infind = dat[:info_index]
-	estepf = dat[:estep_first]
-	dstepf = dat[:dstep_first]
+	local estepf = dat[:estep_first]
+	local dstepf = dat[:dstep_first]
     # dt_int  = dat[:dt_int]
     # dt_arr = ones(1,nenergy,nbins)
 
-    phi = dat[:phi_fine]
-    dphi = 4.5
-    atten = dat[:atten_state]
-    theta_fine =  dat[:theta_fine] # : dat[:theta_atten_fine]
-    theta_atten_fine = dat[:theta_atten_fine]
+    local phi = dat[:phi_fine]
+    local dphi = 4.5
+    local atten = dat[:atten_state]
+    local theta_fine =  dat[:theta_fine] # : dat[:theta_atten_fine]
+    local theta_atten_fine = dat[:theta_atten_fine]
 
-    energy = zeros(ntime,nenergy)
-    theta = zeros(ntime,ndeflect,nenergy)
+    local energy = zeros(ntime,nenergy)
+    local theta = zeros(ntime,ndeflect,nenergy)
 
     for i in 1:ntime
         ti = dstepf[i]+1:dstepf[i]+12
@@ -120,15 +124,15 @@ function get_3df!(dat;quat_data = nothing) #projects/maven/swia/mvn_swia_get_3df
             theta[i,:,:] = theta_atten_fine[ti,ei]
         end
     end
-    denergy = energy .* dat[:de_over_e_fine]
+    local denergy = energy .* dat[:de_over_e_fine]
 
-    dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
+    local dtheta = (circshift(theta,(0,-1,0)) - circshift(theta,(0,1,0)))/2
     dtheta[:,1,:] = theta[:,2,:] - theta[:,1,:]
     dtheta[:,end,:] = theta[:,end,:] - theta[:,end-1,:]
-    theta = reshape(theta,ntime,1,ndeflect,nenergy)
-    dtheta = reshape(dtheta,ntime,1,ndeflect,nenergy)
+    local theta = reshape(theta,ntime,1,ndeflect,nenergy)
+    local dtheta = reshape(dtheta,ntime,1,ndeflect,nenergy)
 
-    domega = 2.0*deg2rad(dphi)*cosd.(theta).*sind.(0.5*dtheta)
+    local domega = 2.0*deg2rad(dphi)*cosd.(theta).*sind.(0.5*dtheta)
 
     dat[:ntime] = ntime
     dat[:nbins] = nbins
@@ -150,21 +154,21 @@ function get_3df!(dat;quat_data = nothing) #projects/maven/swia/mvn_swia_get_3df
     dat[:domega] = domega
     dat[:mass] = 5.68566e-6*1836.0
 
-    # 处理quat数据
-    if quat_data === nothing
+   # 处理quat数据
+    if quat_data === nothing || quat_data[:data_load_flag] == false
         @warn "No quat data used"
+        dat[:quat_quality] = fill(false,ntime)
         return dat
     end
-    local time_dat  = dat[:epoch] .|> datetime2unix
-    local time_quat = quat_data[:epoch] .|> datetime2unix
-    local time00 = time_dat[1]
-    local time_quat .-= time00
-    local time_dat .-= time00
+    local time_dat  = dat[:time_unix]
+    local time_quat = quat_data[:time_unix]
     local dat[:quat_mso] = fill(one(QuatRotation),ntime)
+    local dat[:quat_quality] = fill(true,ntime)
     @inbounds for i in 1:ntime
         local ii = findmin(abs.(time_quat .- time_dat[i]))
         if ii[1] > 4
-            @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(ii[1])秒"
+            # @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(round(ii[1]))秒，请检查:quat_quality项"
+            dat[:quat_quality][i] = false
             # continue
         end
         dat[:quat_mso][i] = quat_data[:quat][ii[2]]

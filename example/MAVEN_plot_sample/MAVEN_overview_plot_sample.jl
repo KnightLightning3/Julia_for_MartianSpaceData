@@ -36,13 +36,14 @@ end
         "STATIC_c6",
         "SWIA_svy_spec",
         "SWEA_pad_svy",
+        "LPW_mrgscpot",
         "SWIA_mom",
     ]
     KP_data = MAVEN_load.data_get_from_date(date, model_index=["KP_l3"], show_filename=false)["KP_l3"]
     if !KP_data[:data_load_flag]
         return nothing,false
     end
-    data_dict = MAVEN_load.data_get_from_date(date, model_index=model_index, show_filename=false)
+    data_dict = MAVEN_load.data_get_from_date(date, model_index=model_index, show_filename=true)
     # 替换KP_l3数据中的数字标为元标签
     KP_data_name_replace = Dict{Symbol,Int32}(
         :Ne => 2,
@@ -515,11 +516,11 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
 end;
 
 yyyy = 2014
-mm = 11
-dd = 2
+mm = 12
+dd = 20
 time_range = [DateTime(yyyy, mm, dd, 22, 0), DateTime(yyyy, mm, dd, 23,59)]
 save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
-if isfile(save_file_name)
+if !isfile(save_file_name)
     data_dict = load(save_file_name)["data"]
     println("Read Done")
 else
@@ -532,7 +533,7 @@ else
         sta_total = MAVEN_STATIC.static_c6_mass_mean(sta_data)
         sta_mass = MAVEN_STATIC.static_c6_energy_mean(sta_data)
     end
-    data_dict["STATIC_c6_orign"] = sta_data
+    data_dict["STATIC_c6_origin"] = sta_data
     data_dict["STATIC_c6"] = sta_total
     data_dict["STATIC_mass"] = sta_mass
 
@@ -565,4 +566,5 @@ fig = Figure(; size=(2500, 2500))
 @time fig,t0,xtimes = plot_module(fig, x_range, data_dict; time_step=Dates.Minute(5))
 Label(fig[-1,:]; text=fig_title, halign=:center, valign=:top, padding=(0, 0, 0, 0))
 rowsize!(fig.layout, 0, Relative(0.2))
-save("example/MAVEN_plot_sample/MAVEN_plot_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * ".png", fig)
+# save("example/MAVEN_plot_sample/MAVEN_plot_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * ".png", fig)
+fig

@@ -5,9 +5,11 @@
 # STATIC中的theta值在球坐标系下,应当为90-Theta.
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
 # 默认能量单位: EV. 默认粒子质量单位:AMU
+using CommonDataFormat
 module MAVEN_load
-using PyCall
-cdflib = pyimport("cdflib")
+using CommonDataFormat
+# using PyCall
+# cdflib = pyimport("cdflib")
 using TimesDates, Dates
 using DataFrames
 using JSON
@@ -121,10 +123,23 @@ function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读
 end
 ##----------------load parts------------------------
 function load_cdf(file::String)  # 将CDF文件读为字典
-        local data = []
+    function clean_dimensions(data)
+        # 找出所有大小为 1 的维度索引
+        local s = size(data)
+        # 只有当维度大于 1 且存在大小为 1 的维度时，才执行 dropdims
+        # 注意：如果整个数据就是 [1]，我们要小心处理
+        local redundant_dims = findall(x -> x == 1, s)
+        if !isempty(redundant_dims) && length(s) > 1
+            # 删除所有大小为 1 的维度
+            # 如果你想保留一维向量，可以只 drop 其中一部分
+            return dropdims(data, dims=Tuple(redundant_dims))
+        end
+        return data
+    end
+        local cdf_data = []
 
         try
-            data = cdflib.cdfread.CDF(file)
+            cdf_data = CDFDataset(file)
         catch e
             println("Error: ", file)
             println(e)
@@ -132,58 +147,95 @@ function load_cdf(file::String)  # 将CDF文件读为字典
         end
 
         local data_dict = Dict{Symbol,Any}()
-        local var_list = data.cdf_info()["zVariables"]
-        local vars = get.(Ref(data), var_list)
-        for (var_name, var) in zip(var_list, vars)
-            if typeof(var) == PyObject || var_name == "epoch"
+        for i in keys(cdf_data)
+            local v = cdf_data[i]
+            local var_name = Symbol(i)
+            if i =="epoch"
+                data_dict[var_name] = collect(convert(Vector{DateTime},v))
                 continue
+            elseif i == "time_unix"
+                data_dict[var_name] = collect(v)
+            end  # epoch需要为datetime格式，其与time_unix需要读在内存里以加快速度
+            local v_num_dims = v.vdr.num_dims
+            if v_num_dims >= 1 && v.vdr.flags == 3
+                # println(i)
+                data_dict[var_name] = permutedims(collect(v), [v_num_dims+1; 1:v_num_dims]) # 这里的数据不采用硬盘地址保存方法,以便后续的高级处理
+            else
+                # println("NRV",i)
+                if length(v) == 1
+                    data_dict[var_name] = v[]
+                else
+                    data_dict[var_name] = collect(clean_dimensions(v)) # 这里的数据采用内存保存方法
+                end
             end
-            data_dict[Symbol(var_name)] = var
         end
-        if :time_unix in keys(data_dict)
-          data_dict[:epoch] = unix2datetime.(data_dict[:time_unix])
-        else 
-          data_dict[:epoch] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
-        end
+        data_dict[:data_load_flag] = true
         return data_dict
 end
-function load_STATIC(file::String)
-    local data = []
-    try
-        data = cdflib.cdfread.CDF(file)
-    catch e
-        println("Error: ", file)
-        println(e)
-        return Dict(:data_load_flag => false)
-    end
-    local data_dict = Dict{Symbol,Any}()
-    local var_list = [
-        "time_unix", "time_start", "time_end", "time_delta", "time_integ", "eprom_ver", "header", "valid", "mode", "rate", "swp_ind", "mlut_ind", "eff_ind", "att_ind", "sc_pot", "magf", "quat_sc", "quat_mso", "bins_sc", "pos_sc_mso", "bkg", "dead", "data", "eflux", "quality_flag", "project_name", "spacecraft", "data_name", "apid", "units_name", "units_procedure", "num_dists", "nenergy", "nbins", "nmass", "ndef", "nanode", "natt", "nswp", "neff", "nmlut", "bins", "energy", "denergy", "theta", "dtheta", "phi", "dphi", "domega", "gf", "eff", "mass_arr", "tof_arr", "twt_arr", "geom_factor", "mass", "charge", 
-        # "compno_3", "compno_4", "compno_8", "compno_32", "compno_64",
-        # "dead_time_1", "dead_time_2", "dead_time_3"
-        ]
-        var_types = Dict(
-            "CDF_FLOAT" => Float64,
-            "CDF_DOUBLE" => Float64,
-            "CDF_INT2" => Int64,
-            "CDF_INT4" => Int64,
-            "CDF_CHAR" => String,
-        )
-    for var_name in var_list
-        var = data.varget(var_name)
-        var_s = Symbol(var_name)
-        if typeof(var) == PyObject
-            data_dict[var_s] = convert(
-                var_types[convert(String,data.varinq(var_name)["Data_Type_Description"])],
-                var
-                )
-            continue
-        end
-        data_dict[var_s] = var
-    end
-    data_dict[:epoch] = unix2datetime.(data_dict[:time_unix])
-    return data_dict
-end
+# function load_cdf(file::String)  # 将CDF文件读为字典
+#         local data = []
+
+#         try
+#             data = cdflib.cdfread.CDF(file)
+#         catch e
+#             println("Error: ", file)
+#             println(e)
+#             return Dict(:data_load_flag => false)
+#         end
+
+#         local data_dict = Dict{Symbol,Any}()
+#         local var_list = data.cdf_info()["zVariables"]
+#         local vars = get.(Ref(data), var_list)
+#         for (var_name, var) in zip(var_list, vars)
+#             if typeof(var) == PyObject || var_name == "epoch"
+#                 continue
+#             end
+#             data_dict[Symbol(var_name)] = var
+#         end
+#         if :time_unix in keys(data_dict)
+#           data_dict[:epoch] = unix2datetime.(data_dict[:time_unix])
+#         else 
+#           data_dict[:epoch] = unix2datetime.(cdflib.cdfepoch.unixtime(get(data, "epoch")))
+#         end
+#         return data_dict
+# end
+# function load_STATIC(file::String)
+#     local data = []
+#     try
+#         data = cdflib.cdfread.CDF(file)
+#     catch e
+#         println("Error: ", file)
+#         println(e)
+#         return Dict(:data_load_flag => false)
+#     end
+#     local data_dict = Dict{Symbol,Any}()
+#     local var_list = [
+#         "time_unix", "time_start", "time_end", "time_delta", "time_integ", "eprom_ver", "header", "valid", "mode", "rate", "swp_ind", "mlut_ind", "eff_ind", "att_ind", "sc_pot", "magf", "quat_sc", "quat_mso", "bins_sc", "pos_sc_mso", "bkg", "dead", "data", "eflux", "quality_flag", "project_name", "spacecraft", "data_name", "apid", "units_name", "units_procedure", "num_dists", "nenergy", "nbins", "nmass", "ndef", "nanode", "natt", "nswp", "neff", "nmlut", "bins", "energy", "denergy", "theta", "dtheta", "phi", "dphi", "domega", "gf", "eff", "mass_arr", "tof_arr", "twt_arr", "geom_factor", "mass", "charge", 
+#         # "compno_3", "compno_4", "compno_8", "compno_32", "compno_64",
+#         # "dead_time_1", "dead_time_2", "dead_time_3"
+#         ]
+#         var_types = Dict(
+#             "CDF_FLOAT" => Float64,
+#             "CDF_DOUBLE" => Float64,
+#             "CDF_INT2" => Int64,
+#             "CDF_INT4" => Int64,
+#             "CDF_CHAR" => String,
+#         )
+#     for var_name in var_list
+#         var = data.varget(var_name)
+#         var_s = Symbol(var_name)
+#         if typeof(var) == PyObject
+#             data_dict[var_s] = convert(
+#                 var_types[convert(String,data.varinq(var_name)["Data_Type_Description"])],
+#                 var
+#                 )
+#             continue
+#         end
+#         data_dict[var_s] = var
+#     end
+#     data_dict[:epoch] = unix2datetime.(data_dict[:time_unix])
+#     return data_dict
+# end
 function load_mag_l2(file::String)
     function get_data_from_line_for_mag_read(line::String)
         # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]

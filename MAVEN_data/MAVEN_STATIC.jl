@@ -5,6 +5,7 @@
 module MAVEN_STATIC
 using TimesDates, Dates
 using Statistics
+using CommonDataFormat
 # using Quaternions
 
 # -------------------------Export parts-------------------------
@@ -156,7 +157,7 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     dat[:df_mass_mass] = df_t # 没有乘以质量的平方
     return dat
 end
-function STA_count2df_all(dat0) #计算df,对非时间切片数据
+function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程序开销极大，考虑替换掉
     local dat = deepcopy(dat0)
     local ntime   = dat[:num_dists]
 
