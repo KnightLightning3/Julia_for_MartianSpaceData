@@ -6,7 +6,6 @@ module MAVEN_STATIC
 using TimesDates, Dates
 using Statistics
 using CommonDataFormat
-# using Quaternions
 
 # -------------------------Export parts-------------------------
 export static_c6_mass_mean,static_c6_energy_mean

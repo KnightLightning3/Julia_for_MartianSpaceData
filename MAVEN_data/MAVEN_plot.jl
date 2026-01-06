@@ -10,8 +10,6 @@ using Statistics
 using Base.Iterators
 using DelaunayTriangulation
 using ProgressMeter
-# using PyCall
-# griddata = pyimport("scipy.interpolate").griddata
 const EV = 1.602176487e-19
 const C = 3.0e8
 const me = 9.109e-31

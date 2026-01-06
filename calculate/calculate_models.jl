@@ -1,13 +1,9 @@
 module calculate_models
 using Quaternions
-# using TimesDates, Dates
-# using DataFrames
-# using DelimitedFiles
-# using JSON
-# using Statistics
-function Martrix_Rot(in_data,Rotation_Martrix)
+
+function Matrix_Rot(in_data,Rotation_Matrix)
     #使用旋转矩阵计算坐标系变换。逆变换时输入矩阵的inv()逆即可
-    out_data = Rotation_Martrix * in_data
+    out_data = Rotation_Matrix * in_data
     return out_data
 end
 function rotation_matrix(θ, φ)
@@ -48,7 +44,7 @@ function eflux2F(energy,eflux)
     F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2
     return F
 end
-function Doppler_Shift(f,V_sc,k,θ) # wave frequence shift with spacecraft velocity
+function Doppler_Shift(f,V_sc,k,θ) # wave frequency shift with spacecraft velocity
     # θ angle between SC and wave vector
     ω_obs = f * 2 * π
     ω_real = ω_obs - k * V_sc * cos(θ)

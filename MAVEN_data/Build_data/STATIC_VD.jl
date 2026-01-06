@@ -1,12 +1,9 @@
 # 制作STATIC的速度, 密度的cdf文件包, 默认为MSO坐标系,d1数据集
-# using PyCall
-# cdflib = pyimport("cdflib")
 using Dates
 using ProgressMeter
 using FortranFiles
 using Base.Threads
 using Rotations
-# using Quaternions
 @spawn :interactive f()
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;

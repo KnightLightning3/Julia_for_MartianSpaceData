@@ -8,15 +8,12 @@
 using CommonDataFormat
 module MAVEN_load
 using CommonDataFormat
-# using PyCall
-# cdflib = pyimport("cdflib")
 using TimesDates, Dates
 using DataFrames
 using JSON
 using IniFile
 using JLD2
 using Statistics
-# using Quaternions
 using Rotations
 using FortranFiles
 # -------------------------Export parts-------------------------
@@ -37,10 +34,6 @@ open(dir * "/MAVEN_data_format.json", "r") do f
     global data_model = data["data_model"]
 end
 root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
-# cdf_lib_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "CDF_LIB") # 所有文件的根目录
-# using PyCall
-# ENV["CDF_LIB"] = cdf_lib_path
-# spacepy_cdf = pyimport("spacepy.pycdf")
 # -------------------------Read filelist parts-------------------------
 """     
 打印所有可支持的数据的读取.
