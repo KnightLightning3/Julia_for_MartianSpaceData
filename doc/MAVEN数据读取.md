@@ -10,11 +10,11 @@
 使用读取方法前需要导入读取代码module
 ```Julia
 path = "主程序包的配置路径"
-include("$path/MAVEN_data_load.jl")
-import .MAVEN_data_load
+include("$path/MAVEN_load.jl")
+import .MAVEN_load
 ```
 
-函数`MAVEN_data_load.data_get_from_date(date::DateTime; model_index=[], show_filename=false)`
+函数`MAVEN_load.data_get_from_date(date::DateTime; model_index=[], show_filename=false)`
 
 传入参数
 - `date{DateTime}`读取的日期，一次只能读取一天的数据
@@ -32,7 +32,7 @@ import .MAVEN_data_load
 
 如，
 ```Julia
-Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 返回得到的磁场数据为：
 ```Julia
@@ -41,7 +41,7 @@ mag_data = Data_Dict["MAG_pc1s"][:B]
 
 # 详细读取逻辑说明
 
-执行`include("$path/MAVEN_data_load.jl");import .MAVEN_data_load`后，程序将执行以下步骤：
+执行`include("$path/MAVEN_load.jl");import .MAVEN_load`后，程序将执行以下步骤：
 1. 读取数据结构说明文件`MAVEN_data/MAVEN_data_format.json`，从中获取各个数据模块和其对应的文件名格式，读取所需的函数名称
 2. 在上一步中，得到`read_models = Dict{String,Tuple{String,Function}}()`，其key值对应数据模块名称，返回读取该模块所需的具体函数名称
 3. 读取`MAVEN_data/filename_lists.json`中的已下载数据的目录

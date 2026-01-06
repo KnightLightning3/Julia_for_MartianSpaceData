@@ -64,7 +64,7 @@ pip install -r requirements.txt
 MAVEN 数据读取 MAVEN_load.jl,
 
 ```
-Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
 此程序需要特定的读取文件树格式,
