@@ -9,44 +9,39 @@ include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 
 @inline function get_ion_vel(vsc_data,ion_data)
-    sta_epoch = ion_data[:epoch]
-    position = ion_data[:pos_sc_mso]
-    quality_flag = ion_data[:quality_flag]
+    # local sta_epoch = ion_data[:epoch]
+    local time_unix = ion_data[:time_unix]
+    local position = ion_data[:pos_sc_mso]
+    local mag = ion_data[:magf]
+    local quality_flag = ion_data[:quality_flag]
 
-    ntime = length(sta_epoch)
-    H_vel = zeros(ntime, 3)
-    O_vel = zeros(ntime, 3)
-    O2_vel = zeros(ntime, 3)
-    H_den = zeros(ntime)
-    O_den = zeros(ntime)
-    O2_den = zeros(ntime)
-    H_f = zeros(ntime, 3)
-    O_f = zeros(ntime, 3)
-    O2_f = zeros(ntime,3)
+    local ntime = length(time_unix)
+    local H_vel = fill(NaN32,ntime, 3)
+    local He_vel = fill(NaN32,ntime, 3)
+    local O_vel = fill(NaN32,ntime, 3)
+    local O2_vel = fill(NaN32,ntime, 3)
+    local H_den = fill(NaN32,ntime)
+    local He_den = fill(NaN32,ntime)
+    local O_den = fill(NaN32,ntime)
+    local O2_den = fill(NaN32,ntime)
+    local H_f = fill(NaN32,ntime, 3)
+    local He_f = fill(NaN32,ntime, 3)
+    local O_f = fill(NaN32,ntime, 3)
+    local O2_f = fill(NaN32,ntime,3)
+    local vsc_quality = fill(true,ntime)
 
-    time_vsc = vsc_data[:epoch]
-    vsc = vsc_data[:vsc]
+    local time_vsc = vsc_data[:time_unix]
+    local vsc = vsc_data[:vsc]
 
     @info "开始计算: 共有$(ntime)个时间点,使用$(Threads.nthreads())个线程"
 
     @inbounds @showprogress Threads.@threads for time_ind in 1:ntime
-        local dt,time_vsc_ind = findmin(x -> abs(x - sta_epoch[time_ind]), time_vsc)
-        if dt >= Millisecond(2*1000)
-            O2_vel[time_ind, 1:3] .= NaN32
-            O2_f[time_ind,1:3] .= NaN32
-            O2_den[time_ind] = NaN32
-
-            O_vel[time_ind, 1:3] .= NaN32
-            O_f[time_ind,1:3] .= NaN32
-            O_den[time_ind] = NaN32
- 
-            H_vel[time_ind, 1:3] .= NaN32
-            H_f[time_ind,1:3] .= NaN32
-            H_den[time_ind] = NaN32
-            continue
+        local dt,time_vsc_ind = findmin(x -> abs(x - time_unix[time_ind]), time_vsc)
+        if dt >= 2
+            vsc_quality[time_ind] = false
+            continue # 缺少vsc数据
         end
         local dat_slip = MAVEN_STATIC.static_slip(ion_data, time_ind)
-        # dat_slip = MAVEN_STATIC.static_rotation(dat_slip; frame="MSO")
         local rotation_Q = QuatRotation(dat_slip[:quat_mso]);
 
         local dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
@@ -59,30 +54,39 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         O_vel[time_ind, 1:3] = rotation_Q * vel .+ vsc[time_vsc_ind,:]
         O_f[time_ind,1:3] = rotation_Q * flux
         O_den[time_ind] = den
-        vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[0, 2], m_int=1,unit_cover=false)
+        vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1,unit_cover=false)
         H_vel[time_ind, 1:3] = rotation_Q * vel .+ vsc[time_vsc_ind,:]
         H_f[time_ind,1:3] = rotation_Q * flux
         H_den[time_ind] = den
+        vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=[0, 1e5], mass_range=[1.4, 3.3], m_int=2,unit_cover=false)
+        He_vel[time_ind, 1:3] = rotation_Q * vel .+ vsc[time_vsc_ind,:]
+        He_f[time_ind,1:3] = rotation_Q * flux
+        He_den[time_ind] = den
     end
 
     datas_dict = Dict{Symbol,Any}(
-        :epoch => sta_epoch,
+        :time_unix => time_unix,
         :H_vel => H_vel,
+        :He_vel => He_vel,
         :O_vel => O_vel,
         :O2_vel => O2_vel,
         :H_den => H_den,
+        :He_den => He_den,
         :O_den => O_den,
         :O2_den => O2_den,
         :H_f => H_f,
+        :He_f => He_f,
         :O_f => O_f,
         :O2_f => O2_f,
         :pos => position,
-        :quality_flag => quality_flag
+        :mag => mag,
+        :quality_flag => quality_flag,
+        :vsc_quality => vsc_quality,
     )
     return datas_dict
 end
 @inline function data2bi(datas_dict,filename)
-    time = datetime2unix.(datas_dict[:epoch])
+    time = datas_dict[:time_unix]
     Ntime = length(time)
 
     time_unix = convert(Vector{Float64},time)
@@ -90,36 +94,46 @@ end
     O_vel = convert(Array{Float32,2},datas_dict[:O_vel])
     O2_vel = convert(Array{Float32,2},datas_dict[:O2_vel])
     H_vel = convert(Array{Float32,2},datas_dict[:H_vel])
+    He_vel = convert(Array{Float32,2},datas_dict[:He_vel])
 
     O_f = convert(Array{Float32,2},datas_dict[:O_f])
     O2_f = convert(Array{Float32,2},datas_dict[:O2_f])
     H_f = convert(Array{Float32,2},datas_dict[:H_f])
+    He_f = convert(Array{Float32,2},datas_dict[:He_f])
 
     O_den = convert(Vector{Float32},datas_dict[:O_den])
     O2_den = convert(Vector{Float32},datas_dict[:O2_den])
     H_den = convert(Vector{Float32},datas_dict[:H_den])
+    He_den = convert(Vector{Float32},datas_dict[:He_den])
 
     pos = convert(Array{Float32,2},datas_dict[:pos])
+    mag = convert(Array{Float32,2},datas_dict[:mag])
     quality_flag = convert(Vector{Int16},datas_dict[:quality_flag])
+    vsc_quality = convert(Vector{Bool},datas_dict[:vsc_quality])
 
     f = FortranFile(filename,"w")
     write(f, Ntime)
     write(f, time_unix)
     
     write(f, H_vel)
+    write(f, He_vel)
     write(f, O_vel)
     write(f, O2_vel)
     
     write(f, H_f)
+    write(f, He_f)
     write(f, O_f)
     write(f, O2_f)
     
     write(f, H_den)
+    write(f, He_den)
     write(f, O_den)
     write(f, O2_den)
 
     write(f, pos)
+    write(f, mag)
     write(f, quality_flag)
+    write(f, vsc_quality)
     close(f)
 end
 #获取所有文件和对应的mag文件
@@ -144,7 +158,7 @@ for (date, file_ion, file_vsc) in common_dates
         print("\033[0;32mReading $(date)\033[0m \r")
         # println(file_vsc)
         local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
-        local ion_data = MAVEN_load.load_STATIC(file_ion)
+        local ion_data = MAVEN_load.load_cdf(file_ion)
         print("\033[0;32mBuilding $(date)\033[0m \n")
         local datas_dict = get_ion_vel(vsc_data,ion_data)
         touch(new_path)

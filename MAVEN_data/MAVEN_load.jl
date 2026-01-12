@@ -463,31 +463,41 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     Ntime = read(f, Int64)
     time_unix = read(f, (Float64, Ntime))
     H_vel = read(f, (Float32, Ntime, 3))
+    He_vel = read(f, (Float32, Ntime, 3))
     O_vel = read(f, (Float32, Ntime, 3))
     O2_vel = read(f, (Float32, Ntime, 3))
     H_f = read(f, (Float32, Ntime, 3))
+    He_f = read(f, (Float32, Ntime, 3))
     O_f = read(f, (Float32, Ntime, 3))
     O2_f = read(f, (Float32, Ntime, 3))
     H_den = read(f, (Float32, Ntime))
+    He_den = read(f, (Float32, Ntime))
     O_den = read(f, (Float32, Ntime))
     O2_den = read(f, (Float32, Ntime))
     pos_mso = read(f, (Float32, Ntime,3))
+    mag_mso = read(f, (Float32, Ntime,3))
     quality_flag = read(f, (Int16, Ntime))
+    vsc_quality = read(f, (Bool, Ntime))
     close(f)
     data = Dict{Symbol,Any}(
         :epoch => unix2datetime.(time_unix),
         :time_unix => time_unix,
         :H_vel => H_vel,
+        :He_vel => He_vel,
         :O_vel => O_vel,
         :O2_vel => O2_vel,
         :H_f => H_f, # flux
+        :He_f => He_f, # flux
         :O_f => O_f,
         :O2_f => O2_f,
         :H_den => H_den,
+        :He_den => He_den,
         :O_den => O_den,
         :O2_den => O2_den,
         :pos_sc_mso => pos_mso,
+        :mag_mso => mag_mso,
         :quality_flag => quality_flag,
+        :vsc_quality => vsc_quality,
     )
     return data
 end
