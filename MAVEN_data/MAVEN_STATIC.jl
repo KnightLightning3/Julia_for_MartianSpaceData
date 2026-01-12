@@ -135,13 +135,14 @@ end
 
 # 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
 function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
-    local nbins   = dat[:nbins]
-    local nenergy = dat[:nenergy]
+    local nbins   = dat[:nbins]::Int16
+    local nenergy = dat[:nenergy]::Int16
     local energy = dat[:energy]
 
     local gf = reshape(dat[:gf], 1, nbins,nenergy)
     local eff = dat[:eff]
-    local G = dat[:geom_factor].*eff.*gf
+    local geom = dat[:geom_factor]
+    # local G = dat[:geom_factor].*eff.*gf
     local dt = dat[:time_integ]
     local mass = dat[:mass]
     local mass_arr = dat[:mass_arr]
@@ -149,11 +150,18 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     local bkg = dat[:bkg]					# background array usec for STATIC
     local tmp = dat[:data]
 
-    local tmp = (tmp .- bkg ).*dead
-    local scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
-    local df_t = scale .* tmp
-    dat[:df] = df_t .*mass_arr.^2
-    dat[:df_mass_mass] = df_t # 没有乘以质量的平方
+    local const_part = (mass * mass) / (dt * 2.0 * 1e5)
+
+    local df_t = @. (tmp - bkg) * dead * const_part / (geom * eff * gf * energy^2)
+    
+    dat[:df_mass_mass] = df_t
+    dat[:df] = @. df_t * mass_arr^2
+
+    # local tmp = (tmp .- bkg ).*dead
+    # local scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
+    # local df_t = scale .* tmp
+    # dat[:df] = df_t .*mass_arr.^2
+    # dat[:df_mass_mass] = df_t # 没有乘以质量的平方
     return dat
 end
 function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程序开销极大，考虑替换掉
@@ -288,9 +296,9 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     local eff_ind = dat[:eff_ind][time_ind]
 
     dat_slip[:epoch]        = dat[:epoch][time_ind]
-    dat_slip[:eflux]        = dat[:eflux][time_ind,:,:,:]
-    dat_slip[:data]         = dat[:data][time_ind,:,:,:]
-    dat_slip[:bkg]          = dat[:bkg][time_ind,:,:,:]
+    dat_slip[:eflux]        = @views dat[:eflux][time_ind,:,:,:]
+    dat_slip[:data]         = @views dat[:data][time_ind,:,:,:]
+    dat_slip[:bkg]          = @views dat[:bkg][time_ind,:,:,:]
     dat_slip[:epoch]        = dat[:epoch][time_ind]
     dat_slip[:time_integ]   = dat[:time_integ][time_ind]
     dat_slip[:swp_ind]      = dat[:swp_ind][time_ind]
@@ -298,31 +306,28 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip[:eff_ind]      = dat[:eff_ind][time_ind]
     dat_slip[:sc_pot]       = dat[:sc_pot][time_ind]
     dat_slip[:quality_flag] = dat[:quality_flag][time_ind]
-    dat_slip[:dead]         = dat[:dead][time_ind,:,:,:]
-    dat_slip[:bins_sc]         = dat[:bins_sc][time_ind,:] # 重要: 此为飞行器遮挡视野的数组, 当一个角度中超过一半的部分被遮挡, 此数组出现.
-    dat_slip[:quat_mso]     = dat[:quat_mso][time_ind,:]
-    dat_slip[:quat_sc]      = dat[:quat_sc][time_ind,:]
-    dat_slip[:magf]         = dat[:magf][time_ind,:]
-    dat_slip[:pos_sc_mso]   = dat[:pos_sc_mso][time_ind,:]
+    dat_slip[:dead]         = @views dat[:dead][time_ind,:,:,:]
+    dat_slip[:bins_sc]      = @views dat[:bins_sc][time_ind,:] # 重要: 此为飞行器遮挡视野的数组, 当一个角度中超过一半的部分被遮挡, 此数组出现.
+    dat_slip[:quat_mso]     = @views dat[:quat_mso][time_ind,:]
+    dat_slip[:quat_sc]      = @views dat[:quat_sc][time_ind,:]
+    dat_slip[:magf]         = @views dat[:magf][time_ind,:]
+    dat_slip[:pos_sc_mso]   = @views dat[:pos_sc_mso][time_ind,:]
     
-    dat_slip[:energy]   = dat[:energy][:,:,:,swp_ind+1]
-    dat_slip[:denergy]  = dat[:denergy][:,:,:,swp_ind+1]
-    dat_slip[:theta]    = dat[:theta][:,:,:,swp_ind+1]
-    dat_slip[:phi]      = dat[:phi][:,:,:,swp_ind+1]
-    dat_slip[:dtheta]   = dat[:dtheta][:,:,:,swp_ind+1]
-    dat_slip[:dphi]     = dat[:dphi][:,:,:,swp_ind+1]
-    dat_slip[:mass_arr] = dat[:mass_arr][:,:,:,swp_ind+1]
-    dat_slip[:gf]       = dat[:gf][att_ind+1,:,:,swp_ind+1]
-    dat_slip[:eff]      = dat[:eff][:,:,:,eff_ind+1]
+    dat_slip[:energy]   = @views dat[:energy][:,:,:,swp_ind+1]
+    dat_slip[:denergy]  = @views dat[:denergy][:,:,:,swp_ind+1]
+    dat_slip[:theta]    = @views dat[:theta][:,:,:,swp_ind+1]
+    dat_slip[:phi]      = @views dat[:phi][:,:,:,swp_ind+1]
+    dat_slip[:dtheta]   = @views dat[:dtheta][:,:,:,swp_ind+1]
+    dat_slip[:dphi]     = @views dat[:dphi][:,:,:,swp_ind+1]
+    dat_slip[:mass_arr] = @views dat[:mass_arr][:,:,:,swp_ind+1]
+    dat_slip[:gf]       = @views dat[:gf][att_ind+1,:,:,swp_ind+1]
+    dat_slip[:eff]      = @views dat[:eff][:,:,:,eff_ind+1]
 
-    try
+    if haskey(dat, :df_mass_mass)
         dat_slip[:df_mass_mass] = dat[:df_mass_mass][time_ind,:,:,:]
+    end
+    if haskey(dat, :df)
         dat_slip[:df] = dat[:df][time_ind,:,:,:]
-    # catch
-    finally
-        return dat_slip
-        # @info "不包含通量处理信息"
-        # dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
     end
     # # time:			tt1,					
     # # end_time:		tt2,					
@@ -330,7 +335,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     # dt_cor = 3.89/4.0
     # dat_slip[:integ_t]=delta_t/(dat[:nenergy]*dat[:ndef])*dt_cor
 
-    # return dat_slip
+    return dat_slip
 end
 # 速度计算
 function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
@@ -353,19 +358,16 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
         data0=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
     
-    local energy = dat[:energy] 
-    local denergy = dat[:denergy] 
-    local theta = dat[:theta]./RADG
-    local phi = dat[:phi] ./RADG
-    local dtheta = dat[:dtheta] ./RADG
-    local dphi = dat[:dphi] ./RADG
+    local energy = dat[:energy]
+    local denergy = dat[:denergy]
+    local theta = dat[:theta].*inv_RADG
+    local phi = dat[:phi] .*inv_RADG
+    local dtheta = dat[:dtheta] .*inv_RADG
+    local dphi = dat[:dphi] .*inv_RADG
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
-    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
-    local mask = mask1 .& mask2
-    local masked_data = data0.*mask
+    local masked_data = data0.*(mass_range[1] .<= mass_arr .<= mass_range[2] .&& energy_range[1] .<= energy .<= energy_range[2])
 
     # if m_int != 0
     # mass_arr[:] .= m_int
@@ -394,6 +396,78 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     #units are km/s
     return vel,flux,density
 end
+function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=true)
+    # 1. 快速非法检查
+    dat[:valid] == 0 && return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
+
+    # 2. 提取数据并显式转换类型 (Type Anchoring)
+    # 使用 @views 配合类型声明，确保后续索引不产生拷贝且编译器已知类型
+    @views begin
+        data0    = (unit_cover ? dat[:df] : dat[:df_mass_mass] .* (m_int^2))::AbstractArray{Float64, 3}
+        energy   = dat[:energy]::AbstractArray{Float32, 3}
+        denergy  = dat[:denergy]::AbstractArray{Float32, 3}
+        theta    = dat[:theta]::AbstractArray{Float32, 3}
+        phi      = dat[:phi]::AbstractArray{Float32, 3}
+        dtheta   = dat[:dtheta]::AbstractArray{Float32, 3}
+        dphi     = dat[:dphi]::AbstractArray{Float32, 3}
+        mass_arr = dat[:mass_arr]::AbstractArray{Float32, 3}
+        pot      = dat[:sc_pot]::Float32
+        mass     = (dat[:mass] * m_int)::Float32
+    end
+
+    # 3. 预计算常数 (减少循环内除法和乘法)
+    const_flux = 2.0 / (mass * mass) * 1e5
+    const_den  = (mass^(-1.5)) * (2.0^(0.5))
+    inv_RADG   = 1.0 / RADG  # 提前算好 1/RADG
+
+    # 4. 初始化累加器
+    density = 0.0
+    f3dx = 0.0
+    f3dy = 0.0
+    f3dz = 0.0
+
+    # 5. 单次循环：这是 Threadripper 最喜欢的“高计算密度”模式
+    @inbounds for i in eachindex(data0)
+        # 直接读取，避免创建 Mask 数组
+        m_val = mass_arr[i]
+        e_val = energy[i]
+        
+        # 过滤条件
+        if (mass_range[1] <= m_val <= mass_range[2]) && (energy_range[1] <= e_val <= energy_range[2])
+            
+            # --- 物理计算部分 ---
+            e_corr = max(0.0, e_val + pot)
+            t_val  = theta[i] * inv_RADG
+            p_val  = phi[i] * inv_RADG
+            dt_val = dtheta[i] * inv_RADG
+            dp_val = dphi[i] * inv_RADG
+            
+            # 公共中间项：data * denergy * dphi
+            # 提取公共项可以减少 CPU 乘法指令次数
+            common_term = data0[i] * denergy[i] * dp_val
+            
+            # 密度累加 (Density contribution)
+            # 公式: Const * denergy * sqrt(energy) * data * 2.0 * cos(theta) * sin(dtheta/2.0) * dphi
+            density += const_den * sqrt(e_corr) * common_term * 2.0 * cos(t_val) * sin(dt_val / 2.0)
+            
+            # 通量公共项 (Flux contribution)
+            # 公式: Const * denergy * energy * data * theta0
+            # theta0 = (dtheta/2.0 + cos(2.0*theta)*sin(dtheta)/2.0) * 2.0*sin(dphi/2.0)
+            theta0 = (dt_val / 2.0 + cos(2.0 * t_val) * sin(dt_val) / 2.0) * 2.0 * sin(dp_val / 2.0)
+            flux_val = const_flux * e_corr * data0[i] * denergy[i] * theta0
+            
+            f3dx += flux_val * cos(p_val)
+            f3dy += flux_val * sin(p_val)
+            f3dz += const_flux * e_corr * common_term * (2.0 * sin(t_val) * cos(t_val) * sin(dt_val / 2.0) * cos(dt_val / 2.0))
+        end
+    end
+
+    # 6. 计算最终速度
+    flux = [f3dx, f3dy, f3dz]
+    vel  = 1e-5 .* flux ./ (density + 1e-10)
+
+    return vel, flux, density
+end
 function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_cover =false)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
@@ -409,10 +483,10 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
 
     local energy = dat[:energy] 
     local denergy = dat[:denergy] 
-    local theta = dat[:theta]./RADG
-    # local phi = dat[:phi] ./RADG
-    local dtheta = dat[:dtheta] ./RADG
-    local dphi = dat[:dphi] ./RADG
+    local theta = dat[:theta].*inv_RADG
+    # local phi = dat[:phi] .*inv_RADG
+    local dtheta = dat[:dtheta] .*inv_RADG
+    local dphi = dat[:dphi] .*inv_RADG
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
@@ -430,63 +504,6 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
     local density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
     #units are 1/cm^3
     return density
-end
-function sta_pickup(dat0)#计算拾取率,需要conut2df处理过的dat切片
-    local dat= deepcopy(dat0)
-    function get_vfn(dat,dF;m_int=1)
-        phi = dat[:phi] .|> deg2rad# 8,64,32
-        theta = dat[:theta] .|> deg2rad# (8, 64, 32)
-        energy = dat[:energy]# (8, 64, 32)
-        denergy = dat[:denergy]# (8, 64, 32)
-    
-        dtheta = dat[:dtheta] .|> deg2rad
-        dphi = dat[:dphi] .|> deg2rad
-        mass = dat[:mass]
-    
-        mass=dat[:mass]*m_int
-    
-        dF_t = dF .* m_int.^2
-    
-        Const = 2.0/mass/mass*1e5
-        flux0 = Const.*denergy.*energy.*dF_t
-        theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
-        flux3dx = sum(flux0.*theta0.*cos.(phi))
-        flux3dy = sum(flux0.*theta0.*sin.(phi))
-        flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi)
-        flux = [flux3dx,flux3dy,flux3dz]
-    
-        Const = mass^(-1.5)*2.0^(0.5)
-        density = sum(Const.*denergy.*sqrt.(energy).*dF_t.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
-    
-        vel = 1e-5 .* flux ./(density .+ 1e-10)
-        return vel,flux,density
-    end
-    function get_bin_mask(dat,vec)
-        phi = dat[:phi]# 8,64,32
-        theta = dat[:theta]# (8, 64, 32)
-        vec_1 = normalize(vec)
-        A0 = MAVEN_STATIC.sphere2xyz_for_STATIC.([1],theta,phi)
-        dl = 2*π*30/360
-        bin_mask = [norm(xyz.-vec_1) > dl for xyz in A0]
-        return bin_mask
-    end
-    df_mass = dat[:df_mass_mass]
-    mass_arr = dat[:mass_arr]
-    mass_mask_H = (mass_arr .> 0) .& (mass_arr .<= 1.3);
-    v_H,_,n_H = get_vfn(dat,df_mass.*mass_mask_H;m_int=1);
-    bin_mask = get_bin_mask(dat,v_H);
-    
-    mass_mask_He = (dat[:mass_arr] .> 1.3) .& (dat[:mass_arr] .<= 2.3);
-    v_He,_,n_He = get_vfn(dat,df_mass.*mass_mask_He;m_int=2);
-    df_He_1 = sum(dat[:df].*mass_mask_He,dims=1);
-    He_mask = (df_He_1 .== 0);
-
-    df_1 = dat[:df] .* bin_mask .* He_mask # 去除掉有He部分的H数据，H主速度方向的离子
-    _,_,n_H_no_sw = get_vfn(dat,df_1.*mass_mask_H;m_int=1);
-
-    pickup_rate = n_H_no_sw/n_H
-
-    return pickup_rate,v_H,v_He,n_H,n_He,n_H_no_sw
 end
 function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
     function sphere2xyz_for_static_rotation(θ,ϕ)
@@ -657,19 +674,19 @@ function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_
     local data0=dat[:df_mass_mass] .*m_int^2
     local energy = dat[:energy3d]
     local denergy = dat[:denergy3d]
-    local theta = dat[:theta3d]./RADG
-    local phi = dat[:phi3d] ./RADG
-    local dtheta = dat[:dtheta3d] ./RADG
-    local dphi = dat[:dphi3d] ./RADG
+    local theta = dat[:theta3d].*inv_RADG
+    local phi = dat[:phi3d] .*inv_RADG
+    local dtheta = dat[:dtheta3d] .*inv_RADG
+    local dphi = dat[:dphi3d] .*inv_RADG
     local mass_arr = dat[:mass_arr3d]
     local pot = reshape(dat[:sc_pot],ntime,1,1)
 
     # local energy = dat[:energy] 
     # local denergy = dat[:denergy] 
-    # local theta = dat[:theta]./RADG
-    # local phi = dat[:phi] ./RADG
-    # local dtheta = dat[:dtheta] ./RADG
-    # local dphi = dat[:dphi] ./RADG
+    # local theta = dat[:theta].*inv_RADG
+    # local phi = dat[:phi] .*inv_RADG
+    # local dtheta = dat[:dtheta] .*inv_RADG
+    # local dphi = dat[:dphi] .*inv_RADG
     # local mass_arr = dat[:mass_arr]
     # local pot = dat[:sc_pot]
 
@@ -822,6 +839,7 @@ const C=3.0e8
 const Me=9.109e-31
 const Mp=1.672621637e-27
 const RADG=180.0/π
+const inv_RADG=π/180.0
 
 # vv0 =9.8e3
 # ee = ion_v2energy(vv0 ,32)
@@ -837,27 +855,88 @@ end # module
 # import .MAVEN_STATIC;
 # using Dates
 # using CairoMakie
-# # kp_vars_dict = Dict(
-# #     :B_SS_x => 128,
-# #     :B_SS_y => 130,
-# #     :B_SS_z => 132,
-# #     :MSO_x => 190,
-# #     :MSO_y => 191,
-# #     :MSO_z => 192,
-# #     :Orbit_Number => 210,
-# #     :O2_den => 58,
-# #     :O_den => 56,
-# #     :H_den => 54,
-# #     :O2_f => 87,
-# #     :O_f => 84,
-# #     :H_f => 78,
-# #     )
-# # datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
-# # kp_data = MAVEN_load.convert_kp_l3(datas_dict["KP_l3"];kp_dict=kp_vars_dict)
-# # sta_data = copy(datas_dict["STATIC_c6"])
-# # sta_d1_data = copy(datas_dict["STATIC_d1"])
-# # @time sta_fdata = MAVEN_STATIC.STA_count3df(sta_data)
-# # @time Ov,Of,On = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[13,19],m_int = 16)
+# using BenchmarkTools
+# using Statistics
+# using LinearAlgebra
+# using Printf
+# using Revise
+
+# if !@isdefined(ion_data)
+#     datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_d1"])
+#     global ion_data = datas_dict["STATIC_d1"]
+# end
+# time_ind = 1000
+# diff_den = Float64[]
+# diff_vel = Float64[]
+# println("\n[1] static_slip 开销:")
+# @btime dat_slip = MAVEN_STATIC.static_slip($ion_data, 1)
+
+# # 准备一个基础切片用于后续测试
+# dat_slip = MAVEN_STATIC.static_slip(ion_data, 1)
+# dat_slip_df = MAVEN_STATIC.STA_count2df(dat_slip)
+# # 2. 测试 STA_count2df (预处理函数)
+# println("\n[2] STA_count2df 开销:")
+# @btime dat_slip_processed = MAVEN_STATIC.STA_count2df($dat_slip)
+
+# # 3. 对比 sta_v_4d 旧版 vs 新版
+# println("\n[3] sta_v_4d (旧版 - 数组掩码模式) 开销:")
+# @btime vel_o, flux_o, den_o = MAVEN_STATIC.sta_v_4d($dat_slip_df; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
+
+# println("\n[4] sta_v_4d_new (新版 - 零分配生成器) 开销:")
+# @btime vel_n, flux_n, den_n = MAVEN_STATIC.sta_v_4d_new($dat_slip_processed; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
+
+# for time_i in 1:10
+#     # 获取切片并处理
+#     d_slip = MAVEN_STATIC.static_slip(ion_data, time_i)
+#     d_slip = MAVEN_STATIC.STA_count2df(d_slip)
+    
+#     # 运行两个版本
+#     v_o, f_o, den_o = MAVEN_STATIC.sta_v_4d(d_slip; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
+#     v_n, f_n, den_n = MAVEN_STATIC.sta_v_4d_new(d_slip; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
+    
+#     # 计算差异并存入数组
+#     push!(diff_den, den_o - den_n)
+#     push!(diff_vel, norm(v_o - v_n)) # 计算速度矢量的欧氏距离差异
+    
+#     # 每 1000 个点打印一次，确保程序没跑死
+#     if time_i % 1000 == 0
+#         @printf("进度: %d/%d | 当前密度差: %.2e\n", time_i, ntime, den_o - den_n)
+#     end
+# end
+
+# # 统计分析
+# println("\n=== 最终差异报告 ===")
+# @printf("密度最大偏差: %.2e\n", maximum(abs.(diff_den)))
+# @printf("平均速度偏差: %.2e km/s\n", mean(diff_vel))
+
+
+# # # -------------------------Test parts-------------------------
+# include("MAVEN_load.jl");import .MAVEN_load;
+# include("MAVEN_plot.jl");import .MAVEN_plot;
+# import .MAVEN_STATIC;
+# using Dates
+# using CairoMakie
+# kp_vars_dict = Dict(
+#     :B_SS_x => 128,
+#     :B_SS_y => 130,
+#     :B_SS_z => 132,
+#     :MSO_x => 190,
+#     :MSO_y => 191,
+#     :MSO_z => 192,
+#     :Orbit_Number => 210,
+#     :O2_den => 58,
+#     :O_den => 56,
+#     :H_den => 54,
+#     :O2_f => 87,
+#     :O_f => 84,
+#     :H_f => 78,
+#     )
+# datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
+# kp_data = MAVEN_load.convert_kp_l3(datas_dict["KP_l3"];kp_dict=kp_vars_dict)
+# sta_data = copy(datas_dict["STATIC_c6"])
+# sta_d1_data = copy(datas_dict["STATIC_d1"])
+# @time sta_fdata = MAVEN_STATIC.STA_count3df(sta_data)
+# @time Ov,Of,On = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[13,19],m_int = 16)
 # @time O2v,O2f,O2n = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[20,40],m_int = 32)
 # # @time Hv,Hf,Hn = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[0.5,1.5],m_int = 1)
 
