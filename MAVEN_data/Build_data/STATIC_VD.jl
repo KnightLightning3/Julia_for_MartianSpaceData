@@ -150,7 +150,7 @@ common_dates = [
     for (i, (date, _)) in enumerate(dates_ion) 
     for (j, (date2, _)) in enumerate(dates_mag)
     if date == date2
-]
+] |> reverse
 for (date, file_ion, file_vsc) in common_dates
     ion_version = match(r"_v([0-9]{2})_", file_ion).captures[1]
     new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/mvn_sta_l3_d1_vel_flux_den_$(date)_v$(ion_version).f77_unformatted"

@@ -142,54 +142,61 @@ def download_unit_convert(total_bits):
     size_value = round(total_bits / divisor,ndigits=2)
     size_unit = size_units[unit_idx]
     return f"{size_value} {size_unit}"
-def requests_download(url,save_path):
-    global vpn_proxy
-    global session
-    global timeout
-    global disable_tqdm_bar
+def requests_download(url, save_path):
+    global vpn_proxy, session, timeout, disable_tqdm_bar
     sleep_local(step_time)
+    temp_save_path = save_path + ".pydownload"
+    
     try:
-        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K",flush=True,end=string_end)
-        response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
-        while(response.status_code == 429):
+        print(f"\033[1;32mRequesting\033[0m: {url}...\033[K", flush=True, end=string_end)
+
+        response = session.get(url, stream=True, proxies=vpn_proxy, timeout=timeout)
+
+        while response.status_code == 429:
+            response.close()
             print(f"超出网站请求上限,休眠\033[1;34m{sleep_time}\033[0m秒")
             sleep_local(sleep_time)
-            # print(f"Requesting:{url}...\033[K",flush=True,end='\r')
-            response = session.get(url, stream=True,proxies=vpn_proxy,timeout=timeout)
-        if response.status_code == 200:
-            total_size = int(response.headers.get("content-length", 0))
-            block_size = 1024
-            progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False,colour = 'green',dynamic_ncols=True,disable=disable_tqdm_bar)
-            time_start = time.time()
-            if disable_tqdm_bar:
-                print(f"\033[1;32mLoading from\033[0m: {url}...\033[K",flush=True,end=string_end)
-            buffer = bytearray()  # 创建字节缓冲区
-            for data in response.iter_content(block_size):
-                progress_bar.update(len(data))
-                buffer.extend(data)  # 将下载的数据添加到缓冲区
-            # progress_bar_data = progress_bar.format_dict
-            # dict_keys(['n', 'total', 'elapsed', 'unit'])
-            progress_bar.close()
-            # 如果路径不存在,创建路径
-            dir_save_path = os.path.dirname(save_path)
-            if not os.path.exists(dir_save_path):
-                if dir_save_path != '':
-                    os.makedirs(dir_save_path)
-            # 将缓冲区中的数据写入文件
-            with open(save_path, "wb") as file:
-                print(f"\033[F\033[FWriting into: {save_path}",end=string_end)
-                file.write(buffer)
-            elapsed = time.time() - time_start
-            speed = total_size/elapsed
-            loading_data = (download_unit_convert(total_size),f"{round(elapsed,ndigits=2)} s",download_unit_convert(speed)+'/s')
+            response = session.get(url, stream=True, proxies=vpn_proxy, timeout=timeout)
 
-            return response.status_code,True,loading_data
-        response.close()
+        with response:
+            if response.status_code == 200:
+                total_size = int(response.headers.get("content-length", 0))
+                block_size = 1024
+                progress_bar = tqdm(total=total_size, unit="B", unit_scale=True, leave=False, 
+                                    colour='green', dynamic_ncols=True, disable=disable_tqdm_bar)
+                time_start = time.time()
+
+                if disable_tqdm_bar:
+                    print(f"\033[1;32mLoading from\033[0m: {url}...\033[K", flush=True, end=string_end)
+
+                dir_save_path = os.path.dirname(save_path)
+                if dir_save_path and not os.path.exists(dir_save_path):
+                    os.makedirs(dir_save_path)
+
+                with open(temp_save_path, "wb") as file:
+                    for data in response.iter_content(block_size):
+                        if data:
+                            file.write(data)
+                            progress_bar.update(len(data))
+                
+                progress_bar.close()
+
+                os.rename(temp_save_path, save_path)
+
+                elapsed = time.time() - time_start
+                speed = total_size / elapsed if elapsed > 0 else 0
+                loading_data = (download_unit_convert(total_size), f"{round(elapsed, 2)} s", download_unit_convert(speed)+'/s')
+
+                return response.status_code, True, loading_data
+                
     except requests.exceptions.RequestException as e:
-        print(f"url error: {e},sleep \033[1;34m{sleep_time}\033[0m Seconds")
+        print(f"url error: {e}, sleep \033[1;34m{sleep_time}\033[0m Seconds")
+        if os.path.exists(temp_save_path):
+            os.remove(temp_save_path) # 清理未完成的残余文件
         sleep_local(sleep_time)
-        return "error",False,("error","error","error")
-    return "error",False,("error","error","error")
+        return "error", False, ("error", "error", "error")
+        
+    return "error", False, ("error", "error", "error")
 def idm_add_download_links(url,save_path,filename):
     global step_time
     if not os.path.exists(save_path):
@@ -348,10 +355,10 @@ def download_from_head(head,num_links_added,num_links):
             download_speed = progress_data[2]
             download_elapsed = progress_data[1]
             download_size = progress_data[0]
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m'
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
             
         else:
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
 # def run_muti_threads(task_func, task_args_list: list[tuple], max_workers: int = 5):
 #     total_tasks = len(task_args_list)
 #     print(f"\n--- 准备启动 {total_tasks} 个任务，最大 {max_workers} 个并发线程 ---")
@@ -417,8 +424,6 @@ if __name__ == '__main__':
         if continue_download:
             break
         current_date = start_date
-        nums_downloaded = 0
-        nums_failed = 0
         url_path,save_path,file_style = download_model(model)
         if url_path is None:
             print(f"\033[1;31m{model} is not available on this server\033[0m")
@@ -509,24 +514,17 @@ if __name__ == '__main__':
             try:
                 # 获取任务函数的实际返回值
                 result_string = future.result()
-                result_string_0 = f"✅ {result_string}"
+                result_string_0 = result_string
             except Exception as exc:
-                result_string_0 = f"❌ 任务:{task_id} (处理 '{original_head}') 执行出错: {exc}"
+                result_string_0 = f"\033[1;31m错误\033[0m 任务:{task_id} (处理 '{original_head}') 执行出错: {exc}"
             print(result_string_0, flush=True,end='\n') # 实时打印完成结果
             io_download_log.write(result_string_0+'\n')
             io_download_log.flush()
     io_download_log.close()        
                 
-    if download_mode == 'win.idm':       
+    if download_mode == 'win.idm':
         idm_download()
         print(f'\033[1;32mIDM downloading start, check software.\033[0m')
-            
-        # file_names = search_downloaded_files(save_path,file_style)
-        # with open(json_data["save_path"]+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
-        #     for item in file_names:
-        #         file.write(str(item) + '\n')
-        # with open(f"{project_path}/download_data/download.log", "a", encoding='utf-8') as download_log:
-            # download_log.write(f'[{datetime.datetime.now()}]  {nums_downloaded} Files Downloaded, {nums_failed} Files Failed [{model}] [MAVEN server]'+"\n")
 
     import runpy
     runpy.run_path(f"{project_path}/download_data/get_download_files.py")  # run get_download_files.py, update filename_list.txt
