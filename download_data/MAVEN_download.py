@@ -462,7 +462,8 @@ if __name__ == '__main__':
                 continue
             if not os.path.exists(save_path+yyyymm):
                 os.makedirs(save_path+yyyymm)
-            print(f'Found \033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
+            if len(urls) != 0:
+                print(f'Found \033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
             for url in urls:
                 filename = str(url)
                 date=re.findall(r"\d{8}", filename)[0]

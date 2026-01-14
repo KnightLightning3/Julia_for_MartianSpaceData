@@ -1,8 +1,8 @@
 Pkg_list = [
+    "Makie"
     "GLMakie"
     "CairoMakie"
     "Meshes"
-    "Makie"
     "CSV"
     "ColorSchemes"
     "ColorTypes"
@@ -38,8 +38,13 @@ Pkg_list = [
     "Dates"
     "Markdown"
     "CommonDataFormat"
+    "Revise"
+    "StaticArrays"
+    "QuadGK"
+    "LsqFit"
 ]
 
+ENV["JULIA_PKG_SERVER"] = "https://mirrors.cernet.edu.cn/julia" # 选择镜像
 using Pkg
 for i in Pkg_list
     @time Pkg.add(i)

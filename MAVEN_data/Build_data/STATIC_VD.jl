@@ -2,7 +2,7 @@
 using Dates
 using ProgressMeter
 using FortranFiles
-using Polyester: @batch
+# using Polyester: @batch
 using Base.Threads
 using Rotations
 @spawn :interactive f()
@@ -11,7 +11,6 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 
 @inline function get_ion_vel(vsc_data,ion_data)
     # local sta_epoch = ion_data[:epoch]
-    print("\033[0;32m预分配内存中。。。 $(date)\033[0m \r")
     local time_unix = ion_data[:time_unix]
     local position = ion_data[:pos_sc_mso]
     local mag = ion_data[:magf]
@@ -160,20 +159,22 @@ for (date, file_ion, file_vsc) in common_dates
         mkpath(dir)
     end
     if !isfile(new_path)
-        print("\033[0;32mReading $(date)\033[0m \r")
-        # println(file_vsc)
-        local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
-        local ion_data = MAVEN_load.load_cdf(file_ion)
-        print("\033[0;32mBuilding $(date)\033[0m \n")
-        @time local datas_dict = get_ion_vel(vsc_data,ion_data)
-        touch(new_path)
-        try
-            print("\033[0;32mWriting $(date)\033[0m \r")
-            data2bi(datas_dict,new_path)
-            print("\033[0;32mDone Writing $(date)\033[0m \r")
-        catch e
-            print("\033[0;31mERROR: $(e)\033[0m \n")
-            rm(new_path)
+        @time begin 
+            print("\033[0;32mReading $(date)\033[0m \r")
+            # println(file_vsc)
+            local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
+            local ion_data = MAVEN_load.load_cdf(file_ion)
+            print("\033[0;32mBuilding $(date)\033[0m \n")
+            local datas_dict = get_ion_vel(vsc_data,ion_data)
+            touch(new_path)
+            try
+                print("\033[0;32mWriting $(date)\033[0m \r")
+                data2bi(datas_dict,new_path)
+                print("\033[0;32mDone Writing $(date)\033[0m \r")
+            catch e
+                print("\033[0;31mERROR: $(e)\033[0m \n")
+                rm(new_path)
+            end
         end
         
     else
