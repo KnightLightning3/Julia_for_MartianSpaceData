@@ -43,7 +43,6 @@ config['Settings'] = {
     "muti_models": "Null\n;填入想要批量下载的仪器模块, 如果为Null, 则下载所有模块\n;Fill in the instrument modules you want to download in batches. If it is Null, all modules will be downloaded.",
     "models_pass" : "MAG_ss,MAG_ss1s,MAG_pc1s,MAG_pc,KP \n;从USTC服务器上批量下载的时候默认跳过的模块,MAG数据的l3为占用更小的二进制格式,所以不需要下载l2的数据,不同模块间用英文逗号分隔\n; Modules that are skipped by default when downloading in batches from the USTC server. l3 data of the MAG is a smaller Fortran binary format, so there is no need to download the l2 data. Different modules are separated by commas.",
     "single_download": "False\n;为true时下载single_model, 为false时下载muti_models\n;true for single_model, false for muti_models",
-    "check_download_file":"False\n;检查并索引所有已下载文件,检索模式不会下载文件 \n;check and build all data already downloaded,check download file mode do not download file",
     "update_file_version" : "False\n;为True 时检查所下载文件的版本,此时下载会逐月检索所有文件 \n;update data already downloaded, on this mode, all files on server will be checked",
 }
 with open(config_file_path, "w", encoding='utf-8') as file:
