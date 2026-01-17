@@ -722,10 +722,16 @@ function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_
 end
 function get_quality_flag(x)
     #取得二进制的质量标志，Int转二进制
-    flags = [i == '1' for i in string(x, base=2)] |> reverse
+    # flags = [i == '1' for i in string(x, base=2)] |> reverse
+    flags = Vector{Bool}(undef, 16)
+    for i in 0:15
+        # (x >> i) & 1 取出第 i 位的值（0 或 1）
+        # 然后检查是否等于 1 转换为布尔值
+        flags[i+1] = ( (x >> i) & 1 ) == 1
+    end
     return flags
 end
-function compare_quality(flag,contains)
+function compare_quality(flag::Integer;bad_flags=[5,6,7,8])
     #比较质量标志是否包含某个标志
     # qf = [
     #     "test pulser on", 
@@ -762,12 +768,11 @@ function compare_quality(flag,contains)
     # ;			bit 14	ion suppression problem				- low energy ions <6eV have wrong geometric factor
     # ;			bit 15	not used =0
     # ax4.yticks = (0:15,qf)
-    local flags = get_quality_flag(flag)
-    if true in flags[contains]
-        return true
-    else   
-        return false
-    end
+    # 构造掩码：将我们关心的位全部置为 1
+    # 例如：(1 << 5) 表示第 5 位为 1，其余为 0
+    mask = sum(1 << b for b in bad_flags)
+    # 按位与运算：检查 flag 中对应的位是否有任何一个是 1
+    return (flag & mask) != 0
 end
 function rotate_vector_with_Matrix(in_data,Rotation_Matrix) # inv
     out_data = Rotation_Matrix * in_data

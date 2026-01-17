@@ -82,10 +82,6 @@ if __name__ == '__main__':
         with open(save_dir+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
             for item in file_names:
                 file.write(str(item) + '\n')
-        # filehash_list = get_filehashs(save_path,file_style)
-        # with open(save_dir+"filehash_list.csv", 'w', encoding='utf-8') as file:
-        #     for item in filehash_list:
-        #         file.write(str(item) + '\n')
     
     runpy.run_path(f'{project_path}/download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
     exit(0) # check download file mode do not download file

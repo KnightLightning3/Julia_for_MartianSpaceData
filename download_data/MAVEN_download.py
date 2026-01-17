@@ -146,6 +146,8 @@ def requests_download(url, save_path):
     global vpn_proxy, session, timeout, disable_tqdm_bar
     sleep_local(step_time)
     temp_save_path = save_path + ".pydownload"
+    if os.path.exists(temp_save_path):
+            os.remove(temp_save_path) # 清理未上次完成的残余文件
     
     try:
         print(f"\033[1;32mRequesting\033[0m: {url}...\033[K", flush=True, end=string_end)
@@ -647,44 +649,3 @@ if __name__ == '__main__':
 
     import runpy
     runpy.run_path(f"{project_path}/download_data/get_download_files.py")  # run get_download_files.py, update filename_list.txt
-    if update_file_version:
-        print("比较和删除旧版文件")
-
-        # def find_downloaded_version(file_names,filename, element,path): 逻辑： 获取某种模块下的所有文件机器路径，找出日期重复的部分，比较v和r（如果有的话），保留新的那个
-#     if file_names is None:
-#         print("第一次下载")
-#         return False
-#     for file1 in file_names:
-#         if element in file1:
-#             v_old = int(re.findall(r"_v\d{2}_", file1)[0][2:4])
-#             v_new = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
-#             r_old = int(re.findall(r"_r\d{2}", file1)[0][2:4])
-#             r_new = int(re.findall(r"_r\d{2}", filename)[0][2:4])
-#             if v_new > v_old or (v_new == v_old and r_new > r_old) :
-#                 os.remove(path+file1) #删除path1的文件
-#                 print(f"\033[0;31mRemove old Version of {element}_v{v_old}_r{r_old}\033[0m ")
-#                 return False
-#             else:
-#                 return True
-#     return False
-
-    # for model in models:
-    #     if model in ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc","SWEA_spec","LPW_mrgscpot"]:
-    #         continue
-    #     if model in ["SWEA_pad_arc","SWEA_pad_svy","KP"]:
-    #         continue
-    #     url_path,save_path,file_style = download_model(model)
-    #     file_names = os.listdir(save_path)
-    #     if model == 'KP':
-    #         counter = file_check(file_names,save_path,'kp')
-    #     else:
-    #         counter = file_check(file_names,save_path,'cdf')
-
-    #     file_names = os.listdir(save_path)
-    #     with open("E:/MAVEN/lists/"+model+'_list.txt', 'w') as file:
-    #         for item in file_names:
-    #             file.write(str(item) + '\n')
-    #     with open("download.log","a") as file:
-    #         file.write( f"{model}中{counter}个文件被删除"+"\n" )
-    #         print( f"{model}中{counter}个文件被删除"+"\n" )
-    # exit(0)
