@@ -29,9 +29,10 @@ config['VPN_proxy'] = {
     "USTC_server": "None\n;vpn设置,None为不使用VPN,校外访问时可以忽略\n;VPN settings, None means no VPN is used, which can be ignored when accessing outside the school.",
 }
 config['Properties'] = {
-    "download_mode": "python.request \n;python.request:通过request方式下载文件 \n;win.idm:通过IDM下载文件,需要安装IDM软件,IDM可以启动多线程,但是下载程序将无法追踪下载进度,需要自行在软件中查看并启动文件录入功能(download_data/check_exist_files.py)",
+    "download_mode": "python.request \n;python.request:通过request方式下载文件 \n;win.idm:通过IDM下载文件,需要安装IDM软件,IDM可以启动多线程,但是下载程序将无法追踪下载进度,需要自行在软件中查看并启动文件录入功能(download_data/check_exist_files.py) \n Aria2c,通过Aria2c下载文件",
     "continue_download": "True\n;为True时继续下载未完成的文件,为False时重新下载所有文件, 首次启动必然false\n;True to continue downloading unfinished files, False to redownload all files",
     "IDM_program_path" : "C:\Program Files (x86)\Internet Download Manager\IDMan.exe",
+    "Aria2c_program_path" : "D:\software\aria2-1.37.0-win-64bit-build1\aria2c.exe",
     'max_threads' : "5 \n; 多线程的线程数量",
     'show_tqdm_bar': "False \n; 是否显示下载进度条(多线程下会出错)",
 }
