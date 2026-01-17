@@ -36,7 +36,7 @@ Server_ind = config_data.getint('Servers','Server_ind')
 url_path_0 = config_data['Servers'][Server_ind]
 sleep_time = config_data.getint('DEFAULT','sleep_time')
 step_time = config_data.getint('DEFAULT','step_time')
-timeout = None
+timeout = 60
 
 continue_download = config_data['Properties'].getboolean('continue_download')
 download_mode = config_data['Properties']['download_mode']
@@ -78,7 +78,7 @@ else:
     string_end = "\n"
 def sleep_local(sleep_time_range):
     for i in range(sleep_time_range):
-        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end=string_end,flush=True)
+        print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r",flush=True)
         sleep(1)
     return None
 def test_proxies():
@@ -213,13 +213,76 @@ def idm_add_download_links(url,save_path,filename):
     result = subprocess.run(command, check=False, capture_output=True, text=True, encoding='utf-8')
     # print(command)
     return result.returncode == 0
-def idm_download():
-    command = [
-        config_data["Properties"]["IDM_program_path"],
-        "/s"
+def aria2_download(url, save_path):
+    global vpn_proxy, timeout, disable_tqdm_bar, step_time, sleep_time
+    
+    sleep_local(step_time)
+
+    # 路径与临时文件处理
+    temp_save_path = save_path + ".aria2download"
+    dir_save_path = os.path.dirname(temp_save_path)
+    file_name = os.path.basename(temp_save_path)
+    if dir_save_path and not os.path.exists(dir_save_path):
+        os.makedirs(dir_save_path)
+
+    # 构建命令
+    cmd = [
+        config_data["Properties"]["Aria2c_program_path"],
+        url,
+        "--dir", dir_save_path,
+        "--out", file_name,
+        "--continue=true",              # 开启断点续传
+        "--max-connection-per-server", str(max_threads),
+        "--split", str(max_threads),
+        "--connect-timeout", str(timeout),
+        "--timeout", str(timeout),
+
+        "--max-tries", "5",             # 设置单次进程运行时的最大重试次数
+        "--retry-wait", "10",           # 每次重试之间等待 10 秒
+
+        "--disk-cache", "64M",          # RAID5 保护：内存缓存
+        "--file-allocation", "falloc",  # RAID5 保护：预分配空间
+        "--console-log-level=warn",
+        "--summary-interval=0",
     ]
-    result = subprocess.run(command, check=False, capture_output=True, text=True, encoding='utf-8')
-    return result.returncode == 0
+    # 代理处理
+    if vpn_proxy and 'http' in vpn_proxy:
+        cmd.append(f"--all-proxy={vpn_proxy['http']}")
+
+    # 如果需要静默模式
+    if disable_tqdm_bar:
+        cmd.append("--quiet=true")
+
+    try:
+        print(f"\033[1;32mAria2 Loading\033[0m: {url}...\033[K", flush=True, end='\r')
+        time_start = time.time()
+
+        # 执行下载
+        process = subprocess.run(cmd, capture_output=True, text=True)
+
+        if process.returncode == 0:
+            if os.path.exists(temp_save_path):
+                if os.path.exists(save_path):# 如果最终目标已存在，先清理
+                    os.remove(save_path)
+                os.rename(temp_save_path, save_path)
+
+                total_size = os.path.getsize(save_path)
+                elapsed = time.time() - time_start
+                speed = total_size / elapsed if elapsed > 0 else 0
+                
+                return 200, True, (
+                    download_unit_convert(total_size), 
+                    f"{round(elapsed, 2)} s", 
+                    f"{download_unit_convert(speed)}/s"
+                )
+        else:
+            error_output = process.stdout + process.stderr
+            print(f"Aria2 Failed (Code {process.returncode}): {error_output}")
+
+    except Exception as e:
+        print(f"Aria2 execution failed: {e}")
+
+    return "error", False, ("error", "error", "error")
 def download_model(model):
     global Server_ind
     global url_path_0
@@ -243,23 +306,6 @@ def find_downloaded_file(file_names, element):
     for file_name in file_names:
         if element in file_name:
             return True
-    return False
-def find_downloaded_version(file_names,filename, element,path):
-    if file_names is None:
-        print("第一次下载")
-        return False
-    for file1 in file_names:
-        if element in file1:
-            v_old = int(re.findall(r"_v\d{2}_", file1)[0][2:4])
-            v_new = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
-            r_old = int(re.findall(r"_r\d{2}", file1)[0][2:4])
-            r_new = int(re.findall(r"_r\d{2}", filename)[0][2:4])
-            if v_new > v_old or (v_new == v_old and r_new > r_old) :
-                os.remove(path+file1) #删除path1的文件
-                print(f"\033[0;31mRemove old Version of {element}_v{v_old}_r{r_old}\033[0m ")
-                return False
-            else:
-                return True
     return False
 def read_last_line_large_file(filename):
     with open(filename, 'r', encoding='utf-8') as f:
@@ -312,8 +358,13 @@ def file_check(file_names,save_path,model):
                     print(f,"False")
                     counter+=1
             return counter
+def get_element_from_filename(filename): # 取得文件名对应的版本等信息
+    v_data = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
+    date_str = re.findall(r"\d{8}", filename)[0]
+    r_data = int(re.findall(r"_r\d{2}", filename)[0][2:4])
+    return (date_str,v_data,r_data,filename)
 def search_downloaded_files(save_path,file_style):
-    filenames =[]
+    filename_data =[]
     yyyy = os.listdir(save_path)
     for iy in yyyy:
         mm   = os.listdir(save_path+iy+"/")
@@ -321,8 +372,8 @@ def search_downloaded_files(save_path,file_style):
             files = os.listdir(save_path+iy+"/"+im+"/")
             filepaths = [iy+"/"+im+"/"+file for file in files if re.match(file_style,file)]
             for filepath in filepaths:
-                filenames.append(filepath)
-    return filenames
+                filename_data.append(get_element_from_filename(filepath))
+    return filename_data
 def month_delta(datetime_current): # 向前前进到下个月月初
     current_month = datetime_current.month
     current_year = datetime_current.year
@@ -340,7 +391,26 @@ def download_from_head(head,num_links_added,num_links):
         if cmd_status_code:
             # print(f'\033[1;32mIDM link added {num_links_added}/{num_links}\033[0m',end='\r')
             return f'\033[1;32mIDM link added {num_links_added}/{num_links}\033[0m'
-    if download_mode == 'python.request':
+    elif download_mode == "Aria2c":
+        url_status_code,logic,progress_data = aria2_download(url_path,save_path+filename)
+        time_now = datetime.datetime.now()
+        try: # 尝试读取v和r
+            v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
+        except:
+            v_new = "_vXX"
+        try:
+            r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
+        except:
+            r_new = "_rXX"
+        if logic:
+            download_speed = progress_data[2]
+            download_elapsed = progress_data[1]
+            download_size = progress_data[0]
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
+            
+        else:
+            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
+    elif download_mode == 'python.request':
         url_status_code,logic,progress_data = requests_download(url_path,save_path+filename)
         time_now = datetime.datetime.now()
         try: # 尝试读取v和r
@@ -375,18 +445,6 @@ def download_from_head(head,num_links_added,num_links):
 
 if __name__ == '__main__':
     os.makedirs(save_dir+"lists/", exist_ok=True)
-    if check_download_file:
-        for model in json_data["data_model"].keys():
-            url_path,save_path,file_style = download_model(model)
-            file_names = search_downloaded_files(save_path,file_style)
-            if file_names is None:
-                continue
-            with open(save_dir+"lists/"+model+'_list.txt', 'w', encoding='utf-8') as file:
-                for item in file_names:
-                    file.write(str(item) + '\n')
-        import runpy
-        runpy.run_path(f'{project_path}/download_data/get_download_files.py')  # run get_download_files.py, update filename_list.txt  
-        exit(0) # check download file mode do not download file
     if vpn_proxy == None:
         print("\033[1;32m No VPN \033[0m")
     else:
@@ -432,35 +490,48 @@ if __name__ == '__main__':
             os.makedirs(save_path)
         file_names = search_downloaded_files(save_path,file_style)
 
-        # 跳过前期下载的文件
+        all_date = [f[1] for f in file_names]
+
+        # 取得需要查询的所有日期参数
         all_planed_file_dates = []
-        all_yyyymm_set = set()
-        all_years_set = set()
-        while current_date <= end_date:
-            date=str(current_date.strftime("%Y%m%d"))
-            if (not find_downloaded_file(file_names, date)) or (update_file_version):
+        if update_file_version:
+            while current_date <= end_date:
+                date=str(current_date.strftime("%Y%m%d"))
                 all_planed_file_dates.append(date)
-                all_yyyymm_set.add(str(current_date.strftime("%Y/%m/")))
-                all_years_set.add(str(current_date.strftime("%Y/")))
-            current_date+=datetime.timedelta(days=1)
+                current_date+=datetime.timedelta(days=1)
+        else: 
+            while current_date <= end_date:
+                date=str(current_date.strftime("%Y%m%d"))
+                if date in all_date:
+                    continue
+                all_planed_file_dates.append(date)
+                current_date+=datetime.timedelta(days=1)
+                
         if all_planed_file_dates == []:
             print(f"\033[1;32m{model} 计划内已经全部下载\033[0m")
             continue
         else:
             print(f"\033[1;32m{model} 计划查找{len(all_planed_file_dates)}个日期\033[0m")
-        urls_status_code,bool_urls,urls_years = search_url(url_path,r'\d{4}/')# 取得服务器的所有年
+        # 日期参数对应的年月集合
+        all_yyyymm_set={d[:4] + "/" + d[4:6] + "/" for d in all_planed_file_dates}
+        all_years_set = {d[:5] for d in all_yyyymm_set}
+        # 取得服务器的所有年
+        urls_status_code,bool_urls,urls_years = search_url(url_path,r'\d{4}/')
         if not bool_urls:
             print("\033[1;31m连接失败\033[0m")
             continue
         years_need_to_access = set(urls_years) & all_years_set
+        # 取得服务器的所有月
         server_yyyymm = []
         for yyyy in years_need_to_access:
-            urls_status_code,bool_urls,urls_months = search_url(url_path+yyyy,r'\d{2}/')# 取得服务器的所有月
+            urls_status_code,bool_urls,urls_months = search_url(url_path+yyyy,r'\d{2}/')
             if not bool_urls:
                 continue
             server_yyyymm.extend([yyyy+m for m in urls_months])
         yyyymm_need_to_access = set(server_yyyymm) & all_yyyymm_set
+
         download_heads_model = []
+        # 取得服务器的所有日
         for yyyymm in yyyymm_need_to_access:
             urls_status_code,bool_urls,urls = search_url(url_path+yyyymm,file_style)
             if not bool_urls:
@@ -471,11 +542,9 @@ if __name__ == '__main__':
                 print(f'Found \033[0;32m {len(urls)} \033[1;34m{model}\033[0m files in '+yyyymm+'\033[0m\033[K',end='\n')
             for url in urls:
                 filename = str(url)
-                date=re.findall(r"\d{8}", filename)[0]
-                if not(date in all_planed_file_dates):
-                    continue
-                # 添加文件地址
-                download_heads_model.append((model,date,url_path+yyyymm+filename,filename,save_path+yyyymm))
+                date_str,v_data,r_data, _ = get_element_from_filename(filename)
+                if date_str in all_planed_file_dates:
+                    download_heads_model.append((model,date_str,url_path+yyyymm+filename,filename,save_path+yyyymm,v_data,r_data))
         print(f"\033[1;32m{model} 完成查找{len(download_heads_model)}个日期\033[0m")
         download_heads.extend(download_heads_model)
             
@@ -489,12 +558,52 @@ if __name__ == '__main__':
     # 清理已经存在的文件
     skip_num = 0
     download_heads_cleaned = []
+    print("\033[1;33m正在校验本地文件并同步版本状态...\033[0m")
+    
     for head in download_heads:
-        model,date,url_path,filename,save_path = head
-        if not os.path.exists(save_path+filename):
-            download_heads_cleaned.append(head)
-        else:
+        model, date, url_full, filename, save_path, new_v, new_r = head
+        target_file_path = os.path.join(save_path, filename)
+
+        if os.path.exists(target_file_path):# 目标文件已经存在 (且版本完全一致)
             skip_num += 1
+            continue
+
+        # 情况 B: 目标文件不存在，或者需要更新版本
+        # 1. 扫描当前目录下同日期、同 model 的旧文件
+        if os.path.exists(save_path):
+            _, _, file_style = download_model(model)
+            try:
+                # 获取该目录下所有符合命名规则的文件名
+                existing_files = [f for f in os.listdir(save_path) if re.match(file_style, f)]
+                
+                is_newer_than_local = True
+                for old_f in existing_files:
+                    try:
+                        old_date, old_v, old_r, _ = get_element_from_filename(old_f)
+                        
+                        # 仅当日期匹配时进行版本比对
+                        if old_date == date:
+                            # 核心逻辑：元组比对 (v, r)
+                            if (old_v, old_r) < (new_v, new_r):
+                                os.remove(os.path.join(save_path, old_f))
+                                print(f"检测到新版本，已删除旧版: \033[1;31m{old_f}\033[0m")
+                            elif (old_v, old_r) > (new_v, new_r):
+                                is_newer_than_local = False
+                                print(f"本地版本更高({old_f})，跳过服务器低版本: {filename}")
+                    except:
+                        continue
+                
+                # 2. 如果服务器文件是更新的（或本地无同日期文件），加入下载列表
+                if is_newer_than_local:
+                    download_heads_cleaned.append(head)
+                else:
+                    skip_num += 1
+            except Exception as e:
+                print(f"处理目录 {save_path} 时出错: {e}")
+                download_heads_cleaned.append(head)
+        else:
+            # 目录不存在，直接加入下载列表
+            download_heads_cleaned.append(head)
     if skip_num > 0:
         print(f"\033[1;32m{skip_num}\033[0m files already exist, skip downloading.", flush=True,end='\n')
     num_links = len(download_heads_cleaned)
@@ -503,33 +612,62 @@ if __name__ == '__main__':
     # 启动下载记录
     io_download_log = open('download_data/download.log', 'w', encoding='utf-8')
     # 多线程下载
-    with ThreadPoolExecutor(max_workers=max_threads) as executor:
-        future_to_task_info = {
-            executor.submit(download_from_head, head, i + 1, num_links): (head, i + 1)
-            for i, head in enumerate(download_heads_cleaned)
-            }
-        print("\n--- 正在等待下载任务完成，并实时打印结果... ---\n")
-        for future in as_completed(future_to_task_info):
-            original_head, task_id = future_to_task_info[future]
+    print(f"download_mode = {download_mode}")
+    if download_mode == "python.request" or download_mode == "win.idm":
+        print(111)
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            future_to_task_info = {
+                executor.submit(download_from_head, head, i + 1, num_links): (head, i + 1)
+                for i, head in enumerate(download_heads_cleaned)
+                }
+            print("\n--- 正在等待下载任务完成，并实时打印结果... ---\n")
+            for future in as_completed(future_to_task_info):
+                original_head, task_id = future_to_task_info[future]
+                try:
+                    # 获取任务函数的实际返回值
+                    result_string = future.result()
+                    result_string_0 = result_string
+                except Exception as exc:
+                    result_string_0 = f"\033[1;31m错误\033[0m 任务:{task_id} (处理 '{original_head}') 执行出错: {exc}"
+                print(result_string_0, flush=True,end='\n') # 实时打印完成结果
+                io_download_log.write(result_string_0+'\n')
+                io_download_log.flush()
+    elif download_mode == "Aria2c":
+        for i, head in enumerate(download_heads_cleaned):
             try:
-                # 获取任务函数的实际返回值
-                result_string = future.result()
+                result_string = download_from_head(head, i+1, num_links)
                 result_string_0 = result_string
             except Exception as exc:
-                result_string_0 = f"\033[1;31m错误\033[0m 任务:{task_id} (处理 '{original_head}') 执行出错: {exc}"
+                result_string_0 = f"\033[1;31m错误\033[0m '{head[2]}' 出错: {exc}"
             print(result_string_0, flush=True,end='\n') # 实时打印完成结果
             io_download_log.write(result_string_0+'\n')
             io_download_log.flush()
-    io_download_log.close()        
-                
-    if download_mode == 'win.idm':
-        idm_download()
-        print(f'\033[1;32mIDM downloading start, check software.\033[0m')
+
+    io_download_log.close()
 
     import runpy
     runpy.run_path(f"{project_path}/download_data/get_download_files.py")  # run get_download_files.py, update filename_list.txt
+    if update_file_version:
+        print("比较和删除旧版文件")
 
-#文件检查
+        # def find_downloaded_version(file_names,filename, element,path): 逻辑： 获取某种模块下的所有文件机器路径，找出日期重复的部分，比较v和r（如果有的话），保留新的那个
+#     if file_names is None:
+#         print("第一次下载")
+#         return False
+#     for file1 in file_names:
+#         if element in file1:
+#             v_old = int(re.findall(r"_v\d{2}_", file1)[0][2:4])
+#             v_new = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
+#             r_old = int(re.findall(r"_r\d{2}", file1)[0][2:4])
+#             r_new = int(re.findall(r"_r\d{2}", filename)[0][2:4])
+#             if v_new > v_old or (v_new == v_old and r_new > r_old) :
+#                 os.remove(path+file1) #删除path1的文件
+#                 print(f"\033[0;31mRemove old Version of {element}_v{v_old}_r{r_old}\033[0m ")
+#                 return False
+#             else:
+#                 return True
+#     return False
+
     # for model in models:
     #     if model in ["MAG_ss1s","MAG_pc1s","MAG_ss","MAG_pc","SWEA_spec","LPW_mrgscpot"]:
     #         continue
