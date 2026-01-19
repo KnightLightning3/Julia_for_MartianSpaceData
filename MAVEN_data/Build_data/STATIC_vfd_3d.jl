@@ -135,7 +135,7 @@ for (date, file_ion, file_vsc) in common_dates
     @time if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
         local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
-        local ion_data = MAVEN_load.load_STATIC(file_ion)
+        local ion_data = MAVEN_load.load_cdf(file_ion)
         local datas_dict = get_ion_vel(vsc_data,ion_data)
         touch(new_path)
         try
@@ -145,9 +145,8 @@ for (date, file_ion, file_vsc) in common_dates
             print("\033[0;31mERROR: $(e)\033[0m \n")
             rm(new_path)
         end
-        
     else
-        print("\033[0;33mSKIP $(date)\033[0m \r")
+        print("\033[0;33mSKIP $(date)\033[0m \n")
     end
 end
 # date, file_ion, file_vsc = common_dates[1];

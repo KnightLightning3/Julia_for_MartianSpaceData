@@ -291,9 +291,9 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     for key in keys(dat)
         dat_slip[key] = dat[key]
     end
-    local swp_ind = dat[:swp_ind][time_ind]
-    local att_ind = dat[:att_ind][time_ind]
-    local eff_ind = dat[:eff_ind][time_ind]
+    local swp_ind = dat[:swp_ind][time_ind]+1
+    local att_ind = dat[:att_ind][time_ind]+1
+    local eff_ind = dat[:eff_ind][time_ind]+1
 
     dat_slip[:epoch]        = dat[:epoch][time_ind]
     dat_slip[:eflux]        = @views dat[:eflux][time_ind,:,:,:]
@@ -313,15 +313,15 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip[:magf]         = @views dat[:magf][time_ind,:]
     dat_slip[:pos_sc_mso]   = @views dat[:pos_sc_mso][time_ind,:]
     
-    dat_slip[:energy]   = @views dat[:energy][:,:,:,swp_ind+1]
-    dat_slip[:denergy]  = @views dat[:denergy][:,:,:,swp_ind+1]
-    dat_slip[:theta]    = @views dat[:theta][:,:,:,swp_ind+1]
-    dat_slip[:phi]      = @views dat[:phi][:,:,:,swp_ind+1]
-    dat_slip[:dtheta]   = @views dat[:dtheta][:,:,:,swp_ind+1]
-    dat_slip[:dphi]     = @views dat[:dphi][:,:,:,swp_ind+1]
-    dat_slip[:mass_arr] = @views dat[:mass_arr][:,:,:,swp_ind+1]
-    dat_slip[:gf]       = @views dat[:gf][att_ind+1,:,:,swp_ind+1]
-    dat_slip[:eff]      = @views dat[:eff][:,:,:,eff_ind+1]
+    dat_slip[:energy]   = @views dat[:energy][:,:,:,swp_ind]
+    dat_slip[:denergy]  = @views dat[:denergy][:,:,:,swp_ind]
+    dat_slip[:theta]    = @views dat[:theta][:,:,:,swp_ind]
+    dat_slip[:phi]      = @views dat[:phi][:,:,:,swp_ind]
+    dat_slip[:dtheta]   = @views dat[:dtheta][:,:,:,swp_ind]
+    dat_slip[:dphi]     = @views dat[:dphi][:,:,:,swp_ind]
+    dat_slip[:mass_arr] = @views dat[:mass_arr][:,:,:,swp_ind]
+    dat_slip[:gf]       = @views dat[:gf][att_ind,:,:,swp_ind]
+    dat_slip[:eff]      = @views dat[:eff][:,:,:,eff_ind]
 
     if haskey(dat, :df_mass_mass)
         dat_slip[:df_mass_mass] = dat[:df_mass_mass][time_ind,:,:,:]
@@ -358,7 +358,6 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
         data0=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
     
-    local energy = dat[:energy]
     local denergy = dat[:denergy]
     local theta = dat[:theta].*inv_RADG
     local phi = dat[:phi] .*inv_RADG
@@ -367,19 +366,12 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    local masked_data = data0.*(mass_range[1] .<= mass_arr .<= mass_range[2] .&& energy_range[1] .<= energy .<= energy_range[2])
-
-    # if m_int != 0
-    # mass_arr[:] .= m_int
-    # else
-    #     mass_arr=round.(mass_arr .-0.1) # the minus 0.1 helps account for straggling at low mass
-    #     mass_arr[mass_arr .< 1] .= 1.0
-    # end
+    local masked_data = data0.*(mass_range[1] .<= mass_arr .<= mass_range[2] .&& energy_range[1] .<= dat[:energy] .<= energy_range[2])
 
     local mass=dat[:mass]*m_int
     
     local Const = 2.0/mass/mass*1e5
-    local energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy=copy(dat[:energy]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
 
     local flux0 = Const.*denergy.*energy.*masked_data
@@ -481,7 +473,6 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
         data0=dat[:df_mass_mass] .*m_int^2  #取得相空间密度
     end
 
-    local energy = dat[:energy] 
     local denergy = dat[:denergy] 
     local theta = dat[:theta].*inv_RADG
     # local phi = dat[:phi] .*inv_RADG
@@ -490,14 +481,14 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask1 =  energy_range[1] .<= dat[:energy] .<= energy_range[2]
     local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
     local mask = mask1 .& mask2
     local masked_data = data0.*mask
     
     local mass=dat[:mass]*m_int
     
-    local energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy=copy(dat[:energy]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
 
     local Const = mass^(-1.5)*2.0^(0.5)
@@ -606,108 +597,75 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
 end
 
 #-----------------基于c6数据包的3d(time,energy,mass)计算
-function STA_count3df(dat;time_ind = []) #计算c6数据的df,必须有时间轴
-    ntime   = dat[:num_dists]
-    nbins   = dat[:nbins]
+function STA_count3df(dat) #计算c6数据的df,必须有时间轴
+    ntime = dat[:num_dists]
     nenergy = dat[:nenergy]
-    nmass   = dat[:nmass]
-    energy = zeros(ntime,nmass,nenergy)
-    denergy = zeros(ntime,nmass,nenergy)
-    mass_arr = zeros(ntime,nmass,nenergy)
-    phi = zeros(ntime,nmass,nenergy)
-    dphi = zeros(ntime,nmass,nenergy)
-    theta = zeros(ntime,nmass,nenergy)
-    dtheta = zeros(ntime,nmass,nenergy)
-    gf = zeros(ntime,1,nenergy)
-    eff = zeros(ntime,nmass,nenergy)
-    # if time_ind == []
-    time_ind_local = 1:ntime
-    # end
-    for i in time_ind_local
-        swp_ind = dat[:swp_ind][i]
-        att_ind = dat[:att_ind][i]
-        eff_ind = dat[:eff_ind][i]
-        energy[i,:,:] = dat[:energy][:,:,swp_ind+1]
-        denergy[i,:,:] = dat[:denergy][:,:,swp_ind+1]
-        mass_arr[i,:,:] = dat[:mass_arr][:,:,swp_ind+1]
-        
-        theta[i,:,:] = dat[:theta][:,:,swp_ind+1]
-        phi[i,:,:] = dat[:phi][:,:,swp_ind+1]
-        dtheta[i,:,:] = dat[:dtheta][:,:,swp_ind+1]
-        dphi[i,:,:] = dat[:dphi][:,:,swp_ind+1]
-        
-        gf[i,:,:] = dat[:gf][att_ind+1,:,swp_ind+1]
-        eff[i,:,:] = dat[:eff][:,:,eff_ind+1]
+    nmass = dat[:nmass]
+
+    swp_indices = dat[:swp_ind] .+ 1
+    att_indices = dat[:att_ind] .+ 1
+    eff_indices = dat[:eff_ind] .+ 1
+
+    function expand_3d(src_key)
+        src = dat[src_key]
+        res = src[:, :, swp_indices]
+        return permutedims(res, (3, 1, 2)) # 变为 (ntime, nmass, nenergy)
     end
-    dat[:energy3d] = energy
-    dat[:denergy3d] = denergy
-    dat[:mass_arr3d] = mass_arr
-    dat[:phi3d] = phi
-    dat[:dphi3d] = dphi
-    dat[:theta3d] = theta
-    dat[:dtheta3d] = dtheta
-    dat[:gf3d] = gf
-    dat[:eff3d] = eff # 重新按时间排布的数据
-    G    = dat[:geom_factor].*eff.*gf
+
+    dat[:energy3d]   = expand_3d(:energy)
+    dat[:denergy3d]  = expand_3d(:denergy)
+    dat[:mass_arr3d] = expand_3d(:mass_arr)
+    dat[:phi3d]      = expand_3d(:phi)
+    dat[:dphi3d]     = expand_3d(:dphi)
+    dat[:theta3d]    = expand_3d(:theta)
+    dat[:dtheta3d]   = expand_3d(:dtheta)
+
+    dat[:eff3d] = dat[:eff][:, :, eff_indices] |> p -> permutedims(p, (3, 1, 2))
+
+    # gf 需要三轴索引映射，逻辑稍复杂，保持循环但优化性能
+    gf_3d = zeros(eltype(dat[:gf]), ntime, 1, nenergy)
+    for i in 1:ntime
+        @views gf_3d[i, 1, :] .= dat[:gf][att_indices[i], :, swp_indices[i]]
+    end
+    dat[:gf3d] = gf_3d
+
+    G    = dat[:geom_factor].*dat[:eff3d].*dat[:gf3d]
     dt   = dat[:time_integ]
-    mass = dat[:mass]
     dead = dat[:dead]						# dead time array usec for STATIC
     bkg = dat[:bkg]					# background array usec for STATIC
     tmp = dat[:data]
 
-    tmp = (tmp .- bkg ).*dead
-    scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
-    df_t = scale .* tmp
-    dat[:df] = df_t .*mass_arr.^2
-    dat[:df_mass_mass] = df_t # 没有乘以质量数的平方
+    scale = dat[:mass]^2*5e-6
+    dat[:df_mass_mass] = @.scale *(tmp - bkg) * dead / (dt * G * dat[:energy3d]^2)# 没有乘以质量数的平方
+    dat[:df] = @. dat[:df_mass_mass] *dat[:mass_arr3d]^2
+
     return dat
 end
-function sta_v_1d(dat0;energy_range=[0,1e5],mass_range=[10,20],m_int = 16, time_ind = [])#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3 time_ind暂时无效，计算全域数据
-    local dat= deepcopy(dat0)
-    ntime = dat[:num_dists]
-    # if time_ind == []
-    #     time_ind_local = 1:ntime
-    # else
-    #     time_ind_local = time_ind
-    # end
+function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16)#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3 time_ind暂时无效，计算全域数据
+    # local dat= deepcopy(dat0)
+    local ntime = dat[:num_dists]
     
     local data0=dat[:df_mass_mass] .*m_int^2
-    local energy = dat[:energy3d]
     local denergy = dat[:denergy3d]
     local theta = dat[:theta3d].*inv_RADG
-    local phi = dat[:phi3d] .*inv_RADG
+    # local phi = dat[:phi3d] .*inv_RADG
     local dtheta = dat[:dtheta3d] .*inv_RADG
     local dphi = dat[:dphi3d] .*inv_RADG
     local mass_arr = dat[:mass_arr3d]
     local pot = reshape(dat[:sc_pot],ntime,1,1)
 
-    # local energy = dat[:energy] 
-    # local denergy = dat[:denergy] 
-    # local theta = dat[:theta].*inv_RADG
-    # local phi = dat[:phi] .*inv_RADG
-    # local dtheta = dat[:dtheta] .*inv_RADG
-    # local dphi = dat[:dphi] .*inv_RADG
-    # local mass_arr = dat[:mass_arr]
-    # local pot = dat[:sc_pot]
-
-    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask1 =  energy_range[1] .<= dat[:energy3d] .<= energy_range[2]
     local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
-    local mask = mask1 .& mask2
-    local masked_data = data0.*mask
+    local masked_data = data0.*(mask1 .& mask2)
     
     local mass=dat[:mass]*m_int
     
     local Const = 2.0/mass/mass*1e5
-    local energy=energy.+pot		# energy/charge analyzer, require positive energy
+    local energy=copy(dat[:energy3d]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
 
-    
     local flux0 = Const.*denergy.*energy.*masked_data .*4π # 4PI为去除全向
-    # theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
-    # flux3dx = sum(flux0.*theta0.*cos.(phi);dims=2:3)
-    # flux3dy = sum(flux0.*theta0.*sin.(phi);dims=2:3)
-    # flux3dz = sum(flux0.*(2.0.*sin.(theta).*cos.(theta).*sin.(dtheta./2.0).*cos.(dtheta./2.0)).*dphi;dims=2:3)
-    local flux =  sum(flux0;dims=2:3)[:,1,1]#sqrt.(flux3dx.^2 .+ flux3dy.^2 .+ flux3dz.^2)[:,1,1] #  #units are 1/cm^2-s
+    local flux =  sum(flux0;dims=2:3)[:,1,1] # units are 1/cm^2-s
 
     local Const = mass^(-1.5)*2.0^(0.5)
     local density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi;dims=2:3)[:,1,1]
@@ -853,74 +811,16 @@ const inv_RADG=π/180.0
 # vv0^2 * 0.5*32*Mp/EV
 end # module
 
+# # # # -------------------------Test parts-------------------------
 
-# # # -------------------------Test parts-------------------------
+# using Test, Statistics, BenchmarkTools
 # include("MAVEN_load.jl");import .MAVEN_load;
 # include("MAVEN_plot.jl");import .MAVEN_plot;
 # import .MAVEN_STATIC;
 # using Dates
-# using CairoMakie
-# using BenchmarkTools
-# using Statistics
+# using GLMakie
 # using LinearAlgebra
-# using Printf
-# using Revise
-
-# if !@isdefined(ion_data)
-#     datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_d1"])
-#     global ion_data = datas_dict["STATIC_d1"]
-# end
-# time_ind = 1000
-# diff_den = Float64[]
-# diff_vel = Float64[]
-# println("\n[1] static_slip 开销:")
-# @btime dat_slip = MAVEN_STATIC.static_slip($ion_data, 1)
-
-# # 准备一个基础切片用于后续测试
-# dat_slip = MAVEN_STATIC.static_slip(ion_data, 1)
-# dat_slip_df = MAVEN_STATIC.STA_count2df(dat_slip)
-# # 2. 测试 STA_count2df (预处理函数)
-# println("\n[2] STA_count2df 开销:")
-# @btime dat_slip_processed = MAVEN_STATIC.STA_count2df($dat_slip)
-
-# # 3. 对比 sta_v_4d 旧版 vs 新版
-# println("\n[3] sta_v_4d (旧版 - 数组掩码模式) 开销:")
-# @btime vel_o, flux_o, den_o = MAVEN_STATIC.sta_v_4d($dat_slip_df; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
-
-# println("\n[4] sta_v_4d_new (新版 - 零分配生成器) 开销:")
-# @btime vel_n, flux_n, den_n = MAVEN_STATIC.sta_v_4d_new($dat_slip_processed; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
-
-# for time_i in 1:10
-#     # 获取切片并处理
-#     d_slip = MAVEN_STATIC.static_slip(ion_data, time_i)
-#     d_slip = MAVEN_STATIC.STA_count2df(d_slip)
-    
-#     # 运行两个版本
-#     v_o, f_o, den_o = MAVEN_STATIC.sta_v_4d(d_slip; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
-#     v_n, f_n, den_n = MAVEN_STATIC.sta_v_4d_new(d_slip; energy_range=[0, 1e5], mass_range=[0, 1.3], m_int=1, unit_cover=false)
-    
-#     # 计算差异并存入数组
-#     push!(diff_den, den_o - den_n)
-#     push!(diff_vel, norm(v_o - v_n)) # 计算速度矢量的欧氏距离差异
-    
-#     # 每 1000 个点打印一次，确保程序没跑死
-#     if time_i % 1000 == 0
-#         @printf("进度: %d/%d | 当前密度差: %.2e\n", time_i, ntime, den_o - den_n)
-#     end
-# end
-
-# # 统计分析
-# println("\n=== 最终差异报告 ===")
-# @printf("密度最大偏差: %.2e\n", maximum(abs.(diff_den)))
-# @printf("平均速度偏差: %.2e km/s\n", mean(diff_vel))
-
-
-# # # -------------------------Test parts-------------------------
-# include("MAVEN_load.jl");import .MAVEN_load;
-# include("MAVEN_plot.jl");import .MAVEN_plot;
-# import .MAVEN_STATIC;
-# using Dates
-# using CairoMakie
+# GLMakie.activate!()
 # kp_vars_dict = Dict(
 #     :B_SS_x => 128,
 #     :B_SS_y => 130,
@@ -936,30 +836,93 @@ end # module
 #     :O_f => 84,
 #     :H_f => 78,
 #     )
-# datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
-# kp_data = MAVEN_load.convert_kp_l3(datas_dict["KP_l3"];kp_dict=kp_vars_dict)
-# sta_data = copy(datas_dict["STATIC_c6"])
-# sta_d1_data = copy(datas_dict["STATIC_d1"])
-# @time sta_fdata = MAVEN_STATIC.STA_count3df(sta_data)
-# @time Ov,Of,On = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[13,19],m_int = 16)
-# @time O2v,O2f,O2n = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[20,40],m_int = 32)
-# # @time Hv,Hf,Hn = MAVEN_STATIC.sta_v_1d(sta_fdata;energy_range=[0,1e8],mass_range=[0.5,1.5],m_int = 1)
+# # datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
+# # --- 执行验证 ---
+
+# time_range = [DateTime(2015,10,29,11,20),DateTime(2015,10,29,11,40)]
+# # time_i_kp = findall(x->x>=time_range[1] && x<=time_range[2],kp_data[:time])
+# # time_i_sta = findall(x->x>=time_range[1] && x<=time_range[2],sta_data[:epoch])
+# # time_i_d1 = findall(x->x>=time_range[1] && x<=time_range[2],d1_data[:epoch])
+
+# sta_data = deepcopy(datas_dict["STATIC_c6"])
+# d1_data = deepcopy(datas_dict["STATIC_d1"])
+# # df_d1_data = MAVEN_STATIC.STA_count2df_all(d1_data)
+# @time df_data = MAVEN_STATIC.STA_count3df(sta_data)
+# # @time df_data_1 = deepcopy(MAVEN_STATIC.STA_count3df_old(sta_data))
+# # kp_data = MAVEN_load.convert_kp_l3(datas_dict["KP_l3"];kp_dict=kp_vars_dict)
+# @time Ov,Of,On = MAVEN_STATIC.sta_v_1d(df_data;energy_range=[0,1e8],mass_range=[13,19],m_int = 16)
+# @time O2v,O2f,O2n = MAVEN_STATIC.sta_v_1d(df_data;energy_range=[0,1e8],mass_range=[20,40],m_int = 32)
+# # # @time Hv,Hf,Hn = MAVEN_STATIC.sta_v_1d(df_data;energy_range=[0,1e8],mass_range=[0.5,1.5],m_int = 1)
+
+# v_d1 = []
+# f_d1 = []
+# n_d1 = []
+
+# for i in time_i_d1
+#     slip_data = MAVEN_STATIC.static_slip(df_d1_data,i)
+#     vel,flux,density = MAVEN_STATIC.sta_v_4d(slip_data;energy_range=[0,1e8],mass_range=[10,20],m_int = 16)
+#     push!(v_d1,norm(vel))
+#     push!(f_d1,norm(flux))
+#     push!(n_d1,density)
+# end
 
 # # v,f,n = Hv,Hf,Hn
 # # f_kp,n_kp = :H_f,:H_den
-# v,f,n = O2v,O2f,O2n
-# f_kp,n_kp = :O2_f,:O2_den
-# time_range = [DateTime(2015,10,29,11,00),DateTime(2015,10,29,11,40)]
-# time_i_kp = findall(x->x>=time_range[1] && x<=time_range[2],kp_data[:time])
-# time_i_sta = findall(x->x>=time_range[1] && x<=time_range[2],sta_data[:epoch])
-# fig = Figure(size = (800, 600))
-# ax = Axis(fig[1, 1])
-# lines!(ax,sta_data[:epoch][time_i_sta], n[time_i_sta], color = :blue)
-# lines!(ax,kp_data[:time][time_i_kp], kp_data[n_kp][time_i_kp], color = :red)
-# ax = Axis(fig[2, 1])
-# lines!(ax,sta_data[:epoch][time_i_sta], f[time_i_sta], color = :blue)
-# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp].*4π, color = :red)
-# ax = Axis(fig[3, 1])
-# lines!(ax,sta_data[:epoch][time_i_sta], v[time_i_sta], color = :blue)
-# lines!(ax,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp].*4π./kp_data[n_kp][time_i_kp].*1e-5, color = :red)
+# v,f,n = Ov,Of,On
+# f_kp,n_kp = :O_f,:O_den
+# fig = Figure(size = (1800, 1600))
+# ax1 = Axis(fig[1, 1],yscale=log10,title="MAVEN STATIC c6 vs d1 vs KP L3 Ion Data Comparison, O+",ylabel="Density (cm^-3)")
+# ax2 = Axis(fig[2, 1],yscale=log10,ylabel="Flux (cm^2/s)")
+# ax3 = Axis(fig[3, 1],ylabel="Vel (Km/s)")
+
+# lines!(ax1,sta_data[:epoch][time_i_sta], n[time_i_sta], color = :blue,label="sta c6")
+# lines!(ax2,sta_data[:epoch][time_i_sta], f[time_i_sta], color = :blue)
+# lines!(ax3,sta_data[:epoch][time_i_sta], v[time_i_sta], color = :blue)
+
+# lines!(ax1,df_d1_data[:epoch][time_i_d1], n_d1, color = :green,label="sta d1")
+# lines!(ax2,df_d1_data[:epoch][time_i_d1], f_d1, color = :green)
+# lines!(ax3,df_d1_data[:epoch][time_i_d1], v_d1.*1.5, color = :green)
+
+# lines!(ax1,kp_data[:time][time_i_kp], kp_data[n_kp][time_i_kp], color = :red,label="kp c6")
+# lines!(ax2,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp].*4π, color = :red)
+# lines!(ax3,kp_data[:time][time_i_kp], kp_data[f_kp][time_i_kp].*4π ./kp_data[n_kp][time_i_kp].*1e-5, color = :red)
+# save("MAVEN_data/MAVEN STATIC c6 vs d1 vs KP L3 Ion Data Comparison O+.png",fig)
 # fig
+
+# # function find_time(x, x0)
+# #     local N = length(x)
+# #     # 1. 边界情况处理：如果 x0 小于等于第一个元素
+# #     if x0 <= x[1]
+# #         return 1
+# #     # 2. 边界情况处理：如果 x0 大于等于最后一个元素
+# #     elseif x0 >= x[N]
+# #         return N
+# #     end
+# #     # 3. 使用二分查找找到第一个大于或等于 x0 的元素的索引
+# #     #    此操作的时间复杂度为 O(log N)
+# #     local idx_upper = searchsortedfirst(x, x0)
+    
+# #     # idx_upper 现在是 x[idx_upper] >= x0 的最小索引
+# #     # 因此，我们只需要比较 x[idx_upper] 和 x[idx_upper - 1] 即可
+    
+# #     local idx_lower = idx_upper - 1
+    
+# #     # 4. 比较哪个点更接近 x0
+# #     if abs(x[idx_upper] - x0) <= abs(x[idx_lower] - x0)
+# #         return idx_upper
+# #     else
+# #         return idx_lower
+# #     end
+# # end
+
+# # time0 = DateTime(2015,10,29,11,30,15)
+# # idx_c6 = find_time(df_data[:epoch], time0)
+# # idx_d1 = find_time(df_d1_data[:epoch], time0)
+
+# # d1_slip = MAVEN_STATIC.static_slip(df_d1_data,idx_d1)
+# # d1_slip = MAVEN_STATIC.STA_count2df(d1_slip)
+
+# # @show df_data[:epoch][idx_c6], df_d1_data[:epoch][idx_d1]
+
+# # skey = :df
+# # @show sum(d1_slip[skey][:,:,:],dims=1:2)[1,1,:] ./ sum(df_data[skey][idx_c6,:,:],dims=1)[1,:]
