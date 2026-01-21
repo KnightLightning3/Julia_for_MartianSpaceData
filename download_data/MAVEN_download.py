@@ -385,7 +385,7 @@ def month_delta(datetime_current): # 向前前进到下个月月初
         current_year += 1
     return  datetime.date(current_year, current_month, 1)
 def download_from_head(head,num_links_added,num_links):
-    model,date,url_path,filename,save_path = head
+    model,date,url_path,filename,save_path,v_new,r_new = head
     if os.path.exists(save_path+filename):
         return f"\033[1;32m{model} {date} {filename} already exists, skip downloading.\033[0m {num_links_added}/{num_links}"
     if download_mode == 'win.idm':
@@ -396,54 +396,16 @@ def download_from_head(head,num_links_added,num_links):
     elif download_mode == "Aria2c":
         url_status_code,logic,progress_data = aria2_download(url_path,save_path+filename)
         time_now = datetime.datetime.now()
-        try: # 尝试读取v和r
-            v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
-        except:
-            v_new = "_vXX"
-        try:
-            r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
-        except:
-            r_new = "_rXX"
-        if logic:
-            download_speed = progress_data[2]
-            download_elapsed = progress_data[1]
-            download_size = progress_data[0]
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
-            
-        else:
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
     elif download_mode == 'python.request':
         url_status_code,logic,progress_data = requests_download(url_path,save_path+filename)
         time_now = datetime.datetime.now()
-        try: # 尝试读取v和r
-            v_new = re.findall(r"_v\d{2}", filename)[0][0:3]
-        except:
-            v_new = "_vXX"
-        try:
-            r_new = re.findall(r"_r\d{2}", filename)[0][0:3]
-        except:
-            r_new = "_rXX"
-        if logic:
-            download_speed = progress_data[2]
-            download_elapsed = progress_data[1]
-            download_size = progress_data[0]
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
-            
-        else:
-            return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
-# def run_muti_threads(task_func, task_args_list: list[tuple], max_workers: int = 5):
-#     total_tasks = len(task_args_list)
-#     print(f"\n--- 准备启动 {total_tasks} 个任务，最大 {max_workers} 个并发线程 ---")
-#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-#         # 提交每个任务到线程池
-#         # 使用字典推导式来存储 future 和其对应的原始参数，便于结果匹配
-#         # 这里，我们将 (task_func, *args) 提交给executor
-#         results = []
-#         for args in task_args_list:
-#             result = executor.submit(task_func, *args)
-#             results.append(result)
-#     print("\n--- 所有任务已完成,退出多线程模式 ---")
-#     return results
+    if logic:
+        download_speed = progress_data[2]
+        download_elapsed = progress_data[1]
+        download_size = progress_data[0]
+        return f'{model}: \033[1;34m{date}v_{v_new}_r_{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
+    else:
+        return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
 
 if __name__ == '__main__':
     os.makedirs(save_dir+"lists/", exist_ok=True)
