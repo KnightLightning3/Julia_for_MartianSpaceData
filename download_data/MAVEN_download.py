@@ -361,9 +361,15 @@ def file_check(file_names,save_path,model):
                     counter+=1
             return counter
 def get_element_from_filename(filename): # 取得文件名对应的版本等信息
-    v_data = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
+    try:
+        v_data = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
+    except:
+        v_data = 0
+    try:
+        r_data = int(re.findall(r"_r\d{2}", filename)[0][2:4])
+    except:
+        r_data = 0 
     date_str = re.findall(r"\d{8}", filename)[0]
-    r_data = int(re.findall(r"_r\d{2}", filename)[0][2:4])
     return (date_str,v_data,r_data,filename)
 def search_downloaded_files(save_path,file_style):
     filename_data =[]
