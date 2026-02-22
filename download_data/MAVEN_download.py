@@ -362,7 +362,7 @@ def file_check(file_names,save_path,model):
             return counter
 def get_element_from_filename(filename): # 取得文件名对应的版本等信息
     try:
-        v_data = int(re.findall(r"_v\d{2}_", filename)[0][2:4])
+        v_data = int(re.findall(r"_v\d{2}", filename)[0][2:4])
     except:
         v_data = 0
     try:
@@ -409,9 +409,9 @@ def download_from_head(head,num_links_added,num_links):
         download_speed = progress_data[2]
         download_elapsed = progress_data[1]
         download_size = progress_data[0]
-        return f'{model}: \033[1;34m{date}v_{v_new}_r_{r_new}\033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
+        return f'{model}: \033[1;34m{date} v: {v_new} r:{r_new} \033[0m '+f'Status: \033[0;32m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m '+f'Time spend: \033[1;34m{download_elapsed}\033[0m '+f'Total size: \033[1;34m{download_size}\033[0m '+f'Speed: \033[1;34m{download_speed}\033[0m {num_links_added}/{num_links}'
     else:
-        return f'{model}: \033[1;34m{date}{v_new}{r_new}\033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
+        return f'{model}: \033[1;34m{date} v: {v_new} r:{r_new} \033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
 
 if __name__ == '__main__':
     os.makedirs(save_dir+"lists/", exist_ok=True)
