@@ -265,8 +265,9 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
     dtheta = reshape(dat[:dtheta],1,1,1,ntheta,1)
     dphi = dat[:dphi];#单值
 
-    theta = 0.5π .- theta # 角度修正
-    phi = 2π .- phi
+    theta = 0.5π .- theta # 俯仰角变成极角
+    # theta = 0.5π .- theta # 角度修正
+    # phi = 2π .- phi
     
     vel = zeros(ntime,nmass,3)
     den = zeros(ntime,nmass)
@@ -293,7 +294,7 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
     n0  =  sum(2.0 .* J ./ velocity   .*dsum ;dims=3:5)
     nvx =  sum(2.0 .* J .* (ct       .* dsum);dims=3:5)
     nvy = -sum(2.0 .* J .* (st .* cp .* dsum);dims=3:5)
-    nvz = -sum(2.0 .* J .* (st .* sp .* dsum);dims=3:5)
+    nvz =  sum(2.0 .* J .* (st .* sp .* dsum);dims=3:5)
     #  单位转换，m → cm   Δv/v(=1/2ΔE/E)  Δθ Δφ 乘上积分间隔 
 
     den[:,:] = n0 .* (1.0E-6 * 0.2/2)
@@ -323,8 +324,9 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     dtheta = reshape(dat[:dtheta],1,1,ntheta,1)
     dphi = dat[:dphi];#单值
 
-    theta = 0.5π .- theta # 角度修正
-    phi = 2π .- phi
+    theta = 0.5π .- theta # 俯仰角变成极角
+    # theta = 0.5π .- theta # 角度修正
+    # phi = 2π .- phi
     
     vel = zeros(nmass,3)
     den = zeros(nmass)
@@ -351,7 +353,7 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     n0  =  sum(2.0 .* J ./ velocity   .*dsum ;dims=2:4)
     nvx =  sum(2.0 .* J .* (ct       .* dsum);dims=2:4)
     nvy = -sum(2.0 .* J .* (st .* cp .* dsum);dims=2:4)
-    nvz = -sum(2.0 .* J .* (st .* sp .* dsum);dims=2:4)
+    nvz =  sum(2.0 .* J .* (st .* sp .* dsum);dims=2:4)
     #  单位转换，m → cm   Δv/v(=1/2ΔE/E)  Δθ Δφ 乘上积分间隔 
 
     den[:] = n0 .* (1.0E-6 * 0.2/2)

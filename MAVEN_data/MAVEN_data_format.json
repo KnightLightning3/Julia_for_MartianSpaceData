@@ -4,7 +4,7 @@
     "data_model": {
         "KP": [
             ["KP/insitu/","maven-insitu-calibrated/data/","kp/insitu/"],
-            "^mvn_kp_insitu_.+\\.tab$",
+            "^mvn_kp_insitu_.+\\.tab$", 
             "KP/insitu/",
             "load_kp",
             "KP datas"

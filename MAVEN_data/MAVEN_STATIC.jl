@@ -11,6 +11,41 @@ using CommonDataFormat
 export static_c6_mass_mean,static_c6_energy_mean
 export static_rotation,static_slip,static_slip_2_V,sta_v_4d
 export ion_energy2v,ion_v2energy
+
+
+ion_mass_range = Dict{String,Any}( # 由于STATIC仪器本身的分辨问题，仪器组建议以以下质量范围为离子的参考，m_int为比荷
+    "H+" => Dict{Symbol,Any}(
+        mass = 1,
+        m_int = 1,
+        mass_range = [0,1.55],
+    ),
+    "He2+" => Dict{Symbol,Any}( # 同H2+
+        mass = 4,
+        m_int = 2,
+        mass_range = [1.55,2.7],
+    ),
+    "H2+" => ( # 同H2+
+        mass = 2,
+        m_int = 2,
+        mass_range = [1.55,2.7],
+    ),
+    "O+" => (
+        mass = 16,
+        m_int = 16,
+        mass_range = [14,20],
+    ),
+    "O2+" => (
+        mass = 32,
+        m_int = 16,
+        mass_range = [24,40],
+    ),
+    "CO2+" => (
+        mass = 44,
+        m_int = 22,
+        mass_range = [40,60],
+    )
+)
+
 function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(不包括角度信息)
     # energy_spec为在mass维度做求和,得到eflux,energy谱
     # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
