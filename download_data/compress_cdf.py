@@ -51,6 +51,9 @@ def compress_single_cdf(src_file, gzip_level=5):
     try:
         original_size = os.path.getsize(src_file)
         with pycdf.CDF(src_file) as cdf_old:
+            if "IS_COMPRESSED_BY_USER" in cdf_old.attrs:
+                print(f"\n\033[1;33m警告\033[0m: 文件已标记为用户压缩过，跳过 {os.path.basename(src_file)}")
+                return False
             with pycdf.CDF(tmp_file, '') as cdf_new:
                 # 1. 复制全局属性
                 cdf_new.attrs = cdf_old.attrs

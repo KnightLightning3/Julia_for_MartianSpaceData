@@ -23,34 +23,37 @@ function KP_rebuild(file_in, file_out, KP_vars)
         vars = data[I]
         vars_out = []
         if var_format[1] == 'F' || var_format[1] == 'E'
-            vars_out = parse.(Float64, vars)
+            vars_out = parse.(Float32, vars)
         elseif var_format[1] == 'A'
             vars_out = vars
         elseif var_format[1] == 'I'
-            vars_out = parse.(Int64, vars)
+            vars_out = parse.(Int32, vars)
         end
         KP_jld2_data[:vars][I] = vars_out
     end
-    pc2ss_Matrix = zeros(Float64, ntime, 3, 3)
-    sc2ss_Matrix = zeros(Float64, ntime, 3, 3)
+    pc2ss_Matrix = zeros(Float32, ntime, 3, 3)
+    sc2ss_Matrix = zeros(Float32, ntime, 3, 3)
     for I in (218:226)
         var = data[Symbol("var_$I")]
-        var_float = parse.(Float64, var)
+        var_float = parse.(Float32, var)
         i = div(I - 218, 3) + 1  # 计算行索引(1-based)
         j = rem(I - 218, 3) + 1
         pc2ss_Matrix[:, i, j] = var_float
     end
     for I in (227:235)
         var = data[Symbol("var_$I")]
-        var_float = parse.(Float64, var)
+        var_float = parse.(Float32, var)
         i = div(I - 227, 3) + 1  # 计算行索引(1-based)
         j = rem(I - 227, 3) + 1
         sc2ss_Matrix[:, i, j] = var_float
     end
     KP_jld2_data[:pc2ss_Matrix] = pc2ss_Matrix
     KP_jld2_data[:sc2ss_Matrix] = sc2ss_Matrix
-    jldsave(file_out, KP_jld2_data=KP_jld2_data)
-    return 0
+    # jldsave(file_out, KP_jld2_data=KP_jld2_data)
+    filter = [Shuffle(), Deflate()]
+    jldopen(file_out, "w"; compress = filter) do f
+        f["KP_jld2_data"] = KP_jld2_data
+    end
 end;
 
 files = MAVEN_load.file_list("KP");
