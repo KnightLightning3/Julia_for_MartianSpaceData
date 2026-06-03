@@ -51,8 +51,8 @@ pip install -r requirements.txt
 可以使用的MAVEN外部服务器(可能需要VPN):
 
 - USTC源,校内速度快,服务器不一定运行,数据不一定完整: http://222.195.76.155:8000/MAVEN/
-- UCLA源,服务器稳定,没有NGIMS数据: https://pds-ppi.igpp.ucla.edu/data/
-- LASP源,服务器稳定: https://lasp.colorado.edu/maven/sdc/public/data/sci/
+- UCLA源,服务器稳定,没有NGIMS数据，数据未经压缩，体积过大: https://pds-ppi.igpp.ucla.edu/data/
+- LASP源,服务器稳定，数据经过压缩，建议使用此版本: https://lasp.colorado.edu/maven/sdc/public/data/sci/
 - berkeley源,格式与LASP类似,SPADES库默认服务器,相当部分的数据需要账户密码,不可直接访问: http://sprg.ssl.berkeley.edu/data/maven/data/sci/
 
 其中'https://pds-ppi.igpp.ucla.edu/data/'的文件树与后两者不同,且没有NGIM数据
@@ -153,8 +153,8 @@ $$
 - [X] 计算shape parameter/ projects\maven\swea\mvn_swe_calc_shape_arr.pro
 - [X] overview 事件绘制 example
 - [ ] 优化 CDF 读取为针对仪器的模式(为每个数据包写需要的变量列表,去除不用的量的读取和 PyObject 的判定)
-- [ ] 优化KP_l3的读取，写一个数字->变量名的程序来处理之
-- [ ] 让所有的数据在读取后包含UNIX时间戳的结果
+- [X] 优化KP_l3的读取，写一个数字->变量名的程序来处理之
+- [X] 让所有的数据在读取后包含UNIX时间戳的结果(数据本身就自带了unix时间戳)
 - [X] 修改下载程序,让 download_data\get_download_files.py 可以自动读取文件目录来生成列表文件
 - [X] 下载程序可以检查数据版本
 - [X] 简易 Julia 绘图包
@@ -166,7 +166,7 @@ $$
 - [X] MAVEN STATIC
 - [X] 增加项目初始化和文件处理流程的流程图
 - [ ] STATIC 的处理函数目前只能对 4 维数据(时间,质量,方位角,能量)起效,更新为将所有值reshape为最高维数组后进行数组运算
-- [ ] 使用直接读取链接的方式, 优化下载程序: 直接读取yyyy和mm级别的路径,减去请求不存在月份的步骤
+- [X] 使用直接读取链接的方式, 优化下载程序: 直接读取yyyy和mm级别的路径,减去请求不存在月份的步骤
 - [ ] 由于julia的公共变量问题,把所有需要掩码计算的物理量以掩码模式进行
 - [X] 闰秒处理：cdflib自带闰秒处理
 

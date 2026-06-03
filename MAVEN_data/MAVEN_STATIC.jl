@@ -8,18 +8,18 @@ using Statistics
 using CommonDataFormat
 
 # -------------------------Export parts-------------------------
-export static_c6_mass_mean,static_c6_energy_mean
-export static_rotation,static_slip,static_slip_2_V,sta_v_4d
-export ion_energy2v,ion_v2energy
+# export static_c6_mass_mean,static_c6_energy_mean
+# export static_rotation,static_slip,static_slip_2_V,sta_v_4d
+# export ion_energy2v,ion_v2energy
 
 
 ion_mass_range = Dict{String,Any}( # 由于STATIC仪器本身的分辨问题，仪器组建议以以下质量范围为离子的参考，m_int为比荷
-    "H+" => Dict{Symbol,Any}(
+    "H+" => (
         mass = 1,
         m_int = 1,
         mass_range = [0,1.55],
     ),
-    "He2+" => Dict{Symbol,Any}( # 同H2+
+    "He2+" => ( # 同H2+
         mass = 4,
         m_int = 2,
         mass_range = [1.55,2.7],

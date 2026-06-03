@@ -19,9 +19,9 @@ config_data = configparser.ConfigParser()
 config_data.optionxform = str
 config_data.read(config_file_path, encoding='utf-8')
 
-save_dir = config_data['DEFAULT']['Save_dir']
+save_dir = config_data['DEFAULT']['Save_dir']#"E:/MAVEN/SWEA"#
 
-def clean_pydownload_files(root_directory):
+def clean_pydownload_files(root_directory,end = ".pydownload"):
     """
     递归遍历文件夹，删除所有以 .pydownload 结尾的文件
     """
@@ -36,7 +36,7 @@ def clean_pydownload_files(root_directory):
     # os.walk 会递归遍历所有子目录
     for root, dirs, files in os.walk(root_directory):
         for filename in files:
-            if filename.endswith(".pydownload"):
+            if filename.endswith(end):
                 file_path = os.path.join(root, filename)
                 try:
                     os.remove(file_path)
@@ -49,4 +49,7 @@ def clean_pydownload_files(root_directory):
     print(f"清理完成！共删除 \033[1;32m{count}\033[0m 个临时文件。")
 
 if __name__ == "__main__":     
-    clean_pydownload_files(save_dir)
+    # clean_pydownload_files(save_dir,end = ".f77_unformatted")
+    clean_pydownload_files(save_dir,end = ".aria2download")
+    clean_pydownload_files(save_dir,end = ".aria2")
+    clean_pydownload_files(save_dir,end = "_compressed.cdf")

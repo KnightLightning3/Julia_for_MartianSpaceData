@@ -150,7 +150,7 @@ function load_cdf(file::String)  # 将CDF文件读为字典
                 data_dict[var_name] = collect(v)
             end  # epoch需要为datetime格式，其与time_unix需要读在内存里以加快速度
             local v_num_dims = v.vdr.num_dims
-            if v_num_dims >= 1 && v.vdr.flags == 3
+            if v_num_dims >= 1 && (v.vdr.flags & 1 == 1)#(v.vdr.flags == 3 || v.vdr.flags == 7)
                 # println(i)
                 data_dict[var_name] = permutedims(collect(v), [v_num_dims+1; 1:v_num_dims]) # 这里的数据不采用硬盘地址保存方法,以便后续的高级处理
             else
