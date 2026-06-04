@@ -84,7 +84,17 @@ MAG_l3 数据结构：
 - `:B_total`, 总磁场强度
 - `:B`, 磁场强度3分量
 - `:position`, 位置3分量
-- 
+
+## MAG_cdf数据
+建议下载MAG的cdf数据。由'MAVEN_data/Build_data/磁场重构为CDF文件.py'程序生成，保留原始数据的同时大小减少约6倍。（一秒分辨率的每日磁场约2mb，32Hz的每日数据约60mb，反之则为12mb和400mb）
+数据结构：
+- `:epoch`, DateTime格式的时间数组
+- `:time_unix`, UNIX时间戳的时间数组
+- `:coordinate`, String，说明读取数据的坐标系
+- `:B`, 磁场强度3分量
+- `:position`, 位置3分量
+- `:OB_BDPL`, Outboard dynamic correction in payload coordinates，一般不使用，具体看官方文档
+
 
 ## VSC 数据:
 
