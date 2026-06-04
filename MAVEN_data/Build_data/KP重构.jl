@@ -62,11 +62,11 @@ for i in 2:235
     KP_dict[Symbol("var_$i")] = i
 end
 MAVEN_load.change_kp_read_data(KP_dict);
-f = open("C:/Users/chengsw/Projects/Package_for_Julia_of_csw/MAVEN_data/KP_vars.json", "r")
+f = open("MAVEN_data/KP_vars.json", "r")
 KP_vars = JSON.parse(f)
 close(f)
 
-f = open(raw"C:/Users/chengsw/Projects/Package_for_Julia_of_csw/MAVEN_data/MAVEN_data_format.json","r")
+f = open(raw"MAVEN_data/MAVEN_data_format.json","r")
 MAVEN_format = JSON.parse(f)
 close(f)
 

@@ -179,7 +179,21 @@
         ],
         "STATIC_d1_v4d": [
             ["STATIC/l3/","None","None"],
-            "mvn_sta_l3_d1_vel_flux_den_.+\\.f77_unformatted",
+            "mvn_sta_l3_d1_v4d_.+\\.f77_unformatted",
+            "STATIC/l3/",
+            "load_d1_v4d",
+            "STATIC d1 velocity flux density (binary)"
+        ],
+        "STATIC_d1_v4d_cold": [
+            ["STATIC/l3/","None","None"],
+            "mvn_sta_l3_d1_v4d_cold.+\\.f77_unformatted",
+            "STATIC/l3/",
+            "load_d1_v4d",
+            "STATIC d1 velocity flux density (binary)"
+        ],
+        "STATIC_d1_v4d_heat": [
+            ["STATIC/l3/","None","None"],
+            "mvn_sta_l3_d1_v4d_heat.+\\.f77_unformatted",
             "STATIC/l3/",
             "load_d1_v4d",
             "STATIC d1 velocity flux density (binary)"

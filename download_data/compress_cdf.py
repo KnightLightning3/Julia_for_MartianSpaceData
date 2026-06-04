@@ -13,7 +13,7 @@ config_data = configparser.ConfigParser()
 config_data.optionxform = str
 config_data.read(config_file_path, encoding='utf-8')
 
-save_dir = "E:/MAVEN/SWEA"#config_data['DEFAULT']['Save_dir']#
+save_dir = config_data['DEFAULT']['Save_dir']#"E:/MAVEN/SWEA"#
 
 def check_if_compressed(file_path, gzip_level_threshold):
     """
