@@ -228,7 +228,7 @@
         ],
         "STATIC_c6_v3d": [
             ["STATIC/l3/","None","None"],
-            "mvn_sta_l3_c6_vel_flux_den_.+\\.f77_unformatted",
+            "mvn_sta_l3_c6_v3d_.+\\.jdl2",
             "STATIC/l3/",
             "load_c6_v3d",
             "STATIC c6 velocity flux density (binary)"
