@@ -401,13 +401,13 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    local masked_data = data0.*(mass_range[1] .<= mass_arr .<= mass_range[2] .&& energy_range[1] .<= dat[:energy] .<= energy_range[2])
-
     local mass=dat[:mass]*m_int
     
     local Const = 2.0/mass/mass*1e5
     local energy=copy(dat[:energy]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
+
+    local masked_data = data0.*(mass_range[1] .<= mass_arr .<= mass_range[2] .&& energy_range[1] .<= energy .<= energy_range[2])
 
     local flux0 = Const.*denergy.*energy.*masked_data
     local theta0 = (dtheta./2.0.+cos.(2.0.*theta).*sin.(dtheta)./2.0).*2.0.*sin.(dphi./2.0)
@@ -458,12 +458,13 @@ function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, u
         # 直接读取，避免创建 Mask 数组
         m_val = mass_arr[i]
         e_val = energy[i]
+        e_corr = max(0.0, e_val + pot)
         
         # 过滤条件
-        if (mass_range[1] <= m_val <= mass_range[2]) && (energy_range[1] <= e_val <= energy_range[2])
+        if (mass_range[1] <= m_val <= mass_range[2]) && (energy_range[1] <= e_corr <= energy_range[2])
             
             # --- 物理计算部分 ---
-            e_corr = max(0.0, e_val + pot)
+            
             t_val  = theta[i] * inv_RADG
             p_val  = phi[i] * inv_RADG
             dt_val = dtheta[i] * inv_RADG
@@ -516,15 +517,17 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    local mask1 =  energy_range[1] .<= dat[:energy] .<= energy_range[2]
-    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
-    local mask = mask1 .& mask2
-    local masked_data = data0.*mask
+    
     
     local mass=dat[:mass]*m_int
     
     local energy=copy(dat[:energy]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
+
+    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
+    local mask = mask1 .& mask2
+    local masked_data = data0.*mask
 
     local Const = mass^(-1.5)*2.0^(0.5)
     local density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
@@ -688,16 +691,16 @@ function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16)#使用
     local dphi = dat[:dphi3d] .*inv_RADG
     local mass_arr = dat[:mass_arr3d]
     local pot = reshape(dat[:sc_pot],ntime,1,1)
-
-    local mask1 =  energy_range[1] .<= dat[:energy3d] .<= energy_range[2]
-    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
-    local masked_data = data0.*(mask1 .& mask2)
     
     local mass=dat[:mass]*m_int
     
     local Const = 2.0/mass/mass*1e5
     local energy=copy(dat[:energy3d]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
+
+    local mask1 =  energy_range[1] .<= energy .<= energy_range[2]
+    local mask2 =  mass_range[1] .<= mass_arr .<= mass_range[2]
+    local masked_data = data0.*(mask1 .& mask2)
 
     local flux0 = Const.*denergy.*energy.*masked_data .*4π # 4PI为去除全向
     local flux =  sum(flux0;dims=2:3)[:,1,1] # units are 1/cm^2-s
