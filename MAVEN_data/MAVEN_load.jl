@@ -438,58 +438,55 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     return data
 end
 function load_c6_v3d(file::String) # build using STATIC d1 data. already been corrected by sc_pot(static) and vsc by MAG_ss1s
-    f = FortranFile(file, "r")
-    Ntime = read(f, Int64)
-    time_unix = read(f, (Float64, Ntime))
-    c6_energy_range = read(f, (Float32, 2))
-    H_vel = read(f, (Float32, Ntime))
-    He_vel = read(f, (Float32, Ntime))
-    O_vel = read(f, (Float32, Ntime))
-    O2_vel = read(f, (Float32, Ntime))
-    CO2_vel = read(f, (Float32, Ntime))
-    H_f = read(f, (Float32, Ntime))
-    He_f = read(f, (Float32, Ntime))
-    O_f = read(f, (Float32, Ntime))
-    O2_f = read(f, (Float32, Ntime))
-    CO2_f = read(f, (Float32, Ntime))
-    H_den = read(f, (Float32, Ntime))
-    He_den = read(f, (Float32, Ntime))
-    O_den = read(f, (Float32, Ntime))
-    O2_den = read(f, (Float32, Ntime))
-    CO2_den = read(f, (Float32, Ntime))
+    # f = FortranFile(file, "r")
+    # Ntime = read(f, Int64)
+    # time_unix = read(f, (Float64, Ntime))
+    # H_vel = read(f, (Float32, Ntime))
+    # He_vel = read(f, (Float32, Ntime))
+    # O_vel = read(f, (Float32, Ntime))
+    # O2_vel = read(f, (Float32, Ntime))
+    # H_f = read(f, (Float32, Ntime))
+    # He_f = read(f, (Float32, Ntime))
+    # O_f = read(f, (Float32, Ntime))
+    # O2_f = read(f, (Float32, Ntime))
+    # H_den = read(f, (Float32, Ntime))
+    # He_den = read(f, (Float32, Ntime))
+    # O_den = read(f, (Float32, Ntime))
+    # O2_den = read(f, (Float32, Ntime))
 
-    b_mso = read(f, (Float32, Ntime,3))
-    pos_mso = read(f, (Float32, Ntime,3))
-    quality_flag = read(f, (Int16, Ntime))
-    mode = read(f, (Int16, Ntime))
-    mass_range = trimstring(read(f, FString{64}))
+    # b_mso = read(f, (Float32, Ntime,3))
+    # pos_mso = read(f, (Float32, Ntime,3))
+    # quality_flag = read(f, (Int16, Ntime))
+    # mode = read(f, (Int16, Ntime))
+    # mass_range = trimstring(read(f, FString{64}))
+    # close(f)
+
+    # data = Dict{Symbol,Any}(
+    #     :epoch => unix2datetime.(time_unix),
+    #     :time_unix => time_unix,
+    #     :H_vel => H_vel,
+    #     :He_vel => He_vel,
+    #     :O_vel => O_vel,
+    #     :O2_vel => O2_vel,
+    #     :H_f => H_f, # flux
+    #     :He_f => He_f, # flux
+    #     :O_f => O_f,
+    #     :O2_f => O2_f,
+    #     :H_den => H_den,
+    #     :He_den => He_den,
+    #     :O_den => O_den,
+    #     :O2_den => O2_den,
+    #     :P_mso => pos_mso,
+    #     :B_mso => b_mso,
+    #     :quality_flag => quality_flag,
+    #     :mode => mode,
+    #     :mass_range => mass_range,
+    # )
+    # return data
+    f = jldopen(file, "r")
+    data_out_dict = f["data"]
     close(f)
-
-    data = Dict{Symbol,Any}(
-        :epoch => unix2datetime.(time_unix),
-        :time_unix => time_unix,
-        :H_vel => H_vel,
-        :He_vel => He_vel,
-        :O_vel => O_vel,
-        :O2_vel => O2_vel,
-        :CO2_vel => CO2_vel,
-        :H_f => H_f, # flux
-        :He_f => He_f, # flux
-        :O_f => O_f,
-        :O2_f => O2_f,
-        :CO2_f => CO2_f,
-        :H_den => H_den,
-        :He_den => He_den,
-        :O_den => O_den,
-        :O2_den => O2_den,
-        :CO2_den => CO2_den,
-        :P_mso => pos_mso,
-        :B_mso => b_mso,
-        :quality_flag => quality_flag,
-        :mode => mode,
-        :mass_range => mass_range,
-    )
-    return data
+    return data_out_dict
 end
 function load_quat(filename::String)::Dict{Symbol,Any}#读取idl导出的quat数据
     # 数据格式, filename = file.csv ut, scrotmat, msorotmat, format="(I10,1x,4(f14.10,1x),4(f14.10,1x))"

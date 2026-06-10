@@ -584,7 +584,7 @@ if __name__ == '__main__':
     # 多线程下载
     print(f"download_mode = {download_mode}")
     if download_mode == "python.request" or download_mode == "win.idm":
-        print(111)
+        print(f"\033[1;32mStart downloading with {download_mode} using {max_threads} threads...\033[0m")
         with ThreadPoolExecutor(max_workers=max_threads) as executor:
             future_to_task_info = {
                 executor.submit(download_from_head, head, i + 1, num_links): (head, i + 1)

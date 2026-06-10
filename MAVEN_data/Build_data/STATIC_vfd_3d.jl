@@ -172,6 +172,9 @@ for (date, file_ion) in common_dates
     yyyymmdd_new = date
     files_old = readdir(dir;join=true)
     for file_old in files_old # 移除旧版本数据
+        if isnothing(match(r"mvn_sta_l3_c6_v3d_(\d{8})_",file_old))
+            continue
+        end
         yyyymmdd_old = match(r"mvn_sta_l3_c6_v3d_(\d{8})_",file_old).captures[1]
         if yyyymmdd_old == yyyymmdd_new
             v_old = match(r"_v([0-9]{2})",file_old).captures[1]
