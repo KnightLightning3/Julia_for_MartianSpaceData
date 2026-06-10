@@ -151,9 +151,9 @@ common_dates = [
     for (j, (date2, _)) in enumerate(dates_mag)
     if date == date2
 ]
-file_mode = "mvn_sta_l3_d1_v4d_";energy_range = [0,1e6]
+# file_mode = "mvn_sta_l3_d1_v4d_";energy_range = [0,1e6]
 file_mode = "mvn_sta_l3_d1_v4d_cold_";energy_range = [0,30]
-file_mode = "mvn_sta_l3_d1_v4d_heat_";energy_range = [30,1e6]
+# file_mode = "mvn_sta_l3_d1_v4d_heat_";energy_range = [30,1e6]
 # file_mode = "mvn_sta_l3_d1_vel_flux_den_";energy_range = [0,1e6]
 
 for (date, file_ion, file_vsc) in common_dates
