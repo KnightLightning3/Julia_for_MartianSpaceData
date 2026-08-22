@@ -50,6 +50,6 @@ def clean_pydownload_files(root_directory,end = ".pydownload"):
 
 if __name__ == "__main__":     
     # clean_pydownload_files(save_dir,end = ".f77_unformatted")
-    # clean_pydownload_files(save_dir,end = ".aria2download")
-    # clean_pydownload_files(save_dir,end = ".aria2")
+    clean_pydownload_files(save_dir,end = ".aria2download")
+    clean_pydownload_files(save_dir,end = ".aria2")
     clean_pydownload_files(save_dir,end = "_compressed.cdf")
