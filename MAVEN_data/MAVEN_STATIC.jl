@@ -342,6 +342,7 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     dat_slip[:sc_pot]       = dat[:sc_pot][time_ind]
     dat_slip[:quality_flag] = dat[:quality_flag][time_ind]
     dat_slip[:dead]         = @views dat[:dead][time_ind,:,:,:]
+    dat_slip[:mode]         = dat[:mode][time_ind]
     dat_slip[:bins_sc]      = @views dat[:bins_sc][time_ind,:] # 重要: 此为飞行器遮挡视野的数组, 当一个角度中超过一半的部分被遮挡, 此数组出现.
     dat_slip[:quat_mso]     = @views dat[:quat_mso][time_ind,:]
     dat_slip[:quat_sc]      = @views dat[:quat_sc][time_ind,:]

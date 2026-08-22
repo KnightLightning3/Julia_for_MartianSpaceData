@@ -228,7 +228,7 @@
         ],
         "STATIC_c6_v3d": [
             ["STATIC/l3/","None","None"],
-            "mvn_sta_l3_c6_v3d_.+\\.jdl2",
+            "mvn_sta_l3_c6_v3d_.+\\.jld2",
             "STATIC/l3/",
             "load_c6_v3d",
             "STATIC c6 velocity flux density (binary)"
@@ -369,8 +369,15 @@
             "EUV/l2/",
             "load_cdf"
         ],
+        "EUV_l3_minute": [
+            ["EUV/l3/","maven-euv-modelled/data/minute/","euv/l3/"],
+            "mvn_euv_l3_minute.+\\.cdf",
+            "EUV/l3/",
+            "load_cdf",
+            "EUV minute averaged data"
+        ],
         "EUV_l3_daily": [
-            ["EUV/l3/","None","euv/l3/"],
+            ["EUV/l3/","maven-euv-modelled/data/daily/","euv/l3/"],
             "mvn_euv_l3_daily.+\\.cdf",
             "EUV/l3/",
             "load_cdf",

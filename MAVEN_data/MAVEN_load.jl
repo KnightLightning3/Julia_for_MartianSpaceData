@@ -483,8 +483,32 @@ function load_c6_v3d(file::String) # build using STATIC d1 data. already been co
     #     :mass_range => mass_range,
     # )
     # return data
-    f = jldopen(file, "r")
-    data_out_dict = f["data"]
+    local f = jldopen(file, "r")
+    local data0 = f["data"]
+    data_out_dict = Dict{Symbol,Any}(
+        :time_unix => data0[:time_unix],
+        :H_vel => data0[:H_v],
+        :He_vel => data0[:He_v],
+        :O_vel => data0[:O_v],
+        :O2_vel => data0[:O2_v],
+        :CO2_vel => data0[:CO2_v],
+        :H_den => data0[:H_n],
+        :He_den => data0[:He_n],
+        :O_den => data0[:O_n],
+        :O2_den => data0[:O2_n],
+        :CO2_den => data0[:CO2_n],
+        :H_f => data0[:H_f],
+        :He_f => data0[:He_f],
+        :O_f => data0[:O_f],
+        :O2_f => data0[:O2_f],
+        :CO2_f => data0[:CO2_f],
+        :P_mso => data0[:pos],
+        :B_mso => data0[:b],
+        :quality_flag => data0[:quality_flag],
+        :mode => data0[:mode],
+        :mass_range => data0[:mass_range],
+        :discribe => data0[:discribe]
+    )
     close(f)
     return data_out_dict
 end
