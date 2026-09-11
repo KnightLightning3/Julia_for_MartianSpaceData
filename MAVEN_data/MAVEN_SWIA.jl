@@ -265,14 +265,13 @@ function v_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的速度, SWIA假
     local denergy = dat[:denergy]
 
     local ndeflect = dat[:ndeflect]  
-    local theta = reshape(dat[:theta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local theta = reshape(dat[:theta][time_ind,:,:,:],ntime_local,1,ndeflect,nenergy)
     # local dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
 
     local nanode = dat[:nanode]  
     local phi = reshape(dat[:phi],1,nanode,1,1)
     # local dphi = dat[:dphi]  
-    
-    local domega = reshape(dat[:domega][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
+    local domega = reshape(dat[:domega][time_ind,:,:,:],ntime_local,1,ndeflect,nenergy)
     # mass = dat[:mass]
     local data0 = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
 

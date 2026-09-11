@@ -47,8 +47,8 @@ function load_omni2_data(;)
         "AL-index",
         "AU-index",
         "MAC",
-        "Daily Solar Lyman-alpha",
-        "Proton Quasy-Invariant",
+        # "Daily Solar Lyman-alpha",
+        # "Proton Quasy-Invariant",
     ]# https://omniweb.gsfc.nasa.gov/html/ow_data.html
 
     # 2. 高速读取
