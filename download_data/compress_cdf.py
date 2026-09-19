@@ -175,6 +175,6 @@ if __name__ == "__main__":
     # 示例：只有大于 100MB 且 GZIP 级别低于 5 的文件才会被处理
     batch_compress_cdf_files(
         root_directory=save_dir, 
-        min_size_mb=300,
+        min_size_mb=250,
         gzip_level_threshold=5
     )

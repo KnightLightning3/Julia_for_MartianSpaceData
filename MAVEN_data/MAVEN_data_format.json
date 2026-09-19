@@ -1,6 +1,6 @@
 {
     "description": "data_model: data_type:[url_pathss, file_name_pattern, save_path, load_function,description,description]",
-    "server_url":["http://222.195.76.155:8000/MAVEN/","https://pds-ppi.igpp.ucla.edu/data/","https://lasp.colorado.edu/maven/sdc/public/data/sci/"],
+    "server_url":["http://222.195.76.155:8000/MAVEN/","https://pds-ppi.igpp.ucla.edu/data/","https://lasp.colorado.edu/maven/sdc/public/data/sci/","https://spdf.gsfc.nasa.gov/pub/data/maven/"],
     "data_model": {
         "KP": [
             ["KP/insitu/","maven-insitu-calibrated/data/","kp/insitu/"],
@@ -15,6 +15,13 @@
             "KP/l3/",
             "load_kp_l3",
             "KP Data (JL2D)"
+        ],
+        "KP_cdf":[
+             ["KP/cdf/","None","None","insitu/kp-4sec/cdfs/"],
+            "^mvn_insitu_kp-4sec_.+\\.cdf$",
+            "KP/cdf/",
+            "load_cdf",
+            "KP data in cdf,only in https://spdf.gsfc.nasa.gov/pub/data/maven/"
         ],
         "MAG_ss": [
             ["MAG/l2/","maven-mag-calibrated/data/ss/highres/","mag/l2/"],
