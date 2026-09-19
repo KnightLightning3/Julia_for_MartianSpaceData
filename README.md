@@ -1,7 +1,8 @@
 <!-- <div align="center"> -->
 <!-- <img src="./docs/images/icon.svg" alt="icon"/> -->
 
-<h1 align="center">Julia Pkg for Mars</h1>
+> **火星空间数据处理与科学计算工具包**  
+> **Mars Space Data Processing & Scientific Computing Toolkit**
 
 # 索引
 
@@ -23,11 +24,13 @@
 
 [English](README_EN.md) / 简体中文
 
-火星数据处理程序打包
+火星空间数据处理程序
 
 主要数据处理程序以 Julia 代码为主
 
 下载程序以 Python 为主
+
+个别计算程序使用Fortran
 
 # 下载数据
 
