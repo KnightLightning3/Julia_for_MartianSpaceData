@@ -64,7 +64,7 @@ if Server_ind == 0:  #自建服务器
 else:       # 外部服务器
     vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
     models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
-    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3","MAG_ss1s_vsc","STATIC_d1_v4d","STATIC_c6_v3d","SWIA_quat"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
+    models_skip = ["MAG_ss_l3","MAG_ss1s_l3","MAG_pc1s_l3","MAG_pc_l3","NGIMS_den_l4","KP_l3","MAG_ss1s_vsc","STATIC_d1_v4d","STATIC_c6_v3d","SWIA_quat","KP_cdf"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
 print(f"Server: {url_path_0},vpn: {vpn_proxy}")
 if vpn_proxy != None:
     vpn_proxy = {

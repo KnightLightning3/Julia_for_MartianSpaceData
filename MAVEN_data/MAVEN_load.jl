@@ -46,7 +46,25 @@ function show_load_models()
     return keys_arr
 end
 """
-输入model,返回对应文件的所有已下载文件路径
+    file_list(model::Union{Symbol, String}) -> Vector{String}
+
+    获取指定模型/仪器（`model`）在本地存储目录下的**所有已下载文件的完整绝对路径列表**。
+
+    # 主要功能与逻辑
+    1. **全局路径检索**：从全局字典 `read_models` 读取模型相对子目录 `path`，与项目根目录 `root_path` 进行拼接。
+    2. **文件名映射**：从全局字典 `filename_list` 中匹配该模型关联的所有文件名列表。
+    3. **路径向量化广播**：将基础目录与文件名列表按元素（Element-wise）拼接，生成完整的文件路径数组。
+
+    # 参数说明
+    - `model`: 模型或仪器标识符（支持 `Symbol` 或 `String`，如 `:maven_fgm` 或 `"maven_fgm"`）。
+
+    # 依赖全局变量
+    - `root_path::String`: 项目根目录。
+    - `read_models::Dict`: 注册有各模型相对路径信息的字典。
+    - `filename_list::Dict`: 注册有各模型对应已下载文件名列表的字典。
+
+    # 返回值
+    - `Vector{String}`: 包含该模型所有文件完整路径的字符串数组。
 """
 function file_list(model::String)
     path = read_models[model][1]
@@ -55,8 +73,8 @@ function file_list(model::String)
     return data
 end
 """
-输入model,日期    
-返回(bool::判断文件是否存在,String::对应文件的文件路径)  
+    输入model,日期    
+    返回(bool::判断文件是否存在,String::对应文件的文件路径)  
 """
 function find_file_of_data(model::String, date::DateTime)
     FileList_path = root_path * read_models[model][1]
@@ -70,13 +88,28 @@ function find_file_of_data(model::String, date::DateTime)
     return false, "NaN"
 end
 """
-输入日期,返回对应日期的所有数据  
-date 日期格式为DateTime(yyyy,mm,dd)  
-model_index: 选择读取的数据类型  
-show_filename: 是否显示读取的文件名  
+    data_get_from_date(date::DateTime; model_index=[], show_filename=false) -> Dict{String, Any}
+
+    按日期统一调度并加载多个空间物理仪器（如 STATIC, SWIA 等）数据文件的**顶级调度函数**。
+
+    # 主要功能与逻辑
+    1. **多模型批量检索**：遍历指定的 `model_index` 模型列表，调用 `find_file_of_data` 自动匹配该日期下的目标文件路径。
+    2. **函数动态分发**：根据全局映射表 `read_models` 中注册的读取函数（如 `load_cdf`），动态调用对应的解析器进行数据加载。
+    3. **加载状态标记与元数据注入**：
+    - 加载成功：注入 `:filename`（文件路径）与 `:data_load_flag => true`；
+    - 加载失败/文件丢失：返回 `Dict(:data_load_flag => false)`，保障批量处理时不会因单文件缺失而中断。
+    4. **控制台日志输出**：开启 `show_filename=true` 时打印绿色格式化的加载日志。
+
+    # 参数说明
+    - `date::DateTime`: 目标数据日期（`DateTime` 类型对象）。
+    - `model_index`: 需加载的模型/仪器标识符列表（例如 `[STATIC_c6, MAG_ss1s_cdf]`）。
+    - `show_filename::Bool`: 是否在终端实时显示正在加载的文件路径（默认 `false`）。
+
+    # 返回值
+    - `Dict`: 以 `model` 标识符为 Key、数据字典为 Value 的主数据字典。
 """
 function data_get_from_date(date::DateTime; model_index=[], show_filename=false) #全局读取函数 date 格式为yyyymmdd
-    datas_dict = Dict()
+    datas_dict = Dict{String,Any}()
     for model in model_index
         file_flag, filename = find_file_of_data(model, date)
         function_name = read_models[model][2]
@@ -115,6 +148,25 @@ function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读
     return kp_dict_out
 end
 ##----------------load parts------------------------
+"""
+    load_cdf(file::String) -> Dict{Symbol, Any}
+
+    读取空间物理标准的 **CDF (Common Data Format)** 数据文件，并将其变量完全解析加载为内存字典（`Dict`）。
+
+    # 主要功能与逻辑
+    1. **自动内存化**：将存储在磁盘上的 CDF 变量（如 `epoch`、`time_unix` 等）转存入内存（RAM），加速后续的高频数值分析与绘图。
+    2. **时间格式自动转换**：对 `epoch` 变量自动转换为 Julia 标准的 `DateTime` 时间数组。
+    3. **维度调整（Record Variance 处理）**：
+    - 对于随时间变化的记录变量（RV，`flags & 1 == 1`），将其 Record 维度重排置于首位 (`permutedims`)，符合时间序列分析习惯。
+    - 对于静态非记录变量（NRV），自动剥离多余的 `1` 维（`dropdims`）或将其解包为标量。
+    4. **错误容错**：内置 `try-catch` 捕获异常，若文件损坏或路径错误，安全返回 `Dict(:data_load_flag => false)`。
+
+    # 参数说明
+    - `file`: CDF 文件的路径。
+
+    # 返回值
+    - `Dict{Symbol, Any}`: 包含所有变量的字典（Key 为 `Symbol`），并在成功时包含 `:data_load_flag => true`。
+"""
 function load_cdf(file::String)  # 将CDF文件读为字典
     function clean_dimensions(data)
         # 找出所有大小为 1 的维度索引
@@ -1003,8 +1055,6 @@ open(dir * "/" * "filename_lists.json", "r") do f
     global filename_list = JSON.parse(f)
 end
 end # module
-
-
 
 # ----test
 # EnvironmentPath = "D:/CODE/Package_for_Julia/"
