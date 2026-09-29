@@ -1,7 +1,7 @@
 <!-- <div align="center"> -->
 <!-- <img src="./docs/images/icon.svg" alt="icon"/> -->
 
-> **火星空间数据处理与科学计算工具包**  
+> **火星空间数据处理与科学计算工具包**
 > **Mars Space Data Processing & Scientific Computing Toolkit**
 
 # 索引
