@@ -1,8 +1,14 @@
-<!-- <div align="center"> -->
-<!-- <img src="./docs/images/icon.svg" alt="icon"/> -->
-
-> **火星空间数据处理与科学计算工具包**
-> **Mars Space Data Processing & Scientific Computing Toolkit**
+<table>
+  <tr>
+    <td width="20%" align="center" style="border: none;">
+      <img src="logo.jpg" alt="icon" width="120px"/>
+    </td>
+    <td width="80%" style="border: none; vertical-align: middle;">
+      <h2>火星空间数据处理与科学计算工具包</h2>
+      <p><b>Mars Space Data Processing & Scientific Computing Toolkit</b></p>
+    </td>
+  </tr>
+</table>
 
 # 索引
 
