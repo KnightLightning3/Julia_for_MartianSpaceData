@@ -1,3 +1,4 @@
+
 import os
 import io
 import re
@@ -63,8 +64,91 @@ def parse_kp_version(filename):
     if version_match:
         return f"{int(version_match.group(1)):02d}"
     return "01"
+def parse_kp_date(filename):
+    """
+    从 KP 文件名解析日期字符串 (如 mvn_kp_insitu_20140318_v13_r03.tab -> '20140318')
+    """
+    date_match = re.search(r'_(\d{8})_', filename)
+    if date_match:
+        return date_match.group(1)  # '20140318'
+    return None
 
+def pick_and_clean_kp_files(mode_kp_files, mode_cdf_files):
+    """
+    使用 json_list_data 中的文件列表，按日期比较 KP 源文件和 KP_cdf 的版本：
+      - 同一日期下 KP 源文件有多个版本：保留最高版，删除其余低版源文件；
+      - 对应日期的 KP_cdf 已存在且版本 >= KP版本：跳过该日期（不处理），打印 warning；
+      - 对应日期的 KP_cdf 版本 < KP版本：删除旧 cdf，打印提示，继续生成；
+      - 无对应 cdf：正常处理生成。
+    mode_kp_files = json_list_data[key]  （KP 源文件完整路径列表）
+    mode_cdf_files = json_list_data["KP_cdf"]  （已有 KP_cdf 文件完整路径列表）
+    返回待处理的 KP 源文件完整路径列表。
+    """
+    kp_files = mode_kp_files
+    cdf_files = mode_cdf_files
 
+    # 按日期分组 KP 文件
+    groups = defaultdict(list)
+    no_date_files = []
+    for f in kp_files:
+        basename = os.path.basename(f)
+        date_str = parse_kp_date(basename)
+        if date_str:
+            groups[date_str].append(f)
+        else:
+            no_date_files.append(f)
+
+    selected = []
+    for date_str, files in groups.items():
+        # 按版本号排序，最高的排最后
+        files_sorted = sorted(
+            files,
+            key=lambda f: int(parse_kp_version(os.path.basename(f)))
+        )
+        best_file = files_sorted[-1]
+        best_ver = int(parse_kp_version(os.path.basename(best_file)))
+
+        # 从 mode_cdf_files 中找出该日期对应的所有 cdf 文件
+        cdf_files_for_date = [
+            cdf_f for cdf_f in cdf_files
+            if os.path.basename(cdf_f).endswith('.cdf') and f'_{date_str}_' in os.path.basename(cdf_f)
+        ]
+
+        should_process = True
+        for cdf_path in cdf_files_for_date:
+            cdf_basename = os.path.basename(cdf_path)
+            existing_ver = int(parse_kp_version(cdf_basename))
+            if existing_ver >= best_ver:
+                # cdf 版本 >= KP 版本，跳过该日期
+                print(
+                    f"warning {date_str}日期的KP版本较低（v{best_ver:02d} - v{existing_ver:02d}）"
+                )
+                should_process = False
+                break
+            else:
+                # cdf 版本 < KP 版本，删除旧 cdf
+                os.remove(cdf_path)
+                print(
+                    f"{date_str}日期的cdf版本较低（v{existing_ver:02d} - v{best_ver:02d}）"
+                )
+
+        if not should_process:
+            # 跳过该日期的处理，清理该日期所有 KP 源文件（包括最高版，因为 cdf 已是最新）
+            for old_file in files_sorted:
+                if os.path.exists(old_file):
+                    os.remove(old_file)
+                    print(f"  [删除低版本源文件] {os.path.basename(old_file)}")
+            continue
+
+        # 保留最高版本 KP 文件，删除同日期其他低版本源文件
+        selected.append(best_file)
+        for old_file in files_sorted[:-1]:
+            if os.path.exists(old_file):
+                os.remove(old_file)
+                print(f"  [删除低版本源文件] {os.path.basename(old_file)}")
+
+    selected.extend(no_date_files)
+    return selected
 def build_kp_colspecs(total_cols=235):
     """
     构建 235 列的固定宽度字符切片坐标区间 [start, end)
@@ -237,22 +321,22 @@ if __name__ == "__main__":
     key = "KP"
     if key in json_list_data:
         print(f"\n=====正在处理数据类别: {key}，共 {len(json_list_data[key])} 个文件=====",end="\r")
-        mode_save_dir,_ = download_model(key)
-        
+        mode_kp_dir,_ = download_model(key)
+        mode_cdf_dir,_ = download_model("KP_cdf")
+
+        mode_kp_files = json_list_data[key]
+        mode_cdf_files = json_list_data["KP_cdf"]
+        kp_files = pick_and_clean_kp_files(mode_kp_files, mode_cdf_files)
         count = 0
-        for txt_file in json_list_data[key]:
+        for txt_file in kp_files:
             count += 1
-            print(f"处理文件{os.path.basename(txt_file)} {count}/{len(json_list_data[key])}...",end="\r")
-            txt_file_path = os.path.join(mode_save_dir, txt_file)
-            output_cdf_path = os.path.join(mode_save_dir[:-7]+"cdf", txt_file[:-4] + "_compressed.cdf")
-            new_file_path = os.path.join(mode_save_dir[:-7]+"cdf", txt_file[:-4] + ".cdf")
-            # break
+            print(f"处理文件{os.path.basename(txt_file)} {count}/{len(kp_files)}...", end="\r")
+            output_cdf_path = os.path.join(mode_cdf_dir, txt_file[:-4] + "_compressed.cdf")
+            new_file_path = os.path.join(mode_cdf_dir, txt_file[:-4] + ".cdf")
 
             if os.path.exists(new_file_path):
                 continue
             if not os.path.exists(os.path.dirname(new_file_path)):
                 os.makedirs(os.path.dirname(new_file_path))
-            convert_kp_to_cdf(txt_file_path, output_cdf_path,gzip_level=6)
-            #修改临时文件结尾
+            convert_kp_to_cdf(mode_kp_dir+txt_file, output_cdf_path, gzip_level=4)
             os.rename(output_cdf_path, new_file_path)
-            # break
