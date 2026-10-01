@@ -65,7 +65,7 @@ end
     close(f)
 end
 # #获取所有文件和对应的mag文件
-files_mag = MAVEN_load.file_list("MAG_ss1s_l3")
+files_mag = MAVEN_load.file_list("MAG_ss1s_cdf")
 dates_mag = [(m.captures[1] ,s) for s in files_mag for m in eachmatch(r"_([0-9]{8})_", s)]
 
 for (date, file) in dates_mag
@@ -78,7 +78,7 @@ for (date, file) in dates_mag
     end
     if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
-        mag = MAVEN_load.load_mag_l3(file)
+        mag = MAVEN_load.load_cdf(file)
         time, vsc,position = get_vsc(mag)
         touch(new_path)
         try

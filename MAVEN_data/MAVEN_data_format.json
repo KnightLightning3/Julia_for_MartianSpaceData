@@ -51,34 +51,6 @@
             "load_mag_l2",
             "mag 1 Hz data in PC"
         ],
-        "MAG_ss_l3": [
-            ["MAG/l3/","None","None"],
-            "mvn_mag_l3_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
-            "MAG/l3/",
-            "load_mag_l3",
-            "mag 32 Hz data in MSO (binary)"
-        ],
-        "MAG_ss1s_l3": [
-            ["MAG/l3/","None","None"],
-            "mvn_mag_l3_\\d{7}ss1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
-            "MAG/l3/",
-            "load_mag_l3",
-            "mag 1 Hz data in MSO (binary)"
-        ],
-        "MAG_pc_l3": [
-            ["MAG/l3/","None","None"],
-            "mvn_mag_l3_\\d{7}pc_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
-            "MAG/l3/",
-            "load_mag_l3",
-            "mag 32 Hz data in PC (binary)"
-        ],
-        "MAG_pc1s_l3": [
-            ["MAG/l3/","None","None"],
-            "mvn_mag_l3_\\d{7}pc1s_\\d{8}_v\\d{2}_r\\d{2}\\.f77_unformatted",
-            "MAG/l3/",
-            "load_mag_l3",
-            "mag 1 Hz data in PC (binary)"
-        ],
         "MAG_ss_cdf": [
             ["MAG/l3/","None","None"],
             "mvn_mag_l2_\\d{7}ss_\\d{8}_v\\d{2}_r\\d{2}\\.cdf",

@@ -18,19 +18,19 @@ function TimeFormat(time1, time2)
     return "$(lpad(hours, 2, '0')):$(lpad(minutes, 2, '0')):$(lpad(seconds, 2, '0')).$(lpad(milliseconds, 3, '0'))"
 end
 @inline function mag2sphere(data_dict)
-    position = data_dict["MAG_ss1s_l3"][:position]
-    b = data_dict["MAG_ss1s_l3"][:B]
+    position = data_dict["MAG_ss1s_cdf"][:position]
+    b = data_dict["MAG_ss1s_cdf"][:B]
     data = MAVEN_load.Bpc2sphere.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
     br = [x[1] for x in data]
     bθ = [x[2] for x in data]
     bϕ = [x[3] for x in data]
-    data_dict["MAG_ss1s_l3"][:SphereB] = (br, bθ, bϕ)
+    data_dict["MAG_ss1s_cdf"][:SphereB] = (br, bθ, bϕ)
     return data_dict
 end
 @inline function get_data(date)
     model_index = [
         "STATIC_d1_v4d",
-        "MAG_ss1s_l3","MAG_pc1s_l3",
+        "MAG_ss1s_cdf","MAG_pc1s_l3",
         "LPW_wave",
         "SWEA_spec",
         "STATIC_c6",
@@ -199,9 +199,9 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
             fig[np, panel_ind]; limits=(x_range_unix, nothing), 
             ylabel=rich("B",font =:bold," ",rich("(nT)",font = :regular)), 
             ax_Dict...)
-        if data_dict["MAG_ss1s_l3"][:data_load_flag]
-            timeB_ss = data_dict["MAG_ss1s_l3"][:epoch]
-            B_ss = data_dict["MAG_ss1s_l3"][:B]
+        if data_dict["MAG_ss1s_cdf"][:data_load_flag]
+            timeB_ss = data_dict["MAG_ss1s_cdf"][:epoch]
+            B_ss = data_dict["MAG_ss1s_cdf"][:B]
             timeBm,Bm, = data_dict["MAG_model_ss"][:epoch],data_dict["MAG_model_ss"][:Bm_ss]
             timeB_unix, time_i = MAVEN_plot.time2x(timeB_ss, x_range;t0 = t0)
             timeBm_unix, time_im = MAVEN_plot.time2x(timeBm, x_range;t0=t0)
@@ -326,11 +326,11 @@ function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
                 end
             end
         end
-        if data_dict["MAG_ss1s_l3"][:data_load_flag]
-            timeB = data_dict["MAG_ss1s_l3"][:epoch]
+        if data_dict["MAG_ss1s_cdf"][:data_load_flag]
+            timeB = data_dict["MAG_ss1s_cdf"][:epoch]
             x, time_i = MAVEN_plot.time2x(timeB, x_range;t0=t0)
             if time_i != []
-                B_total = data_dict["MAG_ss1s_l3"][:B_total][time_i]
+                B_total = data_dict["MAG_ss1s_cdf"][:B_total][time_i]
                 fce = log10.(B_total .* 27.99)
                 lines!(axs[np], x, fce, label="fce", linewidth=2, linestyle=:dash, color=:white)
             end

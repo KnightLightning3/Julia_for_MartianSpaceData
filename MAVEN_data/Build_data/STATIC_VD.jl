@@ -5,6 +5,8 @@ using FortranFiles
 # using Polyester: @batch
 using Base.Threads
 using Rotations
+using JLD2
+
 @spawn :interactive f()
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
@@ -14,6 +16,7 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
     local time_unix = ion_data[:time_unix]
     local position = ion_data[:pos_sc_mso]
     local mag = ion_data[:magf]
+    local mode = ion_data[:mode]
     local quality_flag = ion_data[:quality_flag]
 
     local ntime = length(time_unix)
@@ -93,13 +96,17 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         O2_f = O2_f,
         CO2_f = CO2_f,
         pos = position,
-        mag = mag,
+        b = mag,
+        mode = mode,
         quality_flag = quality_flag,
         vsc_quality = vsc_quality,
     )
     return datas_dict
 end
 @inline function data2bi(datas_dict,filename)
+    # filter = [Shuffle(), Deflate()]
+    # jldopen(filename, "w"; compress = filter) do f
+    #     f["data"] = datas_dict
     time = datas_dict.time_unix
     Ntime = length(time)
 
@@ -124,8 +131,9 @@ end
     He_den = convert(Vector{Float32},datas_dict.He_den)
 
     pos = convert(Array{Float32,2},datas_dict.pos)
-    mag = convert(Array{Float32,2},datas_dict.mag)
+    mag = convert(Array{Float32,2},datas_dict.b)
     quality_flag = convert(Vector{Int16},datas_dict.quality_flag)
+    mode = convert(Vector{Int4},datas_dict.mode)
     vsc_quality = convert(Vector{Bool},datas_dict.vsc_quality)
 
     f = FortranFile(filename,"w")
@@ -153,6 +161,7 @@ end
     write(f, pos)
     write(f, mag)
     write(f, quality_flag)
+    write(f, mode)
     write(f, vsc_quality)
     close(f)
 end

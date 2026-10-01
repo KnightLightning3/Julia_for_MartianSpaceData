@@ -258,9 +258,9 @@ if !(current_date_str == date_str)
         @info "读取MAVEN数据完成"
     end
 end
-time_B_ss,B_ss = MAVEN_data["MAG_ss1s_l3"][:epoch],MAVEN_data["MAG_ss1s_l3"][:B]
-B_ss_filtered = MAVEN_data["MAG_ss1s_l3"][:B_filtered]
-P_ss = MAVEN_data["MAG_ss1s_l3"][:position]
+time_B_ss,B_ss = MAVEN_data["MAG_ss1s_cdf"][:epoch],MAVEN_data["MAG_ss1s_cdf"][:B]
+B_ss_filtered = MAVEN_data["MAG_ss1s_cdf"][:B_filtered]
+P_ss = MAVEN_data["MAG_ss1s_cdf"][:position]
 Mars_distance = MAVEN_data["KP_l3"][:vars][:var_213][1]
 
 time_range_d1 = find_time_range(d1_data[:epoch],time_range)

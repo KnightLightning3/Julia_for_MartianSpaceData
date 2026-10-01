@@ -74,7 +74,7 @@ MAVEN数据模块名列表
 |MAG_pc|mag 32 Hz data in PC|load_mag_l2|mvn_mag_l2_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.sts|
 |MAG_pc1s|mag 1 Hz data in PC|load_mag_l2|mvn_mag_l2_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.sts|
 |MAG_ss_l3|mag 32 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
-|MAG_ss1s_l3|mag 1 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|MAG_ss1s_cdf|mag 1 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
 |MAG_pc_l3|mag 32 Hz data in PC (binary)|load_mag_l3|mvn_mag_l3_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
 |MAG_pc1s_l3|mag 1 Hz data in PC (binary)|load_mag_l3|mvn_mag_l3_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
 |MAG_ss1s_vsc|spacecraft velocity carculated from mag data (binary)|load_mag_vsc|mvn_mag_vsc_ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
