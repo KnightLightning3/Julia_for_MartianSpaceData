@@ -21,14 +21,17 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
     local He_vel = fill(NaN32,ntime, 3)
     local O_vel = fill(NaN32,ntime, 3)
     local O2_vel = fill(NaN32,ntime, 3)
+    local CO2_vel = fill(NaN32,ntime, 3)
     local H_den = fill(NaN32,ntime)
     local He_den = fill(NaN32,ntime)
     local O_den = fill(NaN32,ntime)
     local O2_den = fill(NaN32,ntime)
+    local CO2_den = fill(NaN32,ntime)
     local H_f = fill(NaN32,ntime, 3)
     local He_f = fill(NaN32,ntime, 3)
     local O_f = fill(NaN32,ntime, 3)
     local O2_f = fill(NaN32,ntime,3)
+    local CO2_f = fill(NaN32,ntime,3)
     local vsc_quality = fill(true,ntime)
 
     local time_vsc = vsc_data[:time_unix]
@@ -66,6 +69,10 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         He_vel[time_ind, 1:3] = rotation_Q * vel .+ @view vsc[time_vsc_ind,:]
         He_f[time_ind,1:3] = rotation_Q * flux
         He_den[time_ind] = den
+        vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=energy_range, mass_range=[40,60], m_int=44,unit_cover=false)
+        CO2_vel[time_ind, 1:3] = rotation_Q * vel .+ @view vsc[time_vsc_ind,:]
+        CO2_f[time_ind,1:3] = rotation_Q * flux
+        CO2_den[time_ind] = den
     end
 
     datas_dict = (
@@ -74,14 +81,17 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         He_vel = He_vel,
         O_vel = O_vel,
         O2_vel = O2_vel,
+        CO2_vel = CO2_vel,
         H_den = H_den,
         He_den = He_den,
         O_den = O_den,
         O2_den = O2_den,
+        CO2_den = CO2_den,
         H_f = H_f,
         He_f = He_f,
         O_f = O_f,
         O2_f = O2_f,
+        CO2_f = CO2_f,
         pos = position,
         mag = mag,
         quality_flag = quality_flag,
@@ -97,16 +107,19 @@ end
 
     O_vel = convert(Array{Float32,2},datas_dict.O_vel)
     O2_vel = convert(Array{Float32,2},datas_dict.O2_vel)
+    CO2_vel = convert(Array{Float32,2},datas_dict.CO2_vel)
     H_vel = convert(Array{Float32,2},datas_dict.H_vel)
     He_vel = convert(Array{Float32,2},datas_dict.He_vel)
 
     O_f = convert(Array{Float32,2},datas_dict.O_f)
     O2_f = convert(Array{Float32,2},datas_dict.O2_f)
+    CO2_f = convert(Array{Float32,2},datas_dict.CO2_f)
     H_f = convert(Array{Float32,2},datas_dict.H_f)
     He_f = convert(Array{Float32,2},datas_dict.He_f)
 
     O_den = convert(Vector{Float32},datas_dict.O_den)
     O2_den = convert(Vector{Float32},datas_dict.O2_den)
+    CO2_den = convert(Vector{Float32},datas_dict.CO2_den)
     H_den = convert(Vector{Float32},datas_dict.H_den)
     He_den = convert(Vector{Float32},datas_dict.He_den)
 
@@ -123,16 +136,19 @@ end
     write(f, He_vel)
     write(f, O_vel)
     write(f, O2_vel)
-    
+    write(f, CO2_vel)
+
     write(f, H_f)
     write(f, He_f)
     write(f, O_f)
     write(f, O2_f)
-    
+    write(f, CO2_f)
+
     write(f, H_den)
     write(f, He_den)
     write(f, O_den)
     write(f, O2_den)
+    write(f, CO2_den)
 
     write(f, pos)
     write(f, mag)
