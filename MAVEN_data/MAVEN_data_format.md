@@ -68,26 +68,34 @@ MAVEN数据模块名列表
 |模型名|描述|读取函数|名称格式|
 |---|---|---|---|
 |KP|KP datas|load_kp|^mvn_kp_insitu_.+\.tab$|
-|KP_l3|KP Data (JL2D)|load_kp_l3|^mvn_kp_insitu_.+\.jld2$|
+|KP_cdf|KP data in cdf, bulid by MAVEN_data/Build_data/KP2cdf.py|load_cdf|^mvn_kp_insitu_.+\.cdf$|
 |MAG_ss|mag 32 Hz data in MSO|load_mag_l2|mvn_mag_l2_\d{7}ss_\d{8}_v\d{2}_r\d{2}\.sts|
 |MAG_ss1s|mag 1 Hz data in MSO|load_mag_l2|mvn_mag_l2_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.sts|
 |MAG_pc|mag 32 Hz data in PC|load_mag_l2|mvn_mag_l2_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.sts|
 |MAG_pc1s|mag 1 Hz data in PC|load_mag_l2|mvn_mag_l2_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.sts|
-|MAG_ss_l3|mag 32 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
-|MAG_ss1s_cdf|mag 1 Hz data in MSO (binary)|load_mag_l3|mvn_mag_l3_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
-|MAG_pc_l3|mag 32 Hz data in PC (binary)|load_mag_l3|mvn_mag_l3_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
-|MAG_pc1s_l3|mag 1 Hz data in PC (binary)|load_mag_l3|mvn_mag_l3_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
-|MAG_ss1s_vsc|spacecraft velocity carculated from mag data (binary)|load_mag_vsc|mvn_mag_vsc_ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
+|MAG_ss_cdf|mag 32 Hz data in MSO (cdf)|load_cdf|mvn_mag_l2_\d{7}ss_\d{8}_v\d{2}_r\d{2}\.cdf|
+|MAG_ss1s_cdf|mag 1 Hz data in MSO (cdf)|load_cdf|mvn_mag_l2_\d{7}ss1s_\d{8}_v\d{2}_r\d{2}\.cdf|
+|MAG_pc_cdf|mag 32 Hz data in PC (cdf)|load_cdf|mvn_mag_l2_\d{7}pc_\d{8}_v\d{2}_r\d{2}\.cdf|
+|MAG_pc1s_cdf|mag 1 Hz data in PC (cdf)|load_cdf|mvn_mag_l2_\d{7}pc1s_\d{8}_v\d{2}_r\d{2}\.cdf|
+|MAG_ss1s_vsc|spacecraft velocity calculated from mag data (binary)|load_mag_vsc|mvn_mag_vsc_ss1s_\d{8}_v\d{2}_r\d{2}\.f77_unformatted|
 |SWEA_spec|SWEA l2 survey spectra|load_cdf|mvn_swe_l2_svyspec_.+\.cdf|
 |SWEA_pad_arc|SWEA l2 arc pad|load_swea_pad|mvn_swe_l2_arcpad_.+\.cdf|
 |SWEA_pad_svy|SWEA l2 survey pad|load_swea_pad|mvn_swe_l2_svypad_.+\.cdf|
-|STATIC_c6|STATIC c6 32e64m|load_STATIC|mvn_sta_l2_c6-32e64m_.+\.cdf|
-|STATIC_c8|STATIC c8 32e16d|load_STATIC|mvn_sta_l2_c8-32e16d_.+\.cdf|
-|STATIC_ca|STATIC ca 16e4d16a|load_STATIC|mvn_sta_l2_ca-16e4d16a_.+\.cdf|
-|STATIC_cf|STATIC cf 16e4d16a16m|load_STATIC|mvn_sta_l2_cf-16e4d16a16m_.+\.cdf|
-|STATIC_d0|STATIC d0 32e4d16a8m|load_STATIC|mvn_sta_l2_d0-32e4d16a8m_.+\.cdf|
-|STATIC_d1|STATIC d1 32e4d16a8m|load_STATIC|mvn_sta_l2_d1-32e4d16a8m_.+\.cdf|
-|STATIC_d1_v4d|STATIC d1 velocity flux density (binary)|load_d1_v4d|mvn_sta_l3_d1_vel_flux_den_.+\.f77_unformatted|
+|SWEA_arc3d|SWEA l2 arc 3d|load_cdf|mvn_swe_l2_arc3d_.+\.cdf|
+|SWEA_svy3d|SWEA l2 svy 3d|load_cdf|mvn_swe_l2_svy3d_.+\.cdf|
+|SEP_anc| |load_cdf|mvn_sep_l2_anc_.+\.cdf|
+|SEP_counts| |load_cdf|mvn_sep_l2_s1-raw-svy-full_.+\.cdf|
+|SEP_spec| |load_cdf|mvn_sep_l2_s1-cal-svy-full_.+\.cdf|
+|STATIC_c6|STATIC c6 32e64m|load_cdf|mvn_sta_l2_c6-32e64m_.+\.cdf|
+|STATIC_c8|STATIC c8 32e16d|load_cdf|mvn_sta_l2_c8-32e16d_.+\.cdf|
+|STATIC_ca|STATIC ca 16e4d16a|load_cdf|mvn_sta_l2_ca-16e4d16a_.+\.cdf|
+|STATIC_cf|STATIC cf 16e4d16a16m|load_cdf|mvn_sta_l2_cf-16e4d16a16m_.+\.cdf|
+|STATIC_d0|STATIC d0 32e4d16a8m|load_cdf|mvn_sta_l2_d0-32e4d16a8m_.+\.cdf|
+|STATIC_d1|STATIC d1 32e4d16a8m|load_cdf|mvn_sta_l2_d1-32e4d16a8m_.+\.cdf|
+|STATIC_d1_v4d|STATIC d1 velocity flux density (binary)|load_d1_v4d|mvn_sta_l3_d1_v4d_.+\.f77_unformatted|
+|STATIC_d1_v4d_cold|STATIC d1 velocity flux density (binary)|load_d1_v4d|mvn_sta_l3_d1_v4d_cold.+\.f77_unformatted|
+|STATIC_d1_v4d_heat|STATIC d1 velocity flux density (binary)|load_d1_v4d|mvn_sta_l3_d1_v4d_heat.+\.f77_unformatted|
+|STATIC_c6_v3d|STATIC c6 velocity flux density (binary)|load_c6_v3d|mvn_sta_l3_c6_v3d_.+\.jld2|
 |LPW_wave|LPW wave passitive spectra|load_cdf|mvn_lpw_l2_wspecpas_.+\.cdf|
 |LPW_wave_act|LPW wave active spectra|load_cdf|mvn_lpw_l2_wspecact_.+\.cdf|
 |LPW_mrgscpot|LPW merged spacecraft potential|load_cdf|mvn_lpw_l2_mrgscpot_.+\.cdf|
@@ -105,7 +113,10 @@ MAVEN数据模块名列表
 |SWIA_mom| |load_cdf|mvn_swi_l2_onboardsvymom_.+\.cdf|
 |SWIA_svy_spec| |load_cdf|mvn_swi_l2_onboardsvyspec_.+\.cdf|
 |SWIA_fine_svy_3d| |load_cdf|mvn_swi_l2_finesvy3d_.+\.cdf|
+|SWIA_fine_arc_3d| |load_cdf|mvn_swi_l2_finearc3d_.+\.cdf|
 |SWIA_coarse_svy_3d| |load_cdf|mvn_swi_l2_coarsesvy3d_.+\.cdf|
+|SWIA_coarse_arc_3d| |load_cdf|mvn_swi_l2_coarsearc3d_.+\.cdf|
 |EUV_l2_bands| |load_cdf|mvn_euv_l2_bands_.+\.cdf|
-|EUV_l3_daily| |load_cdf|mvn_euv_l3_daily.+\.cdf|
-|QL_overview|quik look for MAVEN overview data|load_cdf|\.png|
+|EUV_l3_minute|EUV minute averaged data|load_cdf|mvn_euv_l3_minute.+\.cdf|
+|EUV_l3_daily|EUV daily averaged data|load_cdf|mvn_euv_l3_daily.+\.cdf|
+|SWIA_quat|quat data of SWIA to MSO|load_quat|mvn_spice_swia_qu_.+\.csv|

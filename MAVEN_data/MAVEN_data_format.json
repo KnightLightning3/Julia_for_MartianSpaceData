@@ -9,19 +9,12 @@
             "load_kp",
             "KP datas"
         ],
-        "KP_l3": [
-            ["KP/l3/","None","None"],
-            "^mvn_kp_insitu_.+\\.jld2$",
-            "KP/l3/",
-            "load_kp_l3",
-            "KP Data (JL2D)"
-        ],
         "KP_cdf":[
              ["KP/cdf/","None","None"],
-            "^mvn_insitu_kp-4sec_.+\\.cdf$",
+            "^mvn_kp_insitu_.+\\.cdf$",
             "KP/cdf/",
             "load_cdf",
-            "KP data in cdf,only in https://spdf.gsfc.nasa.gov/pub/data/maven/"
+            "KP data in cdf, bulid by MAVEN_data/Build_data/KP2cdf.py"
         ],
         "MAG_ss": [
             ["MAG/l2/","maven-mag-calibrated/data/ss/highres/","mag/l2/"],
