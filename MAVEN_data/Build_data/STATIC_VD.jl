@@ -133,7 +133,7 @@ end
     pos = convert(Array{Float32,2},datas_dict.pos)
     mag = convert(Array{Float32,2},datas_dict.b)
     quality_flag = convert(Vector{Int16},datas_dict.quality_flag)
-    mode = convert(Vector{Int4},datas_dict.mode)
+    mode = convert(Vector{Int8},datas_dict.mode)
     vsc_quality = convert(Vector{Bool},datas_dict.vsc_quality)
 
     f = FortranFile(filename,"w")
@@ -176,7 +176,7 @@ common_dates = [
     for (j, (date2, _)) in enumerate(dates_mag)
     if date == date2
 ]
-# file_mode = "mvn_sta_l3_d1_v4d_";energy_range = [0,1e6]
+file_mode = "mvn_sta_l3_d1_v4d_";energy_range = [0,1e6]
 # file_mode = "mvn_sta_l3_d1_v4d_cold_";energy_range = [0,30]
 # # file_mode = "mvn_sta_l3_d1_v4d_heat_";energy_range = [30,1e6]
 # file_mode = "mvn_sta_l3_d1_vel_flux_den_";energy_range = [0,1e6]
@@ -189,24 +189,21 @@ for (date, file_ion, file_vsc) in common_dates
         mkpath(dir)
     end
     if !isfile(new_path)
-        @time begin 
-            print("\033[0;32mReading $(date)\033[0m \r")
-            # println(file_vsc)
-            local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
-            local ion_data = MAVEN_load.load_cdf(file_ion)
-            print("\033[0;32mBuilding $(date)\033[0m \n")
-            local datas_dict = get_ion_vel(vsc_data,ion_data, energy_range = energy_range)
-            touch(new_path)
-            try
-                print("\033[0;32mWriting $(date)\033[0m \r")
-                data2bi(datas_dict,new_path)
-                print("\033[0;32mDone Writing $(date)\033[0m \r")
-            catch e
-                print("\033[0;31mERROR: $(e)\033[0m \n")
-                rm(new_path)
-            end
+        print("\033[0;32mReading $(date)\033[0m \r")
+        # println(file_vsc)
+        local vsc_data = MAVEN_load.load_mag_vsc(file_vsc)
+        local ion_data = MAVEN_load.load_cdf(file_ion)
+        print("\033[0;32mBuilding $(date)\033[0m \n")
+        local datas_dict = get_ion_vel(vsc_data,ion_data, energy_range = energy_range)
+        touch(new_path)
+        try
+            print("\033[0;32mWriting $(date)\033[0m \r")
+            data2bi(datas_dict,new_path)
+            print("\033[0;32mDone Writing $(date)\033[0m \r")
+        catch e
+            print("\033[0;31mERROR: $(e)\033[0m \n")
+            rm(new_path)
         end
-        
     else
         print("\033[0;33mSKIP $(date)\033[0m \r")
     end

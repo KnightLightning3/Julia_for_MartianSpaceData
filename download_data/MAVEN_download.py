@@ -616,4 +616,4 @@ if __name__ == '__main__':
     io_download_log.close()
 
     import runpy
-    runpy.run_path(f"{project_path}/download_data/get_download_files.py")  # run get_download_files.py, update filename_list.txt
+    runpy.run_path(f"{project_path}/download_data/check_exist_files.py")  # run get_download_files.py, update filename_list.txt
