@@ -55,7 +55,8 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         local rotation_Q = QuatRotation(dat_slip[:quat_mso]);
 
         local dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
-
+        local vel, flux, den
+        
         vel, flux, den = MAVEN_STATIC.sta_v_4d(dat_slip; energy_range=energy_range, mass_range=[24,40], m_int=32,unit_cover=false)
         O2_vel[time_ind, 1:3] =rotation_Q * vel .+ @view vsc[time_vsc_ind,:]
         O2_f[time_ind,1:3] = rotation_Q * flux
@@ -180,7 +181,7 @@ file_mode = "mvn_sta_l3_d1_v4d_";energy_range = [0,1e6]
 # file_mode = "mvn_sta_l3_d1_v4d_cold_";energy_range = [0,30]
 # # file_mode = "mvn_sta_l3_d1_v4d_heat_";energy_range = [30,1e6]
 # file_mode = "mvn_sta_l3_d1_vel_flux_den_";energy_range = [0,1e6]
-
+global count = 0
 for (date, file_ion, file_vsc) in common_dates
     ion_version = match(r"_v([0-9]{2})_", file_ion).captures[1]
     new_path = dirname(replace(file_ion, "/l2/" => "/l3/"))*"/$file_mode$(date)_v$(ion_version)_r00.f77_unformatted"
@@ -204,7 +205,12 @@ for (date, file_ion, file_vsc) in common_dates
             print("\033[0;31mERROR: $(e)\033[0m \n")
             rm(new_path)
         end
+        global count += 1
+        if count % 4 == 0
+            GC.gc() 
+        end
     else
         print("\033[0;33mSKIP $(date)\033[0m \r")
     end
+    
 end
