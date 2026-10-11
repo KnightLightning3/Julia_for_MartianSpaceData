@@ -35,7 +35,7 @@ open(dir * "/MAVEN_data_format.json", "r") do f
 end
 root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
 # -------------------------Read filelist parts-------------------------
-"""     
+"""
 打印所有可支持的数据的读取.
 """
 function show_load_models()
@@ -338,12 +338,6 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
         result_dict[:pc2ss_Matrix] = pc2ss_Matrix
         return result_dict
     end
-end
-function load_kp_l3(file::String)
-    f = jldopen(file, "r")
-    data_out_dict = f["KP_jld2_data"]
-    close(f)
-    return data_out_dict
 end
 function load_swea_pad(file::String; mean_PA=true)
     # 默认将360°的数据投影到180°

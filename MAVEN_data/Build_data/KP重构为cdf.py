@@ -1,4 +1,3 @@
-
 import os
 import io
 import re
@@ -46,6 +45,7 @@ config_data.read(config_file_path, encoding="utf-8")
 
 save_dir = config_data["DEFAULT"]["Save_dir"]
 
+# 变量名称配置文件
 KP_COLUMN_DEFS = {
     1: {'var_name': 'epoch', 'desc': 'Time (UTC/SCET)', 'unit': '', 'format': 'yyyy-mm-ddThh:mm:ss', 'cdf_type': 'epoch', 'note': 'Four- to eight-sec cadence, all parameters on uniform time grid established by SWEA/SWIA/STATIC/LPW'},
     2: {'var_name': 'lpw_electron_density', 'desc': 'LPW Electron Density', 'unit': 'cm^-3', 'format': 'E16.2', 'cdf_type': 'float', 'note': 'Derived from the LP sweep and when available from the plasma line'},

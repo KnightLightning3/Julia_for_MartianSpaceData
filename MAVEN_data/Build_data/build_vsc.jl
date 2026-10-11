@@ -1,4 +1,4 @@
-# 基于mag数据制作maven 飞行器的速度
+# 基于mag数据制作 maven 飞行器的速度，格式为 MSO
 # 使用二次函数拟合计算
 using Dates
 using FortranFiles

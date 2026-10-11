@@ -25,3 +25,4 @@ Magnetic_Model/mars_surface_mag.png
 *~
 example/MAVEN_plot_sample/*.png
 download_data/download_heads.json
+.DS_store
