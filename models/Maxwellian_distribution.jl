@@ -27,6 +27,7 @@ function velocity_distribution(v,T;m=mp)
     fv = 4π * (a1 / π)^1.5 * v^2 * exp(-a1 * v^2)
     return fv
 end
+"""拟合速度分布数据并返回 Maxwell 分布参数。"""
 function fit_velocity_distribution(v, fv; fit_function=:Linear,m=mp)
     # 拟合计算速度分布函数 对数域, 默认粒子为质子
     Y = log.(fv ./ (v.^2))
@@ -78,6 +79,7 @@ function velocity_density_distribution(v, T, N0; m=mp, v0 = 0)
     fd = N0*(a1 / π)^1.5 * exp(-a1 * (v-v0)^2)
     return fd
 end
+"""拟合含数密度和漂移速度的 Maxwell 速度分布。"""
 function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0)
     if length(fd) <= 1
         @warn "数据点不够"

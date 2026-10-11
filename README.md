@@ -14,6 +14,7 @@
 
 - [索引](#索引)
 - [介绍](#介绍)
+- [项目结构](#项目结构)
 - [下载数据](#下载数据)
 - [读取数据](#读取数据)
 - [其他模型](#其他模型)
@@ -22,6 +23,7 @@
   - [麦克斯韦分布拟合](#麦克斯韦分布拟合)
   - [单粒子轨道追踪](#单粒子轨道追踪)
 - [MAVEN数据说明](#maven数据说明)
+- [程序与函数 Wiki](#程序与函数-wiki)
 - [其他](#其他)
   - [闰秒修正](#闰秒修正)
 - [ToDo List](#todo-list)
@@ -30,18 +32,27 @@
 
 [English](README_EN.md) / 简体中文
 
-火星空间数据处理程序
+本项目提供火星空间科学数据的下载、读取、处理、可视化与物理模型计算工具。主要数据处理和科学计算使用 Julia，数据下载与文件整理主要使用 Python，部分磁场计算通过 Fortran 动态库加速。
 
-主要数据处理程序以 Julia 代码为主
+## 项目结构
 
-下载程序以 Python 为主
+| 目录/文件 | 用途 |
+| --- | --- |
+| `MAVEN_data/` | MAVEN 数据读取、仪器数据处理、绘图及数据格式定义 |
+| `MGS_data/`、`TW_data/` | MGS 与天问数据读取和仪器处理 |
+| `download_data/` | MAVEN 数据下载、下载文件检查、压缩及清理工具 |
+| `models/`、`Magnetic_Model/` | 等离子体、粒子轨道、磁场等模型与计算 |
+| `common/`、`support_data/` | 通用坐标/物理计算函数和外部支持数据读取 |
+| `calculate/` | 模型计算流程与组合入口 |
+| `example/` | 绘图和数据分析示例 |
+| `doc/wiki/` | 数据读取指南、数据格式、仪器专题与[程序/函数 Wiki](doc/wiki/程序与函数Wiki.md) |
+| `requirements.txt`、`requirement.jl` | Python 与 Julia 环境依赖参考 |
 
-个别计算程序使用Fortran
+各程序文件职责及函数说明见[程序与函数 Wiki](doc/wiki/程序与函数Wiki.md)。
 
 # 下载数据
 
-使用 python 程序, 下载文件的方式与 Julia 相同
-如果不想手动下载对应的包, 建议使用虚环境, requirements.txt
+使用 Python 程序下载和整理 MAVEN 数据。建议创建虚拟环境并安装 `requirements.txt` 中的依赖：
 
 ```
 pip install -r requirements.txt
@@ -49,13 +60,13 @@ pip install -r requirements.txt
 
 首次下载时,**需要先产生初始化设置文件**:
 
-运行[download_data\initialize_download_parameters.py](download_data\initialize_download_parameters.py)
+运行 [download_data/initialize_download_parameters.py](download_data/initialize_download_parameters.py)。
 
-完成设置文件的初始化后,修改[download_data\MAVEN_download_config.ini](download_data\MAVEN_download_config.ini)调整下载模式, 默认模式为从USTC源下载2014-10 至 2023-02 的全部数据
+初始化后，根据本机的下载配置调整服务器、保存目录、日期范围和数据产品；下载脚本从 `download_data/MAVEN_download_config.ini` 读取设置。该配置属于本地运行配置，不一定包含在仓库中。
 
-[download_data\MAVEN_download.py](download_data\MAVEN_download.py)将会下载指定服务器上的数据文件, 建议从科大源下载(Server_ind = 0)
+[download_data/MAVEN_download.py](download_data/MAVEN_download.py)负责从配置的服务器下载数据。
 
-此外,[download_data\磁场重构.jl](download_data\磁场重构.jl)和[download_data\KP 重构.jl](download_data\KP 重构.jl)可以将 MAVEN 官方的磁场和 KP 文件转写为 Fortran 二进制和 JULIA 二进制文件以便读取
+下载后可使用 `download_data/check_exist_files.py` 检查本地文件，使用 `download_data/compress_cdf.py` 压缩 CDF 文件，或使用 `download_data/clean_files.py` 清理未完成的下载文件。
 
 可以使用的MAVEN外部服务器(可能需要VPN):
 
@@ -66,11 +77,11 @@ pip install -r requirements.txt
 
 其中'https://pds-ppi.igpp.ucla.edu/data/'的文件树与后两者不同,且没有NGIM数据
 
-每次更新下载数据后，需要执行[download_data/check_exist_files.py](download_data/check_exist_files.py)来更新此文件
+每次更新下载数据后，可重新运行 `download_data/check_exist_files.py` 检查文件清单与数据完整性。
 
 # 读取数据
 
-MAVEN 数据读取 MAVEN_load.jl,
+MAVEN 数据的统一读取入口为 `MAVEN_data/MAVEN_load.jl`：
 
 ```
 Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
@@ -82,15 +93,15 @@ Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model
 Julia 中的引用方式:
 
 ```Julia
-include("path/MAVEN_load.jl")
-include("path/IGRF_calculate.jl")
+include("path/MAVEN_data/MAVEN_load.jl")
+include("path/Magnetic_Model/IGRF_calculate.jl")
 import .MAVEN_load
 import .IGRF_calculate
 ```
 
-具体读取方法: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
+具体读取方法: [MAVEN_data_format.md](doc/wiki/MAVEN_data_format.md)
 
-读取介绍：[MAVEN数据读取.md](doc/MAVEN数据读取.md)
+读取介绍：[MAVEN数据读取.md](doc/wiki/MAVEN数据读取.md)
 
 # 其他模型
 
@@ -111,12 +122,15 @@ import .IGRF_calculate
 
 ## 单粒子轨道追踪
 
-./models/Maxwellian_distribution.jl
-考虑内核改为Fortran以加快计算
+./models/Single_Particle_Orbit.jl
 
 # MAVEN数据说明
 
-见[MAVEN数据读取](doc/MAVEN数据读取.md)
+见[MAVEN数据读取](doc/wiki/MAVEN数据读取.md)，以及 [SWIA 电子修正专题](doc/wiki/swia_electron_correlated.md)。
+
+## 程序与函数 Wiki
+
+按目录查看程序职责、主要入口和函数说明：[程序与函数 Wiki](doc/wiki/程序与函数Wiki.md)。
 
 # 其他
 

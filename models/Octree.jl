@@ -1,3 +1,5 @@
+"""用于空间区域边界表示与快速空间查询的八叉树实现。"""
+
 using GLMakie
 using GeometryBasics
 
@@ -9,11 +11,13 @@ mutable struct OctreeNode
     is_inside::Bool
     children::Vector{OctreeNode}
     
+    """以中心点和半边长构造空八叉树节点。"""
     function OctreeNode(center::Vector{Float64}, half_size::Float64)
         new(center, half_size, false, false, Vector{OctreeNode}())
     end
 end
 
+"""按区域判定函数递归细分节点并构建八叉树。"""
 function build_octree!(node::OctreeNode, is_inside::Function, ϵ::Float64)
     # 获取节点的八个顶点
     corners = [
@@ -53,12 +57,14 @@ function build_octree!(node::OctreeNode, is_inside::Function, ϵ::Float64)
     end
 end
 
+"""根据区域判定函数搜索并返回最小包围盒。"""
 function get_min_bounding_box(is_inside::Function, ϵ::Float64, 
                                 initial_center::Vector{Float64}, initial_size::Float64)
     root = OctreeNode(initial_center, initial_size / 2)
     build_octree!(root, is_inside, ϵ)
     
     boundary_centers = Vector{Vector{Float64}}()
+    """递归搜索八叉树中属于目标区域的边界节点。"""
     function find_boundaries(node)
         if node.is_leaf
             if !node.is_inside && node.half_size <= ϵ
@@ -100,6 +106,7 @@ end
 # --- 验证部分 ---
 
 # 1. 定义球体
+"""判断给定点是否位于单位球内。"""
 function is_sphere(x, y, z)
     return x^2 + y^2 + z^2 <= 1.0
 end

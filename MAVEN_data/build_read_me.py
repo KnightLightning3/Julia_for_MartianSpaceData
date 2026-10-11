@@ -18,7 +18,7 @@ for model in models:
     else:
         strs.append(f"|{model}| |{var[3]}|{var[1]}|")
 
-with open(f"{project_path}/MAVEN_data/MAVEN_data_format.md", "r", encoding='utf-8') as file:
+with open(f"{project_path}/doc/wiki/MAVEN_data_format.md", "r", encoding='utf-8') as file:
     lines = file.readlines()
 for i, line in enumerate(lines):
     if 'MAVEN数据模块名列表' in line:
@@ -27,5 +27,5 @@ for i, line in enumerate(lines):
         break
 for ii,si in enumerate(strs):
     lines_0.insert(i + 1 + ii, si + '\n')
-with open(f"{project_path}/MAVEN_data/MAVEN_data_format.md", "w", encoding='utf-8') as file:
+with open(f"{project_path}/doc/wiki/MAVEN_data_format.md", "w", encoding='utf-8') as file:
     file.writelines(lines_0)

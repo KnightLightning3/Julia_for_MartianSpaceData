@@ -7,7 +7,9 @@ include("../MAVEN_STATIC.jl")
 import .MAVEN_load;
 import .MAVEN_plot;
 import .MAVEN_STATIC;
+"""从 MAG 位置序列计算航天器在 MSO 坐标系中的速度。"""
 @inline function get_vsc(mag)
+    """使用局部二次拟合求位置数据对时间的导数。"""
     function quadratic_fitted_derivative(x, y)
         n = length(x)
         dy = NaN32 * ones(n)  # 初始化导数结果为 NaN
@@ -52,6 +54,7 @@ import .MAVEN_STATIC;
     end
     return (time, vsc, position)
 end
+"""将时间、速度和位置数组写入 Fortran 无格式二进制文件。"""
 @inline function data2bi(time,vsc,position,filename)
     N_time = length(time)
     time_unix = convert(Vector{Float64},time)

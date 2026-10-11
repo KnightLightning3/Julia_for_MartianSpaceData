@@ -295,6 +295,7 @@ function STA_count2eflux_all(dat) #计算df,对非时间切片数据
     dat[:eflux_from_count] = scale .* tmp
     return dat
 end
+"""将 STATIC 计数数据转换为能量通量。"""
 function STA_count2eflux(dat;m_int=m_int)
     local nbins   = dat[:nbins]
     local nenergy = dat[:nenergy]
@@ -313,6 +314,7 @@ function STA_count2eflux(dat;m_int=m_int)
     dat[:eflux] = scale .* tmp
     return dat
 end
+"""将 STATIC 能量通量数据转换为相空间密度。"""
 function STA_eflux2df(dat;m_int=m_int)
     local energy = dat[:energy]
     local mass = dat[:mass].*m_int
@@ -424,6 +426,7 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     #units are km/s
     return vel,flux,density
 end
+"""从 STATIC 四维分布计算离子速度矩和密度。"""
 function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=true)
     # 1. 快速非法检查
     dat[:valid] == 0 && return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
@@ -536,12 +539,14 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
     return density
 end
 function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
+    """将 STATIC 球坐标方向转换为笛卡尔方向。"""
     function sphere2xyz_for_static_rotation(θ,ϕ)
         x = cosd(θ) *  cosd(ϕ)
         y = cosd(θ) *  sind(ϕ)
         z = sind(θ)
         return [x,y,z]
     end;
+    """将笛卡尔方向转换为 STATIC 球坐标角度。"""
     function xyz2sphere_for_static_rotation(xyz)
         x,y,z=xyz[1],xyz[2],xyz[3]
         z = clamp(z, -1, 1) # avoid numerical error
@@ -645,6 +650,7 @@ function STA_count3df(dat) #计算c6数据的df,必须有时间轴
     att_indices = dat[:att_ind] .+ 1
     eff_indices = dat[:eff_ind] .+ 1
 
+    """扩展并对齐 c6 数据字段的维度。"""
     function expand_3d(src_key)
         src = dat[src_key]
         res = src[:, :, swp_indices]
@@ -717,6 +723,7 @@ function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16)#使用
 
     return vel,flux,density
 end
+"""提取 STATIC 数据中的质量标志值。"""
 function get_quality_flag(x)
     #取得二进制的质量标志，Int转二进制
     # flags = [i == '1' for i in string(x, base=2)] |> reverse
@@ -728,6 +735,7 @@ function get_quality_flag(x)
     end
     return flags
 end
+"""判断质量标志是否属于指定的无效标志集合。"""
 function compare_quality(flag::Integer;bad_flags=[5,6,7,8])
     #比较质量标志是否包含某个标志
     # qf = [
@@ -803,12 +811,14 @@ function sphere2xyz_for_STATIC(r,θ,ϕ) #spedas_6_1\general\science\sphere_to_ca
     local z = r * sind(θ)
     return [x,y,z]
 end;
+"""将 STATIC 坐标系下的笛卡尔向量转换为球坐标。"""
 function xyz2sphere_for_STATIC(x,y,z)
     local r=sqrt(x^2 + y^2 + z^2)
     local theta = 90.0 - acosd(z/r)
     local phi = atand(y, x)
     return [r,theta,phi]
 end
+"""将球坐标位置转换为笛卡尔坐标。"""
 function sphere2xyz(r,θ,ϕ)
     local x = r * sind(θ) *  cosd(ϕ)
     local y = r * sind(θ) *  sind(ϕ)

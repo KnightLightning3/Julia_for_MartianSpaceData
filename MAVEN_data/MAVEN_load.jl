@@ -217,7 +217,9 @@ function load_cdf(file::String)  # 将CDF文件读为字典
         data_dict[:data_load_flag] = true
         return data_dict
 end
+"""读取并解析 MAVEN MAG L2 文本磁场文件。"""
 function load_mag_l2(file::String)
+    """解析 MAG 文本文件中的单条时间、磁场和位置记录。"""
     function get_data_from_line_for_mag_read(line::String)
         # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
         year, doy, hour, min, sec, msec = parse.(Int32, [
@@ -257,6 +259,7 @@ function load_mag_l2(file::String)
     )
     return data
 end
+"""读取 Fortran 无格式文件中的航天器速度和位置数据。"""
 function load_mag_vsc(file::String)
     f = FortranFile(file, "r")
     n_time = read(f, Int64)
@@ -276,7 +279,9 @@ function load_mag_vsc(file::String)
     )
     return data
 end
+"""读取 KP 文本文件，可选解析坐标变换矩阵或保留字符串变量。"""
 function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
+    """由 KP 变量序号计算固定宽度文本中的列区间。"""
     function kp_indicate(n)
         m = n * 16 - 16 .+ (4:19)
         return m
@@ -339,6 +344,7 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
         return result_dict
     end
 end
+"""读取 SWEA PAD CDF 文件，并可选合并俯仰角数据。"""
 function load_swea_pad(file::String; mean_PA=true)
     # 默认将360°的数据投影到180°
     # "diff_en_fluxes_mean"
@@ -350,6 +356,7 @@ function load_swea_pad(file::String; mean_PA=true)
     end
     return data_dict
 end
+"""读取 NGIMS L3 日产品密度表。"""
 function load_NGIMS_den_l3(file::String)
     lines = readlines(file)
     lines = lines[2:end]
@@ -379,6 +386,7 @@ function load_NGIMS_den_l3(file::String)
     end
     return data_out_dict
 end
+"""读取 NGIMS L4 日产品密度表。"""
 function load_NGIMS_den_l4(file::String)
     f = jldopen(file, "r")
     data_out_dict = f["data"]

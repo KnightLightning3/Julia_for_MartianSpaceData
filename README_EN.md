@@ -5,22 +5,40 @@
 
 # Table of Contents
 - [Introduction](#introduction)
+- [Project Structure](#project-structure)
 - [Downloading Data](#downloading-data)
 - [Reading Data](#reading-data)
 - [Mars Magnetic Field Model](#mars-magnetic-field-model)
 - [Custom Data Description](#custom-data-description)
 - [MAVEN Data Tips](#maven-data-tips)
+- [Program and Function Wiki](#program-and-function-wiki)
 - [ToDo List](#todo-list)
 
 # Introduction
 
 English / [简体中文](README.md)
 
-This package contains data processing programs for Mars, primarily written in Julia, with Python scripts for data downloading.
+This project provides tools for downloading, reading, processing, and visualizing Mars space science data, as well as calculating physical models. Data processing and scientific computing are primarily written in Julia; Python is mainly used for downloads and file maintenance, with a Fortran shared library accelerating selected magnetic-field calculations.
+
+## Project Structure
+
+| Directory/file | Purpose |
+| --- | --- |
+| `MAVEN_data/` | MAVEN readers, instrument processing, plotting, and data-format definitions |
+| `MGS_data/`, `TW_data/` | MGS and Tianwen data readers and instrument processing |
+| `download_data/` | MAVEN downloading, file checks, compression, and cleanup |
+| `models/`, `Magnetic_Model/` | Plasma, particle-orbit, magnetic-field, and related calculations |
+| `common/`, `support_data/` | Shared coordinate/physics utilities and external support-data readers |
+| `calculate/` | Model calculation workflows and composition entry points |
+| `example/` | Plotting and data-analysis examples |
+| `doc/wiki/` | Data guides, format references, instrument topics, and the [program/function Wiki](doc/wiki/程序与函数Wiki.md) |
+| `requirements.txt`, `requirement.jl` | Python and Julia dependency references |
+
+See the [program and function Wiki](doc/wiki/程序与函数Wiki.md) for file responsibilities and function descriptions.
 
 # Downloading Data
 
-The Python scripts are used for downloading data, following the same approach as in Julia. If you prefer not to manually install the required packages, it is recommended to use a virtual environment with `requirements.txt`.
+Use the Python scripts to download and maintain MAVEN data. Create a virtual environment and install the dependencies in `requirements.txt`:
 
 ```
 pip install -r requirements.txt
@@ -31,11 +49,11 @@ For the first download, **you need to generate the initial configuration file**:
 
 Run `download_data\initialize_download_parameters.py`.
 
-After initializing the configuration file, modify `download_data\MAVEN_download_config.ini` to adjust the download settings. By default, it downloads all data from October 2014 to February 2023 from the USTC source.
+After initialization, configure the server, save directory, date range, and data products for your environment. The downloader reads `download_data/MAVEN_download_config.ini`; this is a local runtime configuration and may not be present in the repository.
 
-`download_data\MAVEN_download.py` will download the data files from the specified server. It is recommended to download from the USTC source (`Server_ind = 0`).
+`download_data/MAVEN_download.py` downloads data from the configured server. After downloading, use `download_data/check_exist_files.py` to check local files, `download_data/compress_cdf.py` to compress CDF files, or `download_data/clean_files.py` to remove incomplete downloads.
 
-Additionally, `download_data\磁场重构.jl` and `download_data\KP 重构.jl` can convert MAVEN's official magnetic field and KP files into Fortran binary and Julia binary formats for easier reading.
+After updating downloaded data, rerun `download_data/check_exist_files.py` to verify the local file inventory.
 
 Available MAVEN external servers (may require VPN):
 - USTC source, fast on-campus speed, server may not always be running, data may be incomplete: http://222.195.76.155:8000/MAVEN/
@@ -48,7 +66,7 @@ Note that the file structure of https://pds-ppi.igpp.ucla.edu/data/ differs from
 # Reading Data
 
 ```
-Data_Dict = MAVEN_data_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
 This program requires a specific file tree structure, which is shared with the download section.
@@ -56,13 +74,17 @@ This program requires a specific file tree structure, which is shared with the d
 To reference in Julia:
 
 ```
-include("path/MAVEN_data_load.jl")
+include("path/MAVEN_data/MAVEN_load.jl")
 include("path/IGRF_calculate.jl")
 import .MAVEN_data_load
 import .IGRF_calculate
 ```
 
-For specific reading methods, refer to: [MAVEN_data_format.md](MAVEN_data/MAVEN_data_format.md)
+For specific reading methods, refer to: [MAVEN_data_format.md](doc/wiki/MAVEN_data_format.md)
+
+## Program and Function Wiki
+
+Browse program responsibilities, primary entry points, and function descriptions in the [program and function Wiki](doc/wiki/程序与函数Wiki.md). The [SWIA electron correction notes](doc/wiki/swia_electron_correlated.md) are also available in the Wiki.
 
 # Mars Magnetic Field Model
 

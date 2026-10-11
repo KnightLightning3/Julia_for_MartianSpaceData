@@ -10,6 +10,7 @@ import json
 import configparser
 from pathlib import Path
 def get_list_from_ini(input_string):
+    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
     if input_string == 'Null':
         return []
     if input_string == 'None':
@@ -65,11 +66,13 @@ max_depth = 1
 # session = requests.Session()
 
 def sleep_local(sleep_time_range):
+    """显示等待进度并暂停指定秒数。"""
     for i in range(sleep_time_range):
         print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r")
         sleep(1)
     return None
 def test_proxies(url):
+    """测试目标 URL 是否可通过当前代理访问。"""
     global vpn_proxy
     global timeout
     try:
@@ -92,6 +95,7 @@ def test_proxies(url):
         print(e)
     return False
 def search_url(url,file_style):
+    """读取服务器目录并返回符合文件名模式的链接。"""
     global vpn_proxy
     global session
     global timeout
@@ -128,6 +132,7 @@ def search_url(url,file_style):
         return response.status_code,False,0
     return response.status_code,False,0
 def requests_download(url,save_path):
+    """通过 HTTP 请求下载文件并返回响应状态。"""
     global vpn_proxy
     global session
     global timeout
@@ -167,6 +172,7 @@ def requests_download(url,save_path):
         return response.status_code,False,None
     return response.status_code,False,None
 def find_downloaded_file(file_names, element):
+    """判断文件清单中是否存在包含指定标识的文件。"""
     if file_names is None:
         print("第一次下载")
         return False
@@ -175,6 +181,7 @@ def find_downloaded_file(file_names, element):
             return True
     return False
 def print_download_statue(url_status_code,logic,progress_data,filename):
+    """格式化并输出单个下载任务的状态和进度信息。"""
     time_now = datetime.datetime.now()
     if logic:
         try:
@@ -195,6 +202,7 @@ def print_download_statue(url_status_code,logic,progress_data,filename):
                 f'Responses: \033[0;32m{url_status_code}\033[0m '+
                 f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m ',end='\n\n')
 def add_urls(urls_path,urls):
+    """将下载 URL 追加写入指定的任务列表文件。"""
     urls_return = []
     for i in urls:
         if "?" in i:

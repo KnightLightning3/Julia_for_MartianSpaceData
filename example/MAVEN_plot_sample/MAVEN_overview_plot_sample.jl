@@ -1,3 +1,5 @@
+"""生成 MAVEN 多仪器时间序列概览图的示例程序。"""
+
 using TimesDates, Dates
 using ColorTypes, CairoMakie
 using DataFrames
@@ -9,6 +11,7 @@ include("../../MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;
 include("../../MAVEN_data/MAVEN_STATIC.jl");import .MAVEN_STATIC;
 include("../../Magnetic_Model/IGRF_calculate.jl");import .IGRF_calculate;
 
+"""将两个时间点之间的时长格式化为时分秒字符串。"""
 function TimeFormat(time1, time2)
     elapsed_time_ms = Dates.value(time2 - time1)
     hours = div(elapsed_time_ms, 3600000)
@@ -18,6 +21,7 @@ function TimeFormat(time1, time2)
     return "$(lpad(hours, 2, '0')):$(lpad(minutes, 2, '0')):$(lpad(seconds, 2, '0')).$(lpad(milliseconds, 3, '0'))"
 end
 @inline function mag2sphere(data_dict)
+    """将 MAVEN 磁场分量转换为球坐标并写回数据字典。"""
     position = data_dict["MAG_ss1s_cdf"][:position]
     b = data_dict["MAG_ss1s_cdf"][:B]
     data = MAVEN_load.Bpc2sphere.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
@@ -28,6 +32,7 @@ end
     return data_dict
 end
 @inline function get_data(date)
+    """读取指定日期绘图所需的 MAVEN 数据产品。"""
     model_index = [
         "STATIC_d1_v4d",
         "MAG_ss1s_cdf","MAG_pc1s_l3",
@@ -75,6 +80,7 @@ end
     return data_dict,true
 end
 @inline function get_B_model_ss(data_dict)
+    """计算并保存航天器坐标系中的 IGRF 模型磁场。"""
     B_times0 = data_dict["MAG_pc1s_l3"][:epoch]
     position0 = data_dict["MAG_pc1s_l3"][:position]
     B_times = B_times0
@@ -103,10 +109,12 @@ end
     )
     return data_dict
 end
+"""将非正绘图数据原地替换为 NaN。"""
 function remove_0_point!(y)
     y[y .<= 0] .= NaN
     return y
 end
+"""向图形对象添加 MAVEN 多仪器时间序列绘图面板。"""
 function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     colors = Makie.wong_colors()
     t0 = Dates.datetime2unix((x_range[1]))

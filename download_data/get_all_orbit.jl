@@ -10,10 +10,12 @@ MAVEN_load.change_kp_read_data(Dict(
     "Orbit Number"    =>210,
 ));
 
+"""按日期读取 MAVEN KP 轨道数据。"""
 function get_data(date)
     datas_dict = MAVEN_load.data_get_from_date(date, model_index = ["KP"])
     return datas_dict["KP"]
 end
+"""根据轨道号序列计算各轨道对应的时间范围。"""
 function time_by_orbits(time_kp,Orbit_Number)
     #掐头去尾
     unique_elements = unique(Orbit_Number)
@@ -32,6 +34,7 @@ function time_by_orbits(time_kp,Orbit_Number)
     println(date_str,": done")
     return orbits,time_ranges
 end
+"""合并相邻日期数据中的时间和轨道号序列。"""
 function val_combine(datas_dict_1,datas_dict_2)
 
     Orbit_Number_1 = datas_dict_1["Orbit Number"]

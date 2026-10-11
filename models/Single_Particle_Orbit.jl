@@ -1,3 +1,5 @@
+"""带电粒子在给定电磁场中的轨道、旋转半径与 ODE 求解工具。"""
+
 module Single_Particle_Orbit
 using LinearAlgebra
 using Dates

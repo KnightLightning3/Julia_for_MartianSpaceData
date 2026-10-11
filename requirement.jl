@@ -1,3 +1,5 @@
+"""Julia 项目依赖包名称清单，供环境初始化脚本安装使用。"""
+
 Pkg_list = [
     "Makie"
     "GLMakie"

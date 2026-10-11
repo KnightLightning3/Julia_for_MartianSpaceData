@@ -20,6 +20,7 @@ dir = dirname(@__FILE__)
 root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
 println(dirname(dir) * "/download_data/MAVEN_download_config.ini")
 # -------------------------Read filelist parts-------------------------
+"""读取并整理 OMNI2 太阳风支持数据。"""
 function load_omni2_data(;)
     local file_path = root_path*"support_datas/omni2_all_years.dat"
     col_names = [

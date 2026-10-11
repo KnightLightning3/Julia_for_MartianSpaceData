@@ -1,5 +1,4 @@
-# 读取和计算MGS数据
-# 使用data_get_from_date函数做全局读取
+# 读取和处理 MGS 磁场数据，并提供按日期组织的统一读取入口。
 
 module MGS_load
 root_path = "E:/MGS/"
@@ -11,6 +10,7 @@ using Dates
 #     B::Matrix{Float32} 
 #     position::Matrix{Float32} 
 # end
+"""解析单条 MGS 磁场文本记录中的时间、磁场和位置。"""
 function get_data_from_line_for_mag_read(line::String)
     year, doy, hour, min, sec, msec = parse.(Int32, [
         line[1:6], line[8:10], line[12:13], line[15:16], line[18:19], line[21:23]
@@ -21,6 +21,7 @@ function get_data_from_line_for_mag_read(line::String)
         ])
     return epoch,[bx,by,bz],[x,y,z]
 end
+"""读取并解析指定的 MGS 磁场数据文件。"""
 function load_mag(file::String);
 
     lines=readlines(file)
@@ -58,16 +59,20 @@ function load_mag(file::String);
     # data = MGS_mag(true,times,B_total,B,position)
     return data
 end
+"""根据位置计算 MGS 高度、地方时和纬度等辅助量。"""
 function caculate_mag(position;models=["alt"])
+    """计算位置对应的行星表面高度。"""
     function c_alt(position) 
         alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
         alt = alt[:,1]
         return alt
     end
+    """由位置经度计算地方时。"""
     function c_local_time(position) 
         local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
         return local_time
     end
+    """由位置向量计算行星纬度。"""
     function c_latitude(position) 
         latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
         return latitude
@@ -81,6 +86,7 @@ function caculate_mag(position;models=["alt"])
         data[model] = funcs[model](position)
     end
 end
+"""读取 MGS 本地磁场数据文件清单。"""
 function read_list()
     list_path = root_path*"MAG_SUNSTATE_list"
     files = readlines(list_path)

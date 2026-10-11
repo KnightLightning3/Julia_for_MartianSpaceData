@@ -1,3 +1,5 @@
+"""组合模型计算及常用坐标旋转、物理量派生函数。"""
+
 module calculate_models
 using Quaternions
 
@@ -6,6 +8,8 @@ function Matrix_Rot(in_data,Rotation_Matrix)
     out_data = Rotation_Matrix * in_data
     return out_data
 end
+
+"""根据经纬角生成坐标旋转矩阵。"""
 function rotation_matrix(θ, φ)
     # 创建绕z轴旋转φ的旋转矩阵
     Rz = [cos(φ) -sin(φ) 0;
@@ -26,11 +30,14 @@ function Quaternion_Rot(u::AbstractVector,q::QuaternionF64) # rotate_vector_with
     q_v = q*q_u*conj(q)
     return [imag_part(q_v)...]
 end
+
+"""使用四元数对向量执行逆向坐标旋转。"""
 function Quaternion_Rot_reverse(u::AbstractVector, q::QuaternionF64)
     local q_u = QuaternionF64(0, u[1], u[2], u[3])
     local q_v = conj(q) * q_u * q
     return [imag_part(q_v)...]
 end
+"""将电子能量通量转换为相空间密度。"""
 function eflux2F(energy,eflux)
     # 电子eflux2F
     M = me
@@ -44,12 +51,15 @@ function eflux2F(energy,eflux)
     F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2
     return F
 end
+
+"""计算航天器运动引起的波频多普勒偏移。"""
 function Doppler_Shift(f,V_sc,k,θ) # wave frequency shift with spacecraft velocity
     # θ angle between SC and wave vector
     ω_obs = f * 2 * π
     ω_real = ω_obs - k * V_sc * cos(θ)
     return ω_real
 end
+"""根据粒子类型和质量数将能量换算为速度。"""
 function energy2v(energy;type="e",nM=1)
     if type == "e"
         E0 = 511.0
@@ -61,7 +71,9 @@ function energy2v(energy;type="e",nM=1)
     v = β .* 3e8
     return v
 end
-function escape_energy(;nM=1,planet="Mars")
+
+    """计算指定行星表面逃逸所需的粒子能量。"""
+    function escape_energy(;nM=1,planet="Mars")
     mass = nM * Mp
     # G = 6.67430e-11
     if planet == "Mars"
@@ -71,7 +83,9 @@ function escape_energy(;nM=1,planet="Mars")
     E = 0.5 * mass * v^2 /EV
     return E
 end
-function cyclotron_radius(B,ek;nM=1,nQ=-1)
+
+    """计算粒子回旋频率、回旋半径和速度。"""
+    function cyclotron_radius(B,ek;nM=1,nQ=-1)
     B1=B*1e-9  # 输入nT，转T
     if nQ == -1
         cc = Me /(B1*Q)
@@ -87,7 +101,9 @@ function cyclotron_radius(B,ek;nM=1,nQ=-1)
     rc = cc * v
     return f,rc,v
 end
-function cyclotron_frequency(B;nM=1,nQ=-1)
+
+    """根据磁场、质量数和电荷数计算回旋频率。"""
+    function cyclotron_frequency(B;nM=1,nQ=-1)
     B1=B*1e-9  # 输入nT，转T
     if nQ == -1
         cc = Me /(B1*Q)
@@ -97,7 +113,9 @@ function cyclotron_frequency(B;nM=1,nQ=-1)
     f = 1  / (cc *2*π)
     return f
 end
-function Linear_fit(x::AbstractVector, y::AbstractVector)
+
+    """对输入的一维数据执行线性拟合并返回拟合参数。"""
+    function Linear_fit(x::AbstractVector, y::AbstractVector)
     # 确保输入数据长度一致
     if length(x) != length(y)
         error("输入向量 x 和 y 的长度必须一致。")

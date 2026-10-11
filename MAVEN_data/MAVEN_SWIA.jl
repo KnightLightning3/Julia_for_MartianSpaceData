@@ -360,6 +360,7 @@ function eflux2df!(dat) #projects/maven/swia/mvn_swia_convert_units.pro, 返回�
     dat[:df] = df
     return dat
 end
+"""将 SWIA 坐标系下的笛卡尔向量转换为球坐标。"""
 function xyz2sphere_for_SWIA(x,y,z)
     r=sqrt(x^2 + y^2 + z^2)
     theta = 90.0 - acosd(z/r)

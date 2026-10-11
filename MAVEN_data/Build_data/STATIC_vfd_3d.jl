@@ -4,6 +4,7 @@ using FortranFiles
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 using JLD2
+"""由 STATIC c6 离子数据计算一维速度、通量和密度。"""
 @inline function get_ion_vel(ion_data)
 
     ion_data_f = MAVEN_STATIC.STA_count3df(ion_data)
@@ -84,6 +85,7 @@ using JLD2
     #     discribe = "heat=energy>30eV,cold=energy<30eV,total=energy<1e8eV",
     # )
 end
+"""将 STATIC 一维派生数据写入 Fortran 无格式二进制文件。"""
 @inline function data2bi(datas_dict,filename)
     filter = [Shuffle(), Deflate()]
     jldopen(filename, "w"; compress = filter) do f

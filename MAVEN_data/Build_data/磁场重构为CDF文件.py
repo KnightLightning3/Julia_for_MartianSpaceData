@@ -1,3 +1,5 @@
+"""解析 MAVEN 磁场文本数据并重建为 CDF 文件。"""
+
 import os
 import io
 import re
@@ -43,6 +45,7 @@ config_data.read(config_file_path, encoding="utf-8")
 
 save_dir = config_data["DEFAULT"]["Save_dir"]
 def download_model(model):
+    """根据磁场产品标识取得本地保存路径与文件名模式。"""
     global save_dir
     global json_data
     data_model = json_data["data_model"]
@@ -53,6 +56,7 @@ def download_model(model):
     save_path = save_dir + pathname
     return [save_path, filename]
 def parse_pds_header_and_data(txt_file_path):
+    """解析 PDS 文本文件头和磁场记录数据。"""
     """
     使用计数器平衡法解析头部的 KEY=VALUE 键值对，
     并使用 pandas 极速读取尾部固定宽度(FWF)的观测数据。
@@ -167,6 +171,7 @@ def parse_pds_header_and_data(txt_file_path):
 
     return epochs, dday, ob_b,ob_b_range, sc_position, ob_bdpl, ob_bdpl_range, header_kv
 def convert_pds_to_cdf(txt_file_path, output_cdf_path):
+    """将解析后的 PDS 磁场文本写出为 CDF 文件。"""
     """
     将所有高维时间依赖数据导出并写入带内置 GZIP 压缩的标准 CDF 文件
     """

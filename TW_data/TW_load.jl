@@ -44,6 +44,7 @@ using Dates
 #     return epoch,[bx,by,bz],[x,y,z],iflag
 # end
 using DelimitedFiles,DataFrames
+"""读取并整理天问磁场 2C 数据文件。"""
 function load_mag_2c_bydlm(file::String);
     mag2c1hz = identity.(DataFrame(readdlm(file, skipstart=19), :auto))
     name = ["Time", "Sampling_Rate", "X_MSO", "Y_MSO", "Z_MSO", "Probe_Position_X_MSO", "Probe_Position_Y_MSO", "Probe_Position_Z_MSO", "Roll", "Pitch", "Yaw",  "Quality_Flags"]
@@ -85,16 +86,20 @@ function load_mag_2c_bydlm(file::String);
     return data
 end
 
+"""根据位置计算天问数据的高度、地方时和纬度辅助量。"""
 function calculate_mag(position;models=["alt"])
+    """计算位置对应的行星表面高度。"""
     function c_alt(position) 
         alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
         alt = alt[:,1]
         return alt
     end
+    """由位置经度计算地方时。"""
     function c_local_time(position) 
         local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
         return local_time
     end
+    """由位置向量计算行星纬度。"""
     function c_latitude(position) 
         latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
         return latitude
@@ -109,6 +114,7 @@ function calculate_mag(position;models=["alt"])
     end
 end
 
+"""根据天问姿态角数据构造航天器至 MSO 坐标系的旋转矩阵。"""
 function get_spc2mso_rot_matrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回值\
     ntime = length(dat[:time])
     rot_matrix = zeros(ntime,3,3)
@@ -131,6 +137,7 @@ function get_spc2mso_rot_matrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回�
     end
     return dat[:time],rot_matrix
 end
+"""读取天问本地数据文件清单。"""
 function read_list()
     list_path = root_path*"List/"*"mag_list.txt"
     files = readlines(list_path)

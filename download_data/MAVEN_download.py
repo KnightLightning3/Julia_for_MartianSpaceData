@@ -13,6 +13,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import math
 def get_list_from_ini(input_string):
+    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
     if input_string == 'Null':
         return []
     if input_string == 'None':
@@ -77,11 +78,13 @@ if max_threads == 1:
 else:
     string_end = "\n"
 def sleep_local(sleep_time_range):
+    """显示剩余秒数并执行带进度提示的等待。"""
     for i in range(sleep_time_range):
         print(f"Waiting \033[1;34m {i+1} / {sleep_time_range} \033[0m Seconds\033[K",end="\r",flush=True)
         sleep(1)
     return None
 def test_proxies():
+    """测试 MAVEN 服务器和代理连接是否可用。"""
     global vpn_proxy
     global url_path_0
     global timeout
@@ -105,6 +108,7 @@ def test_proxies():
         print(e)
     return False
 def search_url(url,file_style):
+    """读取服务器目录并返回符合文件名模式的链接。"""
     global vpn_proxy
     global session
     global timeout
@@ -136,6 +140,7 @@ def search_url(url,file_style):
         return "error",False,0
     return "error",False,0
 def download_unit_convert(total_bits):
+    """将字节数换算为适合显示的存储单位字符串。"""
     size_units = ["b", "Kb", "Mb", "Gb", "Tb", "Pb"]
     unit_idx = min(len(size_units) - 1, max(0, int(math.log(total_bits, 1024))))
     divisor = 1024 ** unit_idx
@@ -143,6 +148,7 @@ def download_unit_convert(total_bits):
     size_unit = size_units[unit_idx]
     return f"{size_value} {size_unit}"
 def requests_download(url, save_path):
+    """通过 HTTP 流式下载文件，并在完成后原子移动到目标路径。"""
     global vpn_proxy, session, timeout, disable_tqdm_bar
     sleep_local(step_time)
     temp_save_path = save_path + ".pydownload"
@@ -200,6 +206,7 @@ def requests_download(url, save_path):
         
     return "error", False, ("error", "error", "error")
 def idm_add_download_links(url,save_path,filename):
+    """将一个文件下载任务添加到 Internet Download Manager。"""
     global step_time
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -216,6 +223,7 @@ def idm_add_download_links(url,save_path,filename):
     # print(command)
     return result.returncode == 0
 def aria2_download(url, save_path):
+    """调用 aria2 下载文件并返回下载状态和速度信息。"""
     global vpn_proxy, timeout, disable_tqdm_bar, step_time, sleep_time
     
     sleep_local(step_time)
@@ -286,6 +294,7 @@ def aria2_download(url, save_path):
 
     return "error", False, ("error", "error", "error")
 def download_model(model):
+    """根据产品标识生成服务器 URL、保存目录和文件名模式。"""
     global Server_ind
     global url_path_0
     global save_dir
@@ -302,6 +311,7 @@ def download_model(model):
     save_path =  save_dir+pathname
     return [url,save_path,filename]
 def find_downloaded_file(file_names, element):
+    """判断给定文件清单中是否已有匹配项目。"""
     if file_names is None:
         print("第一次下载")
         return False
@@ -310,6 +320,7 @@ def find_downloaded_file(file_names, element):
             return True
     return False
 def read_last_line_large_file(filename):
+    """从文件末尾分块读取最后一行，避免载入整个大文件。"""
     with open(filename, 'r', encoding='utf-8') as f:
         f.seek(0, 2)  # 移动到文件末尾
         file_size = f.tell()
@@ -330,6 +341,7 @@ def read_last_line_large_file(filename):
             last_line = f.read()
     return last_line
 def file_check(file_names,save_path,model):
+    """按产品类型校验已下载文件并移除校验失败的文件。"""
         counter = 0
         if model == 'cdf':
             from cdflib import cdfread 
@@ -372,6 +384,7 @@ def get_element_from_filename(filename): # 取得文件名对应的版本等信�
     date_str = re.findall(r"\d{8}", filename)[0]
     return (date_str,v_data,r_data,filename)
 def search_downloaded_files(save_path,file_style):
+    """遍历年月目录并返回匹配文件的日期、版本和路径信息。"""
     filename_data =[]
     yyyy = os.listdir(save_path)
     for iy in yyyy:
@@ -383,6 +396,7 @@ def search_downloaded_files(save_path,file_style):
                 filename_data.append(get_element_from_filename(filepath))
     return filename_data
 def month_delta(datetime_current): # 向前前进到下个月月初
+    """返回当前日期所在月份之后的下月第一天。"""
     current_month = datetime_current.month
     current_year = datetime_current.year
     current_month += 1
@@ -391,6 +405,7 @@ def month_delta(datetime_current): # 向前前进到下个月月初
         current_year += 1
     return  datetime.date(current_year, current_month, 1)
 def download_from_head(head,num_links_added,num_links):
+    """按下载任务记录选择下载器执行任务并格式化状态结果。"""
     model,date,url_path,filename,save_path,v_new,r_new = head
     if os.path.exists(save_path+filename):
         return f"\033[1;32m{model} {date} {filename} already exists, skip downloading.\033[0m {num_links_added}/{num_links}"

@@ -1,3 +1,4 @@
+# 将 MAVEN 数据从源盘按文件大小规则复制到目标盘。
 $source = "E:\MAVEN"
 $dest = "D:\MAVEN"
 

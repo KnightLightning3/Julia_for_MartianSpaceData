@@ -1,3 +1,5 @@
+"""Julia 对 Fortran 动态库计算例程的调用封装。"""
+
 module Call_fortran_dll
 # Ref{Float64},  Ptr{Float64}
 # Ref{Int32},    Ptr{Int32}
@@ -46,6 +48,7 @@ function cold_plasma_linear_growth(ekk,pa, psd, psir,frer; B=10.0, Ne=100.0,test
     return [frer,psir,tgr,sgr]
 end
 
+"""调用 Fortran B 样条例程生成一维插值系数。"""
 function Bspline_db1ink(x,fcn; kx::Int32 = Int32(4))
     nx::Int32 = length(x)
     iknot::Int32 = 0

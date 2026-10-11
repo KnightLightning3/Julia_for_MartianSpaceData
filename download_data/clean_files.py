@@ -4,6 +4,7 @@ from tqdm import tqdm
 from time import sleep
 import configparser
 def get_list_from_ini(input_string):
+    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
     if input_string == 'Null':
         return []
     if input_string == 'None':
@@ -22,6 +23,7 @@ config_data.read(config_file_path, encoding='utf-8')
 save_dir = config_data['DEFAULT']['Save_dir']#"E:/MAVEN/SWEA"#
 
 def clean_pydownload_files(root_directory,end = ".pydownload"):
+    """递归查找并清理未完成下载产生的临时文件。"""
     """
     递归遍历文件夹，删除所有以 .pydownload 结尾的文件
     """

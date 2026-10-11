@@ -1,7 +1,7 @@
 # MAVEN数据处理介绍
 
 ## 数据预处理：
-为便利起见，数据在下载的同时，将会产生`MAVEN_data/filename_lists.json`文件用于保存已经下载数据的目录，每次更新下载数据后，需要执行[download_data/check_exist_files.py](download_data/check_exist_files.py)来更新此文件
+为便利起见，数据在下载的同时，将会产生`MAVEN_data/filename_lists.json`文件用于保存已经下载数据的目录，每次更新下载数据后，需要执行[download_data/check_exist_files.py](../../download_data/check_exist_files.py)来更新此文件
 
 ## 数据结构：
 

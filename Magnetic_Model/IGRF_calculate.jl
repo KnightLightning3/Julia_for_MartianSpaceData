@@ -1,3 +1,5 @@
+"""火星 IGRF/地壳磁场计算、坐标变换与磁力线追踪工具。"""
+
 module IGRF_calculate
 using FortranFiles
 using LinearAlgebra
@@ -24,6 +26,7 @@ function pc2sphere(x::Real, y::Real, z::Real)
     ϕ = atan(y, x)  # (-π/2, π/2)
     return r, θ, ϕ
 end
+"""将球坐标位置转换为行星笛卡尔坐标。"""
 function sphere2pc(r::Real, θ::Real, ϕ::Real)
     sinθ = sin(θ)
     cosθ = cos(θ)
@@ -34,6 +37,7 @@ function sphere2pc(r::Real, θ::Real, ϕ::Real)
     z = r * cosθ
     return x, y, z
 end
+"""将球坐标系磁场分量转换为行星笛卡尔分量。"""
 function Bsphere2pc(r::Real, θ::Real, ϕ::Real, Br::Real, Bθ::Real, Bϕ::Real)
     sinθ = sin(θ)
     cosθ = cos(θ)
@@ -44,6 +48,7 @@ function Bsphere2pc(r::Real, θ::Real, ϕ::Real, Br::Real, Bθ::Real, Bϕ::Real)
     Bz = cosθ * Br - sinθ * Bθ
     return Bx, By, Bz
 end
+"""将行星笛卡尔坐标磁场分量转换为球坐标分量。"""
 function Bpc2sphere(x::Real, y::Real, z::Real, bx::Real, by::Real, bz::Real)
     r = norm([x, y, z])
     θ = acos(z / r)
@@ -79,6 +84,7 @@ function CALCULATE_SCHMIDT_COEFFICIENTS()
     end
     return SS, REALK
 end
+"""读取 IGRF 球谐磁场系数文件。"""
 function read_gh()
     f = FortranFile(gh_filename)
     GG = read(f, (Float64, NIGRF + 1, NIGRF + 1))
@@ -111,6 +117,7 @@ function IGRF_fortran(r::Real, θ::Real, ϕ::Real) #fortran计算核心,输入�
     Br, Bθ, Bϕ, BB = B_result[1], B_result[2], B_result[3], B_result[4]
     return Br, Bθ, Bϕ, BB
 end
+"""调用 Fortran RK4 例程执行一次磁力线追踪步进。"""
 function RK4_Trace_fortran(r::Real, θ::Real, ϕ::Real, h::Real)
     # DYs = Array{Float64}(undef, 9)
 
@@ -136,6 +143,7 @@ function RK4_Trace_fortran(r::Real, θ::Real, ϕ::Real, h::Real)
     return B_result, dB.x, path_next
 end
 IGRF_sphere = IGRF_fortran
+"""在行星笛卡尔坐标位置计算 IGRF 磁场。"""
 function IGRF_pc(x::Real, y::Real, z::Real)
     r, θ, ϕ = pc2sphere(x, y, z)
     Br, Bθ, Bϕ, _ = IGRF_fortran(r, θ, ϕ)
@@ -431,6 +439,7 @@ IGRF_DLL_PATH = root_dir * "/IGRF_DLL.dll"
 GG, HH = read_gh()
 SS, REALK = CALCULATE_SCHMIDT_COEFFICIENTS()
 B_compress = [0.0, 0.0, 0.0]
+"""更新磁场压缩模型使用的参数值。"""
 function set_B_compress(new_values)
     global B_compress
     B_compress = new_values

@@ -1,3 +1,5 @@
+"""将 MAVEN 官方 KP 文本数据整理并转换为项目读取格式。"""
+
 import os
 import io
 import re
@@ -498,6 +500,7 @@ CDF_TYPE_TO_PYCDF = {
 }
 
 def download_model(model):
+    """根据 KP 产品标识取得本地保存路径与文件名模式。"""
     global save_dir
     global json_data
     data_model = json_data["data_model"]

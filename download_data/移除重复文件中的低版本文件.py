@@ -1,3 +1,5 @@
+"""根据 MAVEN 文件版本信息查找并移除重复的低版本数据文件。"""
+
 import configparser
 import json
 import os
@@ -9,6 +11,7 @@ from collections import defaultdict
 # 1. 基础配置与路径动态解析（你提供的代码段）
 # ==================================================
 def get_list_from_ini(input_string):
+    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
     if input_string == "Null":
         return []
     if input_string == "None":
@@ -38,6 +41,7 @@ save_dir = config_data["DEFAULT"]["Save_dir"]
 
 
 def download_model(model):
+    """根据产品标识生成本地目录与文件名匹配信息。"""
     global save_dir
     global json_data
     data_model = json_data["data_model"]
@@ -53,6 +57,7 @@ def download_model(model):
 # 2. 版本比对与物理清除逻辑
 # ==================================================
 def parse_file_info(file_path):
+    """从 MAVEN 文件路径和名称中提取产品、日期及版本信息。"""
     """解析文件名，提取日期、版本号(v)和处理号(r)
 
     示例: "2014/10/mvn_swe_l2_svypad_20141013_v04_r01.cdf"
@@ -80,6 +85,7 @@ def parse_file_info(file_path):
 
 
 def remove_low_version_files(filename_lists_json_path, dry_run=True):
+    """识别同一数据产品的旧版本文件并按 dry-run 设置执行清理。"""
     """读取已下载文件的清单 JSON，动态匹配各 mode 磁盘目录并清理低版本"""
     if not os.path.exists(filename_lists_json_path):
         print(f"❌ 找不到已下载清单文件: {filename_lists_json_path}")

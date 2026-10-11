@@ -1,3 +1,5 @@
+"""通用科学计算辅助函数：时间、统计、几何、边界模型与绘图支持。"""
+
 using TimesDates, Dates
 using ColorTypes
 using LinearAlgebra
@@ -104,6 +106,7 @@ label_data = (
 x: 单调递增的数据
 x0: 查找目标的数据
 ```
+"""在时间数组中查找最接近目标时刻的索引。"""
 function find_time(x, x0)
     local N = length(x)
     # 1. 边界情况处理：如果 x0 小于等于第一个元素
@@ -129,6 +132,7 @@ function find_time(x, x0)
         return idx_lower
     end
 end
+"""计算正值数据的对数空间均值并处理无效值。"""
 function safe_log_mean(x)
     # 筛选出大于 0 的有效值
     valid_elements = Base.filter(v -> v > 0 && isfinite(v), x)
@@ -203,11 +207,13 @@ function geomean(x; dims=1) # 几何平均
     return exp.(mean(log.(x); dims=dims))
 end;
 
+"""查找数值数组中落入指定范围的元素索引。"""
 function find_range(x,xr)
     ind = (x .>= xr[1]) .& (x .<= xr[2])
     return ind
 end
 
+"""查找时间数组中指定时间区间对应的索引范围。"""
 function find_time_range(x,time_range)
     xi = find_time(x,time_range[1]):find_time(x,time_range[2])
     return xi
@@ -342,6 +348,7 @@ function solve_func(x,y0,func) # 二分法解方程
     return (x0+x1)/2.0
 end
 
+"""根据位置和太阳风速度计算弓形激波表面法向量。"""
 function get_bowshock_normal(p0,v_sw)
     #输入坐标返回bowshock的反射矢量
     x,y,z = p0[1]/3393.5,p0[2]/3393.5,p0[3]/3393.5

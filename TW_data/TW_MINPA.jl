@@ -1,3 +1,5 @@
+"""天问一号 MINPA 离子数据读取、坐标转换及速度分布计算。"""
+
 module TW_MINPA
 using Dates
 using DelimitedFiles, DataFrames
@@ -9,6 +11,7 @@ const Q = 1.60217662e-19 # 电荷量
 root_path = "E:/Tianwen-1/"
 secondry_path = root_path*"MINPA/2B/"
 
+"""扫描 MINPA 数据目录并构建文件清单。"""
 function build_file_list()
     files = []
     println(files)
@@ -32,12 +35,14 @@ function build_file_list()
     end
     return nothing
 end
+"""读取 MINPA 本地文件清单。"""
 function read_list()
     list_path = root_path*"List/"*"MINPA_list.txt"
     files = readlines(list_path)
     files = root_path.*files  
     return files
 end
+"""读取并解码指定的 MINPA mod1 数据文件。"""
 function load_mod1(filename::String)
     data = DataFrame(readdlm(filename), :auto)
     mass = [1,2,4,16,28,32,44,64]
@@ -367,6 +372,7 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     
     return vel,flux,den #速度(ntime,nmass,3),km/s,密度(ntime,nmass),cm^-3
 end
+"""根据两个方向向量计算二维切片的旋转矩阵。"""
 function slice2d_cal_rot(v1, v2)
     a = normalize(v1)
     d = normalize(v2)

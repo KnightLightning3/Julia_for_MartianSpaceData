@@ -1,3 +1,5 @@
+"""通用坐标系转换、向量旋转及球/笛卡尔坐标工具。"""
+
 using LinearAlgebra
 using StaticArrays
 using Rotations
@@ -95,6 +97,7 @@ function pa_xyz2sphere(p::SVector{3,T}) where T <: Real
         return SVector{3}(r, theta, phi)
     end
 end
+"""将俯仰角球坐标转换为笛卡尔向量。"""
 function pa_sphere2xyz(p::SVector{3,T}) where T <: Real
     local r, theta_deg, phi_deg = p[1], p[2], p[3]
     if iszero(r)
@@ -110,6 +113,7 @@ function pa_sphere2xyz(p::SVector{3,T}) where T <: Real
         return SVector{3}(x,y,z)
     end
 end
+"""将 STATIC 笛卡尔向量转换为仪器球坐标。"""
 function STATIC_xyz2sphere(p::SVector{3,T}) where T <: Real
     local x,y,z = p[1],p[2],p[3]
     local r=sqrt(x^2 + y^2 + z^2)
@@ -117,6 +121,7 @@ function STATIC_xyz2sphere(p::SVector{3,T}) where T <: Real
     local phi = atand(y, x)
     return SVector{3}(r, theta, phi)
 end
+"""将 STATIC 仪器球坐标转换为笛卡尔向量。"""
 function STATIC_sphere2xyz(p::SVector{3,T}) where T <: Real
     local r,θ,ϕ = p[1],p[2],p[3]
     local ct = cosd(θ)
@@ -160,6 +165,7 @@ function MINPA_xyz2sphere(p::SVector{3,T}) where T <: Real # 转换为仪器坐�
     return SVector{3}(r,θ,ϕ)
     
 end
+"""求指定位置上的弓形激波边界值。"""
 function bowshock_zero(xshock)
     xF = 0.55 # R_Mars
     ϵ = 1.05

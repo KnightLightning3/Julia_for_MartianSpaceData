@@ -1,3 +1,5 @@
+"""MAVEN 科学数据的绘图工具与常用图形构造函数。"""
+
 module MAVEN_plot
 using ColorTypes, CairoMakie
 using Makie.GeometryBasics
@@ -20,6 +22,7 @@ const RAD = π / 180
 # -------------------------Export parts-------------------------
 export sta_heatmap, STA_2d_slip, SWEA_PAD_heatmap, WaveSpactra_heatmap, Orbit, PAD_slice, PAD_slice_polar, PAD_slice_velocity
 export time2x, time_ticks, x_ticks
+"""根据布尔时间序列在坐标轴上绘制区间色带。"""
 function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
     # 转接vspan函数,y需要为bool值
     segments1 = []
@@ -43,6 +46,7 @@ function vspan_plot(ax, x, y::Vector{Bool}; krawg...)
     vspan!(ax, segments1, segments2; krawg...)
     return ax
 end
+"""从 STATIC 数据字典绘制能量分布热图。"""
 function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), colormap=:viridis, colorscale=log10, overdraw=true,sc_correction = false,krawg...)
     swp_ind = sta_data[:swp_ind]; unique_swp_ind = unique(swp_ind)
     epoch = sta_data[:epoch] ; x, time_i = time2x(x0, x_range)
@@ -65,6 +69,7 @@ function sta_heatmap_test(ax, sta_data; unit="eflux", c_range=(1e4, 1e10), color
     end
     return ax
 end
+"""绘制已准备好的 STATIC 能谱热图数据。"""
 function sta_heatmap(ax, x, y, c, swp_ind; unit="eflux", c_range=(1e4, 1e10), colormap=:viridis, colorscale=log10, overdraw=true, sc_correction = false, sc_pot = nothing, krawg...)
     unique_elements = unique(swp_ind)
     if !sc_correction
@@ -286,6 +291,7 @@ function STA_2d_slip(ax, dat; frame="xy", vsc=[0, 0, 0], vbluk=[0, 0, 0],magf=da
     end
     return ax
 end
+"""绘制三维速度分布在指定二维切面上的投影。"""
 function VDF_2d_slip(ax,velocity, data; 
     normal_vectors=[[1,0,0],[0,1,0]],vbluk=[0, 0, 0],magf=[1,0,0], vsc=[0,0,0],colorrange=(1e-12, 1e0), 
     angle_range=[-30, 30], # 角度范围的切法 
@@ -432,7 +438,9 @@ function VDF_2d_slip(ax,velocity, data;
     end
     return ax
 end
+"""绘制速度范围遮罩和投影边界。"""
 function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
+    """将离子能量换算为相对论速度。"""
     function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, 返回km/s
         E0 = 938313.53 * AMU  # 质子静止能量 MeV
         γ= energy*1e-3/E0 + 1.0
@@ -440,6 +448,7 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
         v = β * 3e5
         return v
     end
+    """按球坐标范围生成三角网格面片。"""
     function get_triangle_mesh(r_bounds, theta_bounds, phi_bounds; n_steps=12)
         triangles = [] # 每个元素都是一个包含3个顶点的数组
         r1, r2 = r_bounds
@@ -466,6 +475,7 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
 
         return triangles
     end
+    """将球坐标点平移、旋转并投影到绘图平面。"""
     function rotate_func(p; translation_vector=0,rot=0) # 转为xyz坐标系
         r, θ, ϕ = p[1], p[2], p[3]
         ct = cosd(θ)
@@ -475,6 +485,7 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
         v = rot*([x,y,z] .+ translation_vector)
         return Point2f(v[1], v[2])
     end
+    """对投影点集计算凸包边界。"""
     function graham_scan(points)
         N = length(points)
         if N <= 3
@@ -482,6 +493,7 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
         end
 
         # 定义你的 ccw (逆时针) 辅助函数
+        """判断二维三点的转向方向。"""
         function ccw(a::Point2f, b::Point2f, c::Point2f)
             return ((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]))
         end
@@ -519,7 +531,9 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
 
         return hull_points
     end
+    """根据投影点生成极坐标表示的遮挡边界。"""
     function get_shadow_boundary_polar(projected_points; step_deg=1, overlap_deg=1.5)
+        """将二维笛卡尔坐标转换为极坐标。"""
         function cartesian_to_polar(x, y)
             r = sqrt(x^2 + y^2)
             theta = atan(y, x)
@@ -624,6 +638,7 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
     
     return ax
 end
+"""绘制 SWEA 俯仰角分布随时间变化的热图。"""
 function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10))
     ntime = length(time)
     for i = 1:3:ntime-3
@@ -631,6 +646,7 @@ function SWEA_PAD_heatmap(ax, time, pa, eflux; c_range=(1e4, 1e10))
     end
     return ax
 end
+"""绘制给定频率范围内的波动功率谱热图。"""
 function WaveSpectra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range = (1,1e5)) #强制绘制为对数轴
     ax.yscale = identity
     f_range_log = log10.(f_range)
@@ -659,6 +675,7 @@ function WaveSpectra_heatmap(ax, time, freq, data; c_range=(1e-14, 1e-9),f_range
     heatmap!(ax, x[bools], y[bools], c[bools], colormap=:viridis, colorscale=log10, colorrange=c_range, overdraw=true)
     return ax
 end
+"""绘制航天器轨道、火星投影及弓形激波/磁层顶边界。"""
 function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_mag=Dict(:linestyle=>:dash,:linewidth=>3),line_krawg_sc =Dict(:linestyle=>:solid,:linewidth=>3,:color=>:green))
     #绘制半球
     if shadowed
@@ -697,6 +714,7 @@ function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:li
     lines!(ax, x1, ym1; line_krawg_mag...)#label="magnetopause",
     return ax,func_trans
 end
+"""绘制能量分箱下的俯仰角相空间密度切片。"""
 function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit=(1e-17, 1e-11), xlabel="pitch angle", ylabel="PSD", n=4)
     colormap = :viridis  # 可以选择任何Makie支持的颜色图
     n_colors = length(energy)
@@ -727,6 +745,7 @@ function PAD_slice(ax, pa, energy, eflux; potential=0.0, xlimit=(0, 180), ylimit
         lines!(ax, xfit, fitted_y, color=color)
     end
 end
+"""以极坐标能量分量绘制俯仰角分布切片。"""
 function PAD_slice_polar(ax, pa, energy, eflux; potential=0.0, ylimit=(0, 200), xlimit=(-200, 200), xlabel="Ek_para [eV]", ylabel="Ek_prep [eV]", c_range=(1e-17, 1e-11))
     colormap = :viridis  # 可以选择任何Makie支持的颜色图
     n_colors = 256
@@ -775,6 +794,7 @@ function PAD_slice_polar(ax, pa, energy, eflux; potential=0.0, ylimit=(0, 200), 
     end
     return ax
 end
+"""将俯仰角分布映射到平行/垂直速度平面绘图。"""
 function PAD_slice_velocity(ax, pa, energy, eflux; potential=0.0, xlimit=(-1.5e7, 1.5e7), ylimit=(0, 1.5e7), xlabel="v_para [m/s]", ylabel="v_prep [m/s]", c_range=(1e-17, 1e-11))
     colormap = :viridis  # 可以选择任何Makie支持的颜色图
     n_colors = 256
@@ -942,14 +962,17 @@ end
 #     ax.xticks = xticks
 #     return ax
 # end
+"""计算两个向量之间的夹角。"""
 function vector_angle(a, b)
     a1 = normalize(a)
     b1 = normalize(b)
     return acosd(dot(a1, b1))
 end
+"""构造指定阶数的 Vandermonde 矩阵。"""
 function Vandermonde(x, n)
     return hcat([x .^ i for i in 0:n]...)
 end
+"""使用多项式基函数拟合输入数据。"""
 function polynomial_fit(x, y, n)
     log_y = log.(y)
     mask = .!isnan.(log_y) .& .!isinf.(log_y) # 创建一个布尔掩码,其中x不是NaN的位置为true
@@ -963,6 +986,7 @@ function polynomial_fit(x, y, n)
     coefficients = V \ filtered_y
     return coefficients
 end
+"""将电子能量通量转换为相空间密度。"""
 function eflux2F(energy, eflux)
     M = me
     # E0=M*C^2/EV   #静止能量 eV
@@ -977,6 +1001,7 @@ function eflux2F(energy, eflux)
 end
 # Edberg, N. J. T., M. Lester, S. W. H. Cowley, and A. I. Eriksson (2008), Statistical analysis of the location of the Martian magnetic pileup boundary and bow shock and the influence of crustal magnetic fields, J. Geophys. Res., 113, A08206, doi:10.1029/2008JA013096.
 #bow-shock model
+"""返回绘图用弓形激波模型边界。"""
 function bowshock(xshock)
     xF = 0.55 # R_Mars
     ϵ = 1.05
@@ -990,6 +1015,7 @@ function bowshock(xshock)
     end
 end
 #magnetopause model
+"""返回绘图用磁层顶模型边界。"""
 function magnetopause(xmp)
     rSD = 1.33
 	xF = 0.86

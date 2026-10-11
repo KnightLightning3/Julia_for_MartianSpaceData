@@ -1,4 +1,6 @@
 
+"""批量检查并压缩 MAVEN CDF 数据文件。"""
+
 import os
 import configparser
 from tqdm import tqdm
@@ -16,6 +18,7 @@ config_data.read(config_file_path, encoding='utf-8')
 save_dir = config_data['DEFAULT']['Save_dir']#"E:/MAVEN/LPW"#"E:/MAVEN/STATIC"#
 
 def check_if_compressed(file_path, gzip_level_threshold):
+    """检查 CDF 文件是否已达到指定的 GZIP 压缩等级。"""
     """
     检查 CDF 文件是否已经过高强度压缩
     返回 True 表示应跳过，False 表示需要压缩
@@ -41,6 +44,7 @@ def check_if_compressed(file_path, gzip_level_threshold):
         print(f"\n\033[1;33m警告\033[0m: 无法读取文件属性 {os.path.basename(file_path)}: {e}")
         return True
 def compress_single_cdf(src_file, gzip_level=5):
+    """按指定 GZIP 等级压缩单个 CDF 文件。"""
     """
     核心压缩逻辑：就地生成临时文件，成功后替换
     """
@@ -115,6 +119,7 @@ def compress_single_cdf(src_file, gzip_level=5):
             os.remove(tmp_file)
         return False
 def batch_compress_cdf_files(root_directory, min_size_mb=100, gzip_level_threshold=5):
+    """遍历目录并批量压缩满足大小和压缩等级条件的 CDF 文件。"""
     """
     遍历目录，过滤并对所有符合要求的 CDF 文件进行就地压缩替换
     :param root_directory: 目标根目录

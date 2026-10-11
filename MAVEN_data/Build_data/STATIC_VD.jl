@@ -11,6 +11,7 @@ using JLD2
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 
+"""结合航天器速度和 STATIC 离子数据计算速度、通量与密度。"""
 @inline function get_ion_vel(vsc_data,ion_data;energy_range = [0,1e6])
     # local sta_epoch = ion_data[:epoch]
     local time_unix = ion_data[:time_unix]
@@ -104,6 +105,7 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
     )
     return datas_dict
 end
+"""将 STATIC 派生物理量写入 Fortran 无格式二进制文件。"""
 @inline function data2bi(datas_dict,filename)
     # filter = [Shuffle(), Deflate()]
     # jldopen(filename, "w"; compress = filter) do f

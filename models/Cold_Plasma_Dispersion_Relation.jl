@@ -1,3 +1,5 @@
+"""冷等离子体色散关系、波矢、相速度与共振能量计算。"""
+
 module Cold_Plasma_Dispersion_Relation
 
 const me=9.10938215e-31  
@@ -63,16 +65,19 @@ function Dispersion_Relation(θ,freq,Πe,Ωe)  #返回折光率,与frep一一对
   return μ
 end
 
+"""根据折射率和频率计算波矢大小。"""
 function DR_wave_vector(μ , freq)
   wave_vector=μ* freq / c
   return wave_vector
 end
 
+"""根据折射率计算波的相速度。"""
 function DR_phase_velocity(μ)
   phase_velocity = c / μ
   return phase_velocity
 end
 
+"""计算给定传播条件下的共振粒子最小能量。"""
 function carculate_minimum_energy(θ,freq,Πe,Ωe,n)
   # 默认所有输入皆为分度制
   # 单点计算
@@ -92,6 +97,7 @@ function carculate_minimum_energy(θ,freq,Πe,Ωe,n)
   Emin   = 0.5 * me * v_para^2 / eV
   return Emin
 end
+"""由磁场强度和等离子体质量密度计算 Alfvén 速度。"""
 function alfven_weve(B,ρ)
   v = B/sqrt(μ_0*ρ)
   return v

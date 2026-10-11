@@ -1,3 +1,4 @@
+; IDL 示例脚本：配置 SPEDAS 与 CDF 环境，并读取 MAVEN 航天器电势数据。
 setenv,"ROOT_DATA_DIR=H:/data"
 setenv,"local_data_dir=H:/data"
 setenv,'http_proxy=http://127.0.0.1:7890'

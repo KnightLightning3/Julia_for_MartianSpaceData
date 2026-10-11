@@ -1,4 +1,4 @@
-# 处理MAVEN的SWIA数据
+# 处理 MAVEN SWEA 电子分析仪数据，包括分布数据转换与物理量计算。
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
 # 默认能量单位: EV. 默认粒子质量单位:AMU
 module MAVEN_SWEA
@@ -116,6 +116,7 @@ function sphere2xyz_for_SWIA(r,θ,ϕ) #general/science/sphere_to_cart.pro
     # z = r * cosd(θ)
     return [x,y,z]
 end;
+"""将 SWEA 坐标系下的笛卡尔向量转换为球坐标。"""
 function xyz2sphere_for_SWIA(x,y,z)
     r=sqrt(x^2 + y^2 + z^2)
     theta = 90.0 - acosd(z/r)

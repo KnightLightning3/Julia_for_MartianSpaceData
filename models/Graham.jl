@@ -3,7 +3,9 @@ struct Point
     x::Float64
     y::Float64
 end
+"""原地对二维点集执行 Graham 扫描并返回凸包顶点。"""
 function graham_scan!(points::Vector{Point})
+    """判断三点的转向方向，用于凸包排序。"""
     function ccw(a::Point, b::Point, c::Point)
         return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x))
     end
@@ -42,6 +44,7 @@ function graham_scan!(points::Vector{Point})
 
     return points[1:M]
 end
+"""从轨道位置序列提取二维凸包。"""
 function graham_scan_for_orbit(P)
     # x = atan.(P_MAVEN[:,2],P_MAVEN[:,1])
     # y = sqrt.(P_MAVEN[:,1].^2 + P_MAVEN[:,2].^2)

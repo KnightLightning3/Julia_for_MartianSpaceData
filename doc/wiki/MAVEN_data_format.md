@@ -16,7 +16,7 @@ sta_slip_data = MAVEN_load.static_rotation(sta_slip_data;frame="MSO");
 vel,_,_ = MAVEN_load.sta_v_4d(sta_slip_data; energy_range=[0,1e4],mass_range=[0,2],m_int = 1) 
 # 将坐标换成速度分布
 V_data = MAVEN_load.static_slip_2_V(sta_slip_data;mass_range=[0,2],m_int = 1);
-# 绘制tri图片![alt text](image.png)
+# 绘制 tri 图片
 ax = MAVEN_plot.STA_2d_slip(ax,V_data;frame="perp_xy",colorrange=(1e-12,1e-4),vbluk=vel)
 ```
 

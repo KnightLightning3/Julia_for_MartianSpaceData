@@ -6,6 +6,7 @@ import runpy
 import configparser
 
 def get_list_from_ini(input_string):
+    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
     if input_string == 'Null':
         return []
     if input_string == 'None':
@@ -33,6 +34,7 @@ config_data.read(config_file_path, encoding='utf-8')
 save_dir = config_data['DEFAULT']['Save_dir']
 
 def download_model(model):
+    """根据产品标识取得其本地目录和文件命名模式。"""
     global save_dir
     global json_data
     data_model = json_data["data_model"]
@@ -43,6 +45,7 @@ def download_model(model):
     save_path =  save_dir+pathname
     return [save_path,filename]
 def search_downloaded_files(save_path,file_style):
+    """遍历本地年月目录并查找符合模式的数据文件。"""
     filenames =[]
     if not os.path.exists(save_path):
         return None
