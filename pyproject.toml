@@ -1,0 +1,25 @@
+# 依赖清单（本仓库为脚本布局，不打包 Python 模块；此文件用于分离运行依赖与可选依赖）
+[project]
+name = "mars-space-data-toolkit"
+version = "0.1.0"
+description = "火星空间数据处理与科学计算工具包（MAVEN/TW/MGS 数据下载、读取、处理与物理模型）"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "tqdm>=4.66",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "cdflib>=1.2",
+]
+
+[project.optional-dependencies]
+build = [
+    "spacepy>=0.5",
+]
+notebook = [
+    "jupyter",
+    "ipykernel",
+    "matplotlib",
+]

@@ -1,5 +1,30 @@
 # 更新日志
 
+## [2026-10-12] P5: 目录整理与优化（仓库卫生）
+
+### 新增
+
+- **`pyproject.toml`**: Python 依赖清单（`requires-python >= 3.11`），运行依赖（requests/beautifulsoup4/tqdm/numpy/pandas/cdflib）与可选依赖（build: spacepy、notebook: jupyter/ipykernel/matplotlib）分离；移除无条件 pywin32 与 Jupyter 全家桶传递依赖（对应报告 5.2-⑦）。
+- **`.gitattributes`**: 统一 `text=auto` 换行符规范，二进制文件（jld2/dll/图片/PDF）不参与转换（对应报告风险 #8）。
+
+### 修改
+
+- **`README.md`**: 新增「配置迁移（INI → TOML）」小节，文档化 `tools/migrate_config.py` 的 dry-run/--apply/--force 用法（对应报告 5.2-④）；新增「环境要求」小节，注明 Python ≥ 3.11、Julia ≥ 1.10、派生 CDF 构建需 NASA CDF 库、磁场模型需 C++/Fortran DLL。
+
+### 说明
+
+- 本阶段未做源文件目录搬迁与中文文件名 ASCII 化——报告明确将其列为「低优先级独立清理」且需在前述兼容测试稳定后执行；`requirements.txt`（120 包 pip freeze）暂保留作为环境快照，现已由 `pyproject.toml` 取代为权威依赖清单。
+
+### 验证
+
+- `pyproject.toml` 经 `tomllib` 解析通过。
+- 全仓 Python AST: 31/31 OK。
+
+### 多模型协同
+
+- Architect (DeepSeek V4 Pro): 界定 P5 低风险范围并直接落地元数据/文档。
+- Debug (DeepSeek Flash): 校验。
+
 ## [2026-10-12] P4: Julia 包化与 loader 兼容
 
 ### 新增

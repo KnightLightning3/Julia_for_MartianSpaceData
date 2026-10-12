@@ -79,6 +79,29 @@ pip install -r requirements.txt
 
 每次更新下载数据后，可重新运行 `download_data/check_exist_files.py` 检查文件清单与数据完整性。
 
+## 配置迁移（INI → TOML）
+
+自重构 P1 起，配置的唯一写端为 TOML（`config/settings.toml`），旧 INI（`download_data/MAVEN_download_config.ini`）保留为只读兼容输入。将旧 INI 一次性迁移为 TOML：
+
+```
+# dry-run：仅打印将要生成的 TOML，不写文件（默认）
+python tools/migrate_config.py
+
+# 实际写入 config/settings.toml
+python tools/migrate_config.py --apply
+
+# 覆盖已存在的 settings.toml
+python tools/migrate_config.py --apply --force
+```
+
+迁移幂等、不搬动任何数据目录、也不改动原 INI；迁移后 Julia/Python 侧会优先读取 TOML。
+
+## 环境要求
+
+- Python ≥ 3.11（配置读取依赖标准库 `tomllib`；依赖清单见 `pyproject.toml`）。
+- Julia ≥ 1.10（依赖标准库 `TOML`）。
+- Windows 上派生 CDF 构建（`MAVEN_data/Build_data/`）依赖 NASA CDF 库（`spacepy.pycdf`）；磁场模型（`Magnetic_Model/IGRF_calculate.jl`）依赖对应 C++/Fortran DLL。
+
 # 读取数据
 
 MAVEN 数据的统一读取入口为 `MAVEN_data/MAVEN_load.jl`：
