@@ -1,5 +1,28 @@
 # 更新日志
 
+## [2026-10-12] 文档化：执行流程整理 + README 更新 + Documenter Wiki
+
+### 新增
+
+- **`docs/`（Julia Documenter 文档工程）**：
+  - `docs/Project.toml` / `docs/Manifest.toml`：Documenter v1.19 独立文档环境。
+  - `docs/make.jl`：构建脚本（`julia --project=docs docs/make.jl`，产物 `docs/build/`）。
+  - `docs/src/index.md`：文档首页与快速开始。
+  - `docs/src/pipeline.md`：**项目执行流程**整理（环境准备 → 配置 → 下载 → 扫描索引 → 检查维护 → 派生构建 → 读取计算 → 测试文档），含可复制命令与产物位置。
+  - `docs/src/data_reading.md`、`data_format.md`、`swia_electron.md`、`api.md`：由原 `doc/wiki/*.md` 迁入并适配（源码链接改为仓库绝对链接，页面互链改为新文件名）。
+- **`.gitignore`**：新增 `docs/build/`（构建产物不入库）。
+
+### 修改
+
+- **`README.md`**：项目结构表更新（config/、martian_pipeline/、tools/、tests/、src/、docs/、pyproject.toml）；新增「项目执行流程」与「文档构建」小节；下载节改用 `pyproject.toml` 依赖与 `martian_pipeline` CLI；读取节新增 `MarsData` 轻量公共 API 与时间轴 `searchsortednearest` 约定；Wiki 链接指向 `docs/src/`。
+- **`README_EN.md`**：与中文 README 同步（结构表、执行流程、Configuration/Requirements、Reading Data、Program and Function Index、Documentation Build）。
+
+### 验证
+
+- `julia --project=docs docs/make.jl` 构建成功，产出 6 个 HTML 页面（index / pipeline / data_reading / data_format / swia_electron / api）+ 搜索索引。
+- 文档内源码链接改写为仓库绝对链接（api.md 41 处、data_reading.md 1 处），无残留 `../../` 相对链接。
+- 遗留：Documenter 对数学公式中的 `$` 给出「Julia 插值」警告（误报，`warnonly=true`，MathJax 正常渲染）。
+
 ## [2026-10-12] 时间轴最近邻查找二分化：findmin → searchsortednearest
 
 ### 改动

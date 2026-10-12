@@ -6,12 +6,14 @@
 # Table of Contents
 - [Introduction](#introduction)
 - [Project Structure](#project-structure)
+- [Project Execution Flow](#project-execution-flow)
 - [Downloading Data](#downloading-data)
 - [Reading Data](#reading-data)
 - [Mars Magnetic Field Model](#mars-magnetic-field-model)
 - [Custom Data Description](#custom-data-description)
 - [MAVEN Data Tips](#maven-data-tips)
-- [Program and Function Wiki](#program-and-function-wiki)
+- [Program and Function Index](#program-and-function-index)
+- [Documentation Build](#documentation-build)
 - [ToDo List](#todo-list)
 
 # Introduction
@@ -25,23 +27,51 @@ This project provides tools for downloading, reading, processing, and visualizin
 | Directory/file | Purpose |
 | --- | --- |
 | `MAVEN_data/` | MAVEN readers, instrument processing, plotting, and data-format definitions |
-| `MGS_data/`, `TW_data/` | MGS and Tianwen data readers and instrument processing |
-| `download_data/` | MAVEN downloading, file checks, compression, and cleanup |
+| `MGS_data/`, `TW_data/` | MGS and Tianwen-1 data readers and instrument processing |
+| `download_data/` | MAVEN downloading, integrity checks, compression, and cleanup |
+| `config/` | Single configuration layer: `settings.example.toml` template + `config.py`/`paths.py`/`utils.py` |
+| `martian_pipeline/` | Packaged entry point and unified CLI (`python -m martian_pipeline`) |
+| `tools/` | Config migration `migrate_config.py`, scan/index `scan_and_index.py` |
+| `tests/` | Regression tests on temporary directories / synthetic files (P0–P3 + packaging) |
 | `models/`, `Magnetic_Model/` | Plasma, particle-orbit, magnetic-field, and related calculations |
 | `common/`, `support_data/` | Shared coordinate/physics utilities and external support-data readers |
 | `calculate/` | Model calculation workflows and composition entry points |
 | `example/` | Plotting and data-analysis examples |
-| `doc/wiki/` | Data guides, format references, instrument topics, and the [program/function Wiki](doc/wiki/程序与函数Wiki.md) |
-| `requirements.txt`, `requirement.jl` | Python and Julia dependency references |
+| `src/`, `Project.toml` | Julia package `MarsData` (lightweight public API entry point) |
+| `pyproject.toml` | Python runtime and optional dependency manifest |
+| `docs/` | [Documenter documentation](docs/src/index.md): pipeline, reading/format, program index |
 
-See the [program and function Wiki](doc/wiki/程序与函数Wiki.md) for file responsibilities and function descriptions.
+See the [program and function index](docs/src/api.md) for file responsibilities and function descriptions.
+
+## Project Execution Flow
+
+Full flow: [Project Execution Flow](docs/src/pipeline.md). Overview:
+
+```
+[0] Env setup  ->  [1] Config (TOML)  ->  [2] Download  ->  [3] Scan & Index
+                                                                |
+                        [6] Read & Compute  <-  [5] Derived Build -+
+                                                                |
+                        [7] Tests & Docs    <-  [4] Check & Maintain
+```
+
+Key commands:
+
+```bash
+python tools/migrate_config.py --apply      # config: INI -> TOML (dry-run by default)
+python -m martian_pipeline scan             # scan local files and refresh the index
+python -m martian_pipeline check            # file integrity check (report-only by default)
+python -m martian_pipeline clean            # clean incomplete downloads (dry-run by default)
+julia --project=docs docs/make.jl           # build this Wiki
+```
 
 # Downloading Data
 
-Use the Python scripts to download and maintain MAVEN data. Create a virtual environment and install the dependencies in `requirements.txt`:
+Use the Python scripts to download and maintain MAVEN data. Create a virtual environment and install the runtime dependencies (manifest: `pyproject.toml`, with runtime and optional dependencies separated):
 
 ```
-pip install -r requirements.txt
+pip install -e .            # runtime: requests / beautifulsoup4 / tqdm / numpy / pandas / cdflib
+pip install -e ".[build]"   # optional: derived CDF building needs spacepy (NASA CDF library)
 ```
 
 
@@ -51,9 +81,35 @@ Run `download_data\initialize_download_parameters.py`.
 
 After initialization, configure the server, save directory, date range, and data products for your environment. The downloader reads `download_data/MAVEN_download_config.ini`; this is a local runtime configuration and may not be present in the repository.
 
-`download_data/MAVEN_download.py` downloads data from the configured server. After downloading, use `download_data/check_exist_files.py` to check local files, `download_data/compress_cdf.py` to compress CDF files, or `download_data/clean_files.py` to remove incomplete downloads.
+`download_data/MAVEN_download.py` downloads data from the configured server. After downloading, use the `martian_pipeline` CLI or the standalone scripts to maintain data:
 
-After updating downloaded data, rerun `download_data/check_exist_files.py` to verify the local file inventory.
+```bash
+python -m martian_pipeline scan      # scan local files and refresh the index
+python -m martian_pipeline check     # file integrity check (report-only by default)
+python -m martian_pipeline clean     # clean incomplete downloads (dry-run by default)
+python download_data/compress_cdf.py                        # compress CDF in place (atomic replace)
+python download_data/移除重复文件中的低版本文件.py --apply   # deduplicate old versions (dry-run by default)
+```
+
+Equivalent standalone scripts remain available: `download_data/check_exist_files.py` (scan) and `download_data/get_download_files.py` (index).
+
+## Configuration
+
+The single write end is **TOML** (`config/settings.toml`, not committed); the template is `config/settings.example.toml`, and the legacy INI (`download_data/MAVEN_download_config.ini`) remains a read-only compatible input. Migrate the legacy INI once:
+
+```bash
+python tools/migrate_config.py                    # dry-run: print the TOML that would be written (default)
+python tools/migrate_config.py --apply            # actually write config/settings.toml
+python tools/migrate_config.py --apply --force    # overwrite an existing settings.toml
+```
+
+The migration is idempotent, never moves any data directory, and never modifies the original INI. Read priority: `config/settings.toml` (TOML) -> legacy INI (read-only) -> built-in defaults.
+
+## Requirements
+
+- Python >= 3.11 (config reading relies on the standard-library `tomllib`).
+- Julia >= 1.10 (standard-library `TOML`).
+- On Windows, derived CDF building (`MAVEN_data/Build_data/`) needs the NASA CDF library (`spacepy.pycdf`); the magnetic-field model (`Magnetic_Model/IGRF_calculate.jl`) needs the corresponding C++/Fortran DLL.
 
 Available MAVEN external servers (may require VPN):
 - USTC source, fast on-campus speed, server may not always be running, data may be incomplete: http://222.195.76.155:8000/MAVEN/
@@ -65,6 +121,19 @@ Note that the file structure of https://pds-ppi.igpp.ucla.edu/data/ differs from
 
 # Reading Data
 
+## Lightweight public API (Julia package `MarsData`)
+
+`src/MarsData.jl` exposes path resolution, the product registry, and index reading **without loading any scientific-data loader**, so it can be loaded with no local data and no Fortran DLL:
+
+```julia
+using Pkg; Pkg.instantiate()   # install dependencies from Project.toml + Manifest.toml
+using MarsData
+MarsData.project_root(); MarsData.maven_data_root(); MarsData.tw_data_root(); MarsData.mgs_data_root()
+MarsData.index_path();   MarsData.data_model();      MarsData.load_index()
+```
+
+## Full reader entry point
+
 ```
 Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
@@ -73,18 +142,32 @@ This program requires a specific file tree structure, which is shared with the d
 
 To reference in Julia:
 
-```
+```julia
 include("path/MAVEN_data/MAVEN_load.jl")
-include("path/IGRF_calculate.jl")
-import .MAVEN_data_load
+include("path/Magnetic_Model/IGRF_calculate.jl")
+import .MAVEN_load
 import .IGRF_calculate
 ```
 
-For specific reading methods, refer to: [MAVEN_data_format.md](doc/wiki/MAVEN_data_format.md)
+> Time-axis convention: the time axis of every loaded product is a **sorted time series** unless stated otherwise; nearest-neighbour lookups on the time axis use `MarsCommon.searchsortednearest` (binary search, `O(log N)`) rather than `findmin(abs.(x .- x0))` (linear scan). Non-time axes (energy, colour levels) still use `findmin`.
 
-## Program and Function Wiki
+For specific reading methods, refer to: [MAVEN Data Format](docs/src/data_format.md)
 
-Browse program responsibilities, primary entry points, and function descriptions in the [program and function Wiki](doc/wiki/程序与函数Wiki.md). The [SWIA electron correction notes](doc/wiki/swia_electron_correlated.md) are also available in the Wiki.
+Reading guide: [MAVEN Data Reading](docs/src/data_reading.md)
+
+## Program and Function Index
+
+Browse program responsibilities, primary entry points, and function descriptions in the [program and function index](docs/src/api.md). The [SWIA electron correction notes](docs/src/swia_electron.md) are also available.
+
+# Documentation Build
+
+The project Wiki is built with Julia's [Documenter](https://documenter.juliadocs.org/); sources live in `docs/src/`:
+
+```bash
+julia --project=docs docs/make.jl      # generate HTML into docs/build/
+```
+
+Pages: home, [Project Execution Flow](docs/src/pipeline.md), [MAVEN Data Reading](docs/src/data_reading.md), [MAVEN Data Format](docs/src/data_format.md), [SWIA Electron Correction](docs/src/swia_electron.md), [Program and Function Index](docs/src/api.md).
 
 # Mars Magnetic Field Model
 

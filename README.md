@@ -15,6 +15,7 @@
 - [索引](#索引)
 - [介绍](#介绍)
 - [项目结构](#项目结构)
+- [项目执行流程](#项目执行流程)
 - [下载数据](#下载数据)
 - [读取数据](#读取数据)
 - [其他模型](#其他模型)
@@ -23,7 +24,8 @@
   - [麦克斯韦分布拟合](#麦克斯韦分布拟合)
   - [单粒子轨道追踪](#单粒子轨道追踪)
 - [MAVEN数据说明](#maven数据说明)
-- [程序与函数 Wiki](#程序与函数-wiki)
+- [程序与函数索引](#程序与函数索引)
+- [文档构建](#文档构建)
 - [其他](#其他)
   - [闰秒修正](#闰秒修正)
 - [ToDo List](#todo-list)
@@ -39,23 +41,51 @@
 | 目录/文件 | 用途 |
 | --- | --- |
 | `MAVEN_data/` | MAVEN 数据读取、仪器数据处理、绘图及数据格式定义 |
-| `MGS_data/`、`TW_data/` | MGS 与天问数据读取和仪器处理 |
-| `download_data/` | MAVEN 数据下载、下载文件检查、压缩及清理工具 |
+| `MGS_data/`、`TW_data/` | MGS 与天问一号数据读取和仪器处理 |
+| `download_data/` | MAVEN 数据下载、完整性检查、压缩及清理工具 |
+| `config/` | 唯一配置层：`settings.example.toml` 模板 + `config.py`/`paths.py`/`utils.py` |
+| `martian_pipeline/` | Python 包化入口与统一 CLI（`python -m martian_pipeline`） |
+| `tools/` | 配置迁移 `migrate_config.py`、扫描索引 `scan_and_index.py` |
+| `tests/` | 临时目录/合成数据的回归测试（P0–P3 + 包化） |
 | `models/`、`Magnetic_Model/` | 等离子体、粒子轨道、磁场等模型与计算 |
 | `common/`、`support_data/` | 通用坐标/物理计算函数和外部支持数据读取 |
 | `calculate/` | 模型计算流程与组合入口 |
 | `example/` | 绘图和数据分析示例 |
-| `doc/wiki/` | 数据读取指南、数据格式、仪器专题与[程序/函数 Wiki](doc/wiki/程序与函数Wiki.md) |
-| `requirements.txt`、`requirement.jl` | Python 与 Julia 环境依赖参考 |
+| `src/`、`Project.toml` | Julia 包 `MarsData`（轻量公共 API 入口） |
+| `pyproject.toml` | Python 运行依赖与可选依赖清单 |
+| `docs/` | [Documenter 文档](docs/src/index.md)：执行流程、数据读取/格式、程序函数索引 |
 
-各程序文件职责及函数说明见[程序与函数 Wiki](doc/wiki/程序与函数Wiki.md)。
+各程序文件职责及函数说明见 [程序与函数索引](docs/src/api.md)。
+
+## 项目执行流程
+
+完整流程见 [项目执行流程](docs/src/pipeline.md)，概览：
+
+```
+[0] 环境准备  →  [1] 配置(TOML)  →  [2] 下载  →  [3] 扫描与索引
+                                                        │
+                          [6] 读取与计算  ←  [5] 派生构建 ─┘
+                                                        │
+                          [7] 测试与文档  ←  [4] 检查与维护
+```
+
+关键命令：
+
+```bash
+python tools/migrate_config.py --apply      # 配置：INI → TOML（dry-run 为默认）
+python -m martian_pipeline scan             # 扫描本地文件并刷新索引
+python -m martian_pipeline check            # 文件完整性检查（默认只报告）
+python -m martian_pipeline clean            # 清理未完成下载（默认 dry-run）
+julia --project=docs docs/make.jl           # 构建本 Wiki
+```
 
 # 下载数据
 
-使用 Python 程序下载和整理 MAVEN 数据。建议创建虚拟环境并安装 `requirements.txt` 中的依赖：
+使用 Python 程序下载和整理 MAVEN 数据。建议创建虚拟环境并安装运行依赖（清单见 `pyproject.toml`，运行依赖与可选依赖已分离）：
 
 ```
-pip install -r requirements.txt
+pip install -e .            # 运行依赖：requests / beautifulsoup4 / tqdm / numpy / pandas / cdflib
+pip install -e ".[build]"   # 可选：派生 CDF 构建需要 spacepy（依赖 NASA CDF 库）
 ```
 
 首次下载时,**需要先产生初始化设置文件**:
@@ -66,7 +96,17 @@ pip install -r requirements.txt
 
 [download_data/MAVEN_download.py](download_data/MAVEN_download.py)负责从配置的服务器下载数据。
 
-下载后可使用 `download_data/check_exist_files.py` 检查本地文件，使用 `download_data/compress_cdf.py` 压缩 CDF 文件，或使用 `download_data/clean_files.py` 清理未完成的下载文件。
+下载后可统一用 `martian_pipeline` CLI 或独立脚本维护：
+
+```bash
+python -m martian_pipeline scan      # 扫描本地文件并刷新索引（check_exist_files + get_download_files）
+python -m martian_pipeline check     # 文件完整性检查（默认只报告；isolate/delete 需显式启用）
+python -m martian_pipeline clean     # 清理未完成下载（默认 dry-run）
+python download_data/compress_cdf.py                        # 压缩 CDF（就地，原子替换）
+python download_data/移除重复文件中的低版本文件.py --apply   # 去重低版本（默认 dry-run）
+```
+
+也可继续使用等价独立脚本：`download_data/check_exist_files.py`（扫描）、`download_data/get_download_files.py`（索引）。
 
 可以使用的MAVEN外部服务器(可能需要VPN):
 
@@ -77,7 +117,7 @@ pip install -r requirements.txt
 
 其中'https://pds-ppi.igpp.ucla.edu/data/'的文件树与后两者不同,且没有NGIM数据
 
-每次更新下载数据后，可重新运行 `download_data/check_exist_files.py` 检查文件清单与数据完整性。
+每次更新下载数据后，重新运行扫描以刷新索引与文件清单：`python -m martian_pipeline scan`。
 
 ## 配置迁移（INI → TOML）
 
@@ -104,6 +144,19 @@ python tools/migrate_config.py --apply --force
 
 # 读取数据
 
+## 轻量公共 API（Julia 包 `MarsData`）
+
+`src/MarsData.jl` 提供路径解析、产品注册表与索引读取等公共 API，**不加载任何科学数据 loader**，因此可在无本地数据、无 Fortran DLL 的环境下加载：
+
+```julia
+using Pkg; Pkg.instantiate()   # 按 Project.toml + Manifest.toml 安装依赖
+using MarsData
+MarsData.project_root(); MarsData.maven_data_root(); MarsData.tw_data_root(); MarsData.mgs_data_root()
+MarsData.index_path();   MarsData.data_model();      MarsData.load_index()
+```
+
+## 完整读取入口
+
 MAVEN 数据的统一读取入口为 `MAVEN_data/MAVEN_load.jl`：
 
 ```
@@ -122,9 +175,11 @@ import .MAVEN_load
 import .IGRF_calculate
 ```
 
-具体读取方法: [MAVEN_data_format.md](doc/wiki/MAVEN_data_format.md)
+> 时间轴约定：所有被读取数据的时间轴（除特别说明）均为**排序后的时序数据**；时间轴最近邻查找统一使用 `MarsCommon.searchsortednearest`（二分，`O(log N)`），不要用 `findmin(abs.(x .- x0))`（线性扫描）。能量轴、色标等非时序数据仍用 `findmin`。
 
-读取介绍：[MAVEN数据读取.md](doc/wiki/MAVEN数据读取.md)
+具体读取方法: [MAVEN 数据格式](docs/src/data_format.md)
+
+读取介绍：[MAVEN 数据读取](docs/src/data_reading.md)
 
 # 其他模型
 
@@ -149,11 +204,21 @@ import .IGRF_calculate
 
 # MAVEN数据说明
 
-见[MAVEN数据读取](doc/wiki/MAVEN数据读取.md)，以及 [SWIA 电子修正专题](doc/wiki/swia_electron_correlated.md)。
+见 [MAVEN 数据读取](docs/src/data_reading.md)，以及 [SWIA 电子修正专题](docs/src/swia_electron.md)。
 
-## 程序与函数 Wiki
+## 程序与函数索引
 
-按目录查看程序职责、主要入口和函数说明：[程序与函数 Wiki](doc/wiki/程序与函数Wiki.md)。
+按目录查看程序职责、主要入口和函数说明：[程序与函数索引](docs/src/api.md)。
+
+# 文档构建
+
+本项目的 Wiki 使用 Julia 的 [Documenter](https://documenter.juliadocs.org/) 构建，源文件位于 `docs/src/`：
+
+```bash
+julia --project=docs docs/make.jl      # 生成 HTML 到 docs/build/
+```
+
+文档页面：首页、[项目执行流程](docs/src/pipeline.md)、[MAVEN 数据读取](docs/src/data_reading.md)、[MAVEN 数据格式](docs/src/data_format.md)、[SWIA 电子修正](docs/src/swia_electron.md)、[程序与函数索引](docs/src/api.md)。
 
 # 其他
 

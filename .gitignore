@@ -27,3 +27,4 @@ example/MAVEN_plot_sample/*.png
 download_data/download_heads.json
 .DS_Store
 config/settings.toml
+docs/build/
