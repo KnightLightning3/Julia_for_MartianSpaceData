@@ -1,5 +1,56 @@
 # 更新日志
 
+## ⚠️ [2026-10-13] 破坏性变更（BREAKING）：`data_get_from_date` → `load_MAVEN_data`
+
+> **本节面向所有下游使用者，请优先阅读。**
+> 这是一次**不向后兼容**的改名：**旧名已被删除，且不保留别名**。沿用旧名的脚本会立即报错。
+
+### 会报什么错
+
+```
+UndefVarError: `data_get_from_date` not defined
+```
+
+### 改名对照（调用方需要替换的部分）
+
+| 旧名（已删除，调用即报错） | 新名 |
+| --- | --- |
+| `MAVEN_load.data_get_from_date` | **`MAVEN_load.load_MAVEN_data`** |
+| `MarsCommon.electron_energy_to_speed` | **`MarsCommon.e_energy2v`** |
+| `MarsCommon.ion_energy_to_speed` | **`MarsCommon.ion_energy2v`** |
+
+### 迁移步骤
+
+1. 在调用方代码中全局查找替换：
+
+   ```diff
+   - Data_Dict = MAVEN_load.data_get_from_date(date; model_index = ["MAG_pc1s", "LPW_wave"])
+   + Data_Dict = MAVEN_load.load_MAVEN_data(date; model_index = ["MAG_pc1s", "LPW_wave"])
+
+   - v = MarsCommon.electron_energy_to_speed(energy_eV)
+   + v = MarsCommon.e_energy2v(energy_eV)
+
+   - v = MarsCommon.ion_energy_to_speed(energy_eV, mass_amu)
+   + v = MarsCommon.ion_energy2v(energy_eV, mass_amu)
+   ```
+
+2. **除名字外无需任何改动**：函数签名（`(date::DateTime; model_index=[], show_filename=false)`）、参数含义、返回结构（`Dict{String,Dict{Symbol,Any}}`，含 `:data_load_flag` / `:filename`）与行为**完全不变**。
+
+3. 若使用包化装载入口，白名单已同步为新名：
+
+   ```julia
+   MarsData.@load MAVEN_load
+   Data = load_MAVEN_data(date; model_index = ["MAG_ss1s_cdf"])   # 裸名可用
+   ```
+
+### 影响范围
+
+- 代码与**现行文档**共 24 个文件已同步改名（含 `README`、`docs/src/*`、`doc/wiki/*`、示例、`download_data/`、`models/Pickup_ion.jl`）。
+- **历史快照保留旧名、不作修改**，仅作为记录：`CHANGELOG.md` 既有条目、`doc/refactoring_diagnosis_report.md`、`doc/refactoring_audit_a42e14b.md`。在这些历史文档中看到 `data_get_from_date` 属于正常现象。
+- **未受影响的同名函数**：`TW_data/TW_MINPA.jl` 的 `MINPA_energy2v` 是另一个函数；`MarsCommon.ion_speed_to_energy`（逆运算）本次未改名。
+
+---
+
 ## [2026-10-13] 裸名白名单落地 + 能量/读取函数重命名 + 依赖自动装载
 
 ### 白名单（`src/modules.jl`）

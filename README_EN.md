@@ -3,7 +3,30 @@
 
 <h1 align="center">Julia Pkg for Mars</h1>
 
+# Breaking Changes (Read First)
+
+> ### ⚠️ `data_get_from_date` has been renamed to `load_MAVEN_data`
+>
+> **`MAVEN_load.data_get_from_date` has been removed, with no alias kept.**
+> Any external script still using the old name now fails with
+> `UndefVarError: data_get_from_date not defined`.
+> **The signature, arguments and return value are unchanged** — a global rename is all you need:
+>
+> | Old name (removed) | New name |
+> | --- | --- |
+> | `MAVEN_load.data_get_from_date` | **`MAVEN_load.load_MAVEN_data`** |
+> | `MarsCommon.electron_energy_to_speed` | **`MarsCommon.e_energy2v`** |
+> | `MarsCommon.ion_energy_to_speed` | **`MarsCommon.ion_energy2v`** |
+>
+> ```diff
+> - Data_Dict = MAVEN_load.data_get_from_date(date; model_index = ["MAG_pc1s", "LPW_wave"])
+> + Data_Dict = MAVEN_load.load_MAVEN_data(date; model_index = ["MAG_pc1s", "LPW_wave"])
+> ```
+>
+> Migration steps and scope: see the [breaking-change entry in the changelog](CHANGELOG.md) (top of the file).
+
 # Table of Contents
+- [Breaking Changes (Read First)](#breaking-changes-read-first)
 - [Introduction](#introduction)
 - [Project Structure](#project-structure)
 - [Project Execution Flow](#project-execution-flow)
@@ -139,6 +162,8 @@ MarsData.index_path();   MarsData.data_model();      MarsData.load_index()
 ```
 Data_Dict = MAVEN_load.load_MAVEN_data(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
+
+> ⚠️ **This entry point was previously named `data_get_from_date`; it has been removed with no alias.** Rename it globally in older scripts — see [Breaking Changes (Read First)](#breaking-changes-read-first).
 
 This program requires a specific file tree structure, which is shared with the download section.
 

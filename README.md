@@ -10,8 +10,30 @@
   </tr>
 </table>
 
+# 破坏性变更（必读）
+
+> ### ⚠️ `data_get_from_date` 已更名为 `load_MAVEN_data`
+>
+> **`MAVEN_load.data_get_from_date` 已被删除，且不保留别名。**
+> 沿用旧名的外部脚本会立即报 `UndefVarError: data_get_from_date not defined`。
+> **函数签名、参数与返回值完全不变**，只需全局改名：
+>
+> | 旧名（已删除） | 新名 |
+> | --- | --- |
+> | `MAVEN_load.data_get_from_date` | **`MAVEN_load.load_MAVEN_data`** |
+> | `MarsCommon.electron_energy_to_speed` | **`MarsCommon.e_energy2v`** |
+> | `MarsCommon.ion_energy_to_speed` | **`MarsCommon.ion_energy2v`** |
+>
+> ```diff
+> - Data_Dict = MAVEN_load.data_get_from_date(date; model_index = ["MAG_pc1s", "LPW_wave"])
+> + Data_Dict = MAVEN_load.load_MAVEN_data(date; model_index = ["MAG_pc1s", "LPW_wave"])
+> ```
+>
+> 迁移步骤与影响范围见 [更新日志中的破坏性变更条目](CHANGELOG.md)（位于文件顶部）。
+
 # 索引
 
+- [破坏性变更（必读）](#破坏性变更必读)
 - [索引](#索引)
 - [介绍](#介绍)
 - [项目结构](#项目结构)
@@ -164,6 +186,8 @@ MAVEN 数据的统一读取入口为 `MAVEN_data/MAVEN_load.jl`：
 ```
 Data_Dict = MAVEN_load.load_MAVEN_data(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
+
+> ⚠️ **该入口此前名为 `data_get_from_date`，现已删除且不留别名。** 旧脚本请全局改名，详见 [破坏性变更（必读）](#破坏性变更必读)。
 
 此程序需要特定的读取文件树格式,
 与下载部分共用文件树格式

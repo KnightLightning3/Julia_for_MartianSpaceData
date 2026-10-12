@@ -2,6 +2,12 @@
 
 火星空间数据处理与科学计算工具包（*Mars Space Data Processing & Scientific Computing Toolkit*）。
 
+!!! warning "破坏性变更：`data_get_from_date` → `load_MAVEN_data`"
+    `MAVEN_load.data_get_from_date` 已被**删除且不保留别名**，旧脚本会报 `UndefVarError: data_get_from_date not defined`。
+    函数签名与返回值完全不变，全局改名即可：`MAVEN_load.data_get_from_date` → **`MAVEN_load.load_MAVEN_data`**；
+    同时 `MarsCommon.electron_energy_to_speed` → **`e_energy2v`**、`MarsCommon.ion_energy_to_speed` → **`ion_energy2v`**。
+    详见仓库根目录的 `CHANGELOG.md` 破坏性变更条目。
+
 本项目提供火星空间科学数据的**下载、读取、处理、可视化与物理模型计算**工具：主要数据处理与科学计算使用 Julia，数据下载与文件整理主要使用 Python，部分磁场计算通过 Fortran 动态库加速。
 
 ## 文档导航
