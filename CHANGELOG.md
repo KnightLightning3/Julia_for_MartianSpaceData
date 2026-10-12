@@ -1,5 +1,33 @@
 # 更新日志
 
+## [2026-10-12] martian_pipeline 包化
+
+### 新增
+
+- **`martian_pipeline/` 包**：对既有函数化模块（`config/`、`download_data/`）的薄封装/再导出，提供统一公共 API（`load_config/scan/write_index/load_index/resolve_output_product/project_root/...`）。
+  - `__init__.py`: 公共 API 再导出。
+  - `inventory.py`: 薄封装 `download_data/check_exist_files.py`。
+  - `manifest.py`: 薄封装 `download_data/get_download_files.py`。
+  - `cli.py` + `__main__.py`: 统一 CLI，子命令 `scan` / `manifest` / `migrate`，支持 `python -m martian_pipeline <子命令>`。
+- **`download_data/__init__.py` / `tools/__init__.py`**: 使二者成为可被 `download_data.<模块>` / `tools.<模块>` 导入的包（不影响各脚本 `python xxx.py` 独立运行）。
+- **`tests/test_package.py`**: 3 个用例覆盖公共 API 导入、CLI scan 端到端、CLI migrate dry-run。
+
+### 说明
+
+- 采用**加式薄封装**（不搬目录、不破坏既有脚本）；旧入口 `python download_data/xxx.py`、`python tools/xxx.py` 保持可用。
+- 子命令 `check` / `download` / `build` / `clean` / `compress` / `dedupe` 可后续按同一薄封装模式接入（`check` 需先解决 `check_download_file.py` 的扁平 import 依赖）。
+
+### 验证
+
+- `python -m martian_pipeline --help` 正常；`scan` 端到端产出 schema_version=2 的索引。
+- 全仓 Python AST: 39/39 OK（Flash 交叉校验 + 独立复核一致）。
+- 回归: P0 6/6、P1 6/6、P2 utils 2/2、P2 cli 5/5、P3 6/6、package 3/3 全通过。
+
+### 多模型协同
+
+- Architect (DeepSeek V4 Pro): 定义加式封装方案并落地（Qwen 子代理连续 null 未落盘，Code 由架构师直接完成）。
+- Debug (DeepSeek Flash): 全仓 AST 交叉校验。
+
 ## [2026-10-12] P5: 目录整理与优化（仓库卫生）
 
 ### 新增
