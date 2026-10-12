@@ -50,7 +50,9 @@ end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%
 single_model = config_data['Settings'].get('single_model', [])
 muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
 single_download = config_data['Settings'].getboolean('single_download')
-check_download_file = config_data['Settings'].getboolean('check_download_file')
+# P0 契约修复：初始化器会生成该键；旧配置缺失时回退 False，避免 NoOptionError。
+# 实际完整性检查已按 D1 抽离为 download_data/check_download_file.py（下载热路径不再耦合校验）。
+check_download_file = config_data['Settings'].getboolean('check_download_file', fallback=False)
 update_file_version = config_data['Settings'].getboolean('update_file_version')
 
 session = requests.Session()
@@ -319,59 +321,6 @@ def find_downloaded_file(file_names, element):
         if element in file_name:
             return True
     return False
-def read_last_line_large_file(filename):
-    """从文件末尾分块读取最后一行，避免载入整个大文件。"""
-    with open(filename, 'r', encoding='utf-8') as f:
-        f.seek(0, 2)  # 移动到文件末尾
-        file_size = f.tell()
-        block = 10240  # 每次读取的块大小
-        last_line = ''
-        # 从文件末尾开始逐块向前读取
-        for pos in range(file_size, 0, -block):
-            if pos < block:
-                f.seek(0)
-            else:
-                f.seek(pos - block)
-            data = f.read(min(block, pos))
-            if '\n' in data:
-                last_line = data.splitlines()[-1]
-                break
-        else:  # 如果文件没有换行符，整个文件就是最后一行
-            f.seek(0)
-            last_line = f.read()
-    return last_line
-def file_check(file_names,save_path,model):
-    """按产品类型校验已下载文件并移除校验失败的文件。"""
-        counter = 0
-        if model == 'cdf':
-            from cdflib import cdfread 
-            for f in file_names:
-                try :
-                    cdfread.CDF(save_path+f)
-                    # print(f,'True')
-                    continue
-                except Exception as e:
-                    print(e)
-                os.remove(os.path.join(save_path,f))
-                print(f,"False")
-                counter+=1
-            return counter
-        if model == 'kp':
-            for f in file_names:
-                last_line = read_last_line_large_file(save_path+f)
-                # file=open(save_path+f,'r')
-                # lines = file.readlines()
-                # last_line = lines[-1]
-                bool_1 = (len(last_line) >= 3360)
-                bool_2 = (int(last_line[14:16]) >= 59)
-                if bool_1 & bool_2:
-                    # print(f,'True')
-                    bool_1 = True
-                else:
-                    os.remove(os.path.join(save_path,f))
-                    print(f,"False")
-                    counter+=1
-            return counter
 def get_element_from_filename(filename): # 取得文件名对应的版本等信息
     try:
         v_data = int(re.findall(r"_v\d{2}", filename)[0][2:4])
@@ -630,5 +579,8 @@ if __name__ == '__main__':
 
     io_download_log.close()
 
-    import runpy
-    runpy.run_path(f"{project_path}/download_data/check_exist_files.py")  # run get_download_files.py, update filename_list.txt
+    # 下载完成后显式调用扫描与索引刷新流程。
+    # 不再使用 runpy.run_path()（其会将 __name__ 设为 "<run_path>"，导致被调脚本的
+    # `if __name__ == "__main__"` 分支不会执行，清单因此从未刷新）。
+    import check_exist_files
+    check_exist_files.main()

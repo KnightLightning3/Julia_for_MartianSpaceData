@@ -1,5 +1,25 @@
 # 更新日志
 
+## [2026-10-12] P0: 阻断级问题修复与行为对齐
+
+### 修复
+
+- **`download_data/MAVEN_download.py`**: 删除缩进错误的死函数 `file_check`/`read_last_line_large_file`（修复 AST 失败）；末尾 `runpy.run_path` 改为显式 `check_exist_files.main()`；`check_download_file` 读取加 `fallback=False`（旧 INI 不再 NoOptionError）。
+- **`download_data/initialize_download_parameters.py`**: 重构为可测试的 `build_config()`/`generate_config(output_path)`；补齐 `check_download_file` 键；修复 `download_mode` 值中缺失 `;` 前缀导致的 ParsingError；Windows 路径改 raw string 消除 SyntaxWarning。
+- **`download_data/check_exist_files.py`**: 扫描逻辑收敛为可导入函数（`load_config/load_schema/download_model/search_downloaded_files/scan/main`）；去除重复 schema 加载、`runpy`、`exit(0)`；`save_dir + pathname` 改为 `os.path.join`。
+- **`download_data/get_download_files.py`**: 索引写入收敛为 `write_index(save_dir, output_path=None)`；输出路径改为脚本位置推导（`default_index_path()`）；`Path.touch` 报错改为 `os.makedirs`。
+
+### 新增
+
+- **`download_data/check_download_file.py`**: 独立文件完整性检查入口（决策 D1），默认 `--action report` 只报告 CDF/KP 校验结果，`isolate`/`delete` 必须显式启用。
+- **`tests/test_p0.py`**: 6 个用例覆盖配置初始化、文件扫描、索引生成、下载后刷新、完整性检查报告/隔离/删除。
+
+### 验证
+
+- 全仓 Python AST: 22/22 OK（修复前 1 FAIL）。
+- 测试: 6/6 PASS。
+- 下载器对现有用户 INI 导入成功（`Server_ind=3`, `check_download_file` fallback 生效）。
+
 本项目所有值得注意的变更都会记录在此文件。
 
 ## [2026-10-12] 函数一致性审查与 IGRF 回归修复
