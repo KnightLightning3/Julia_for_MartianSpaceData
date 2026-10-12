@@ -1,5 +1,33 @@
 # 更新日志
 
+## [2026-10-12] example 概览/批量绘图适配 + MAVEN_plot 加载阻塞修复
+
+### 修复
+
+- **`MAVEN_data/MAVEN_plot.jl`**：修复 `logticks` docstring 中未转义的 `$(round(x))`——它在模块加载时被当作字符串插值求值，抛出 `UndefVarError: x not defined`，**阻塞 `MAVEN_plot.jl`（及所有引用它的示例）加载**；转义为 `\$(round(x))`。
+
+### 修改（示例适配当前程序）
+
+`example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl` 与 `MAVEN_overview_cases.jl`：
+
+- KP 产品由已不存在的 `KP_l3` 改为注册表产品 **`KP`**（`load_kp(...; pc2ss_Matrix_load=true)` + `change_kp_read_data` 扩展绘图所需变量）；
+- `MAG_pc1s_l3` → 注册表产品 **`MAG_pc1s_cdf`**；
+- 新增 `load_model_safe` **逐产品容错**（个别产品缺文件或格式异常不再中断整幅图）；
+- 新 MAG CDF 产品无 `:B_total`，改由 `:B` 三分量计算总场；
+- `:Ne` 由矩阵索引 `[i,1]` 改为向量索引 `[i]`（`load_kp` 返回向量）；
+- 时间轴轨道定位改用二分 **`MarsCommon.searchsortednearest`**（时序数据约定）；
+- 绘图参数（日期 / 时间范围 / 输出目录）参数化，输出改为可配置目录并**保存 PNG**；批量脚本支持环境变量 `MAVEN_OVERVIEW_OUTDIR`，并修复 `parent_dir * filename` 字符串拼接为 `joinpath`。
+
+### 验证
+
+- **单日概览**：2015-07-19 02:00-04:00 → `%TEMP%/maven_overview_sample/MAVEN_overview_20150719_0200-0400.png`（4.75 MB，5000×5000），轨道三视图 + (a)-(k) 全仪器面板正常。
+- **批量**：2015-07-19 全天 12 个 2 小时窗口 → `%TEMP%/maven_overview_batch/2015/07/*.png`（含目标窗口 `2015-07-19_02.png`）；首图 36 s（含编译），之后每图约 4 s。
+- **已知限制**：`STATIC_d1_v4d`（`mvn_sta_l3_d1_v4d_*.f77_unformatted`）当前 `load_d1_v4d` 读取报 `FortranFilesError`（`_cold_` 与非 cold 两变体均失败），(b) 面板因此缺 STATIC 离子密度；已由逐产品容错跳过，不影响其余面板。
+
+### 环境
+
+- 为运行示例，向 Julia `@v1.10` 环境补装 **`StaticArrays`**（`common/MarsCommon.jl` 依赖，此前缺失导致 `using StaticArrays` 失败）。
+
 ## [2026-10-12] 文档化：执行流程整理 + README 更新 + Documenter Wiki
 
 ### 新增

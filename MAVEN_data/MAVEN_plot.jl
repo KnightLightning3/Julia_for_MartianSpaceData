@@ -1399,7 +1399,7 @@ function interpolate_x_ticks(xd,x,y;format_func = x -> convert(Int64,round(x;dig
     return (xd,ym)
 end
 """
-    logticks(num_list; tick_func=x->rich("10",superscript("$(round(x))"))) -> (Vector, Vector)
+    logticks(num_list; tick_func=x->rich("10",superscript("\$(round(x))"))) -> (Vector, Vector)
 
 生成以 10 为底的指数刻度位置与标签。
 
