@@ -374,6 +374,7 @@ function IGRF(r::Real, θ::Real, ϕ::Real) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBD
 
     P[1, 1] = 1.0e0
     DP[1, 1] = 0.0e0 #; DDP[1,1] = 0.0e0
+    # BR/BT/BP 为跨阶累加器：仅在此处初始化一次，循环内只做累加、切勿重新清零
     BR = 0.0e0
     BT = 0.0e0
     BP = 0.0e0
@@ -398,9 +399,6 @@ function IGRF(r::Real, θ::Real, ϕ::Real) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBD
         XX = 0.0e0
         YY = 0.0e0
         ZZ = 0.0e0
-    BR = 0.0e0
-    BT = 0.0e0
-    BP = 0.0e0
 
         P[N+1, N+1] = SINTH * P[N, N]
         DP[N+1, N+1] = SINTH * DP[N, N] + COSTH * P[N, N]
