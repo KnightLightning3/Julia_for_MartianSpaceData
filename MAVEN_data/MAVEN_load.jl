@@ -1,5 +1,5 @@
 # 读取和计算MAVEN数据
-# data_get_from_date 返回字典dates_dict[:数据类型"][:数据内容"]
+# load_MAVEN_data 返回字典dates_dict[:数据类型"][:数据内容"]
 # dates_dict[:数据类型"][:data_load_flag]表示读取是否成功
 # 所有的CDF文件统一读取为cdf对应的字典,并去除PyObjects
 # STATIC中的theta值在球坐标系下,应当为90-Theta.
@@ -101,7 +101,7 @@ function find_file_of_data(model::String, date::DateTime)
     return false, "NaN"
 end
 """
-    data_get_from_date(date::DateTime; model_index=[], show_filename=false) -> Dict{String, Any}
+    load_MAVEN_data(date::DateTime; model_index=[], show_filename=false) -> Dict{String, Any}
 
 按日期统一调度并加载多个仪器的数据（顶级调度函数）。
 
@@ -118,10 +118,10 @@ end
 - `Dict{String, Any}`: 以模型名为键、数据字典为值的主字典。
 
 # 注意事项
-- `load_MAVEN_data` 是本函数的别名。
 - 单个文件缺失不会中断批量加载。
+- `date` 参数为 `DateTime` 类型，语义为“读取该日期（一天）的数据”。
 """
-function data_get_from_date(date::DateTime; model_index=[], show_filename=false) #全局读取函数 date 格式为yyyymmdd
+function load_MAVEN_data(date::DateTime; model_index=[], show_filename=false) #全局读取函数 date 格式为yyyymmdd
     datas_dict = Dict{String,Any}()
     for model in model_index
         file_flag, filename = find_file_of_data(model, date)
@@ -139,7 +139,6 @@ function data_get_from_date(date::DateTime; model_index=[], show_filename=false)
     end
     return datas_dict
 end
-load_MAVEN_data = data_get_from_date
 """
     get_orbits() -> Vector
 

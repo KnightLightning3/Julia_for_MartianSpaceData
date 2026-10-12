@@ -167,7 +167,7 @@ end
 #     :OionTemperature => 62,
 #     :O2ionTemperature => 64,
 # ));
-# dat0 = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["SWEA_spec","KP","LPW_mrgscpot","LPW_lpnt","LPW_wn"])
+# dat0 = MAVEN_load.load_MAVEN_data(DateTime(2015,10,29); model_index=["SWEA_spec","KP","LPW_mrgscpot","LPW_lpnt","LPW_wn"])
 # dat_swe=dat0["SWEA_spec"]
 # dat_kp = dat0["KP"]
 # dat_pot = dat0["LPW_mrgscpot"]

@@ -47,17 +47,25 @@ _spec(name, path, note; deps = Symbol[], kind = :module, allow = Symbol[]) =
 
 全部可装载模块的注册表（唯一事实来源）。
 
-!!! note
-    `allow` 白名单**全部留空**，待逐模块填写。填写前 `@load` 只绑定模块名，
-    不引入任何裸名（须写 `MAVEN_load.data_get_from_date` 这样的限定名）。
+`allow` 白名单决定 `@load` 会把哪些名字变成调用者作用域的**裸名**；为空表示只绑定
+模块名（须写 `MAVEN_load.xxx` 这样的限定名）。当前已开放：
+
+- `MarsCommon`：`searchsortednearest`、`e_energy2v`、`ion_energy2v`
+- `MAVEN_load`：`load_cdf`、`load_MAVEN_data`
+- `IGRF_calculate`：`IGRF_pc`、`pc2sphere`、`sphere2pc`
+
+其余模块的白名单仍留空，待逐个填写。
 """
 const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     :constants => _spec(:constants, "common/constants.jl", "共享物理常量"),
-    :MarsCommon => _spec(:MarsCommon, "common/MarsCommon.jl", "通用坐标与科学计算函数"),
+    :MarsCommon => _spec(
+        :MarsCommon, "common/MarsCommon.jl", "通用坐标与科学计算函数";
+        allow = [:searchsortednearest, :e_energy2v, :ion_energy2v],
+    ),
     :Paths => _spec(:Paths, "common/paths.jl", "配置与路径解析（已随包预装）"; kind = :preloaded),
     :MAVEN_load => _spec(
         :MAVEN_load, "MAVEN_data/MAVEN_load.jl", "MAVEN 统一读取入口";
-        deps = [:constants, :MarsCommon, :Paths],
+        deps = [:constants, :MarsCommon, :Paths], allow = [:load_cdf, :load_MAVEN_data],
     ),
     :MAVEN_STATIC => _spec(
         :MAVEN_STATIC, "MAVEN_data/MAVEN_STATIC.jl", "STATIC 仪器数据处理";
@@ -77,7 +85,7 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     ),
     :IGRF_calculate => _spec(
         :IGRF_calculate, "Magnetic_Model/IGRF_calculate.jl", "IGRF 磁场模型（依赖 Fortran DLL）";
-        deps = [:constants],
+        deps = [:constants], allow = [:IGRF_pc, :pc2sphere, :sphere2pc],
     ),
     :Cold_Plasma_Dispersion_Relation => _spec(
         :Cold_Plasma_Dispersion_Relation, "models/Cold_Plasma_Dispersion_Relation.jl",
@@ -313,6 +321,8 @@ end
   再以 `const` 别名绑定进 `into`；因此 `parentmodule(MarsData.MAVEN_load)` 是载体，
   而非 `MarsData` 本身。
 - `:preloaded` 模块（`Paths` / `MAVEN_plot`）直接返回包内已装载的实例，不重复装载。
+- `ModuleSpec.deps` 会在装载目标模块**之前**递归装入同一载体，以满足相对父模块引用
+  （如 `MarsCommon` 的 `using ..constants`）。
 - 装载后按 `ModuleSpec.allow` 白名单做逐名引入；白名单为空则不引入任何裸名。
 """
 function load_module(
@@ -343,6 +353,13 @@ function load_module(
     end
 
     carrier = _carrier()
+
+    # 先把语义前置模块递归装入同一载体：部分模块以相对父模块语法引用兄弟模块
+    # （如 `common/MarsCommon.jl` 的 `using ..constants`），因此 `constants` 必须
+    # 先存在于载体中，否则单独装载 MarsCommon 会报 `UndefVarError: constants`。
+    for d in spec.deps
+        load_module(d; into = carrier, force = force, verbose = verbose)
+    end
 
     if force || !(isdefined(carrier, sym) && getfield(carrier, sym) isa Module)
         file = module_path(sym)
@@ -421,7 +438,7 @@ end
 ```julia
 using MarsData
 MarsData.@load MAVEN_load MAVEN_STATIC IGRF_calculate
-# 之后可直接写 MAVEN_load.data_get_from_date(...)
+# 之后可直接写 MAVEN_load.load_MAVEN_data(...)
 ```
 
 # 注意事项

@@ -29,7 +29,7 @@ MarsData.data_model()           # 产品注册表
 ```julia
 # 3. 读取某一天的数据（完整加载器）
 include("path/to/MAVEN_data/MAVEN_load.jl"); import .MAVEN_load
-Data_Dict = MAVEN_load.data_get_from_date(["20141220"], model_index = ["MAG_pc1s", "LPW_wave"])
+Data_Dict = MAVEN_load.load_MAVEN_data(["20141220"], model_index = ["MAG_pc1s", "LPW_wave"])
 mag_data = Data_Dict["MAG_pc1s"][:B]
 ```
 

@@ -56,7 +56,7 @@ const KP_PLOT_VARS = Dict{Symbol,Int}(
 """
 @inline function load_model_safe(date, model)
     try
-        return MAVEN_load.data_get_from_date(date, model_index=[model], show_filename=false)[model]
+        return MAVEN_load.load_MAVEN_data(date, model_index=[model], show_filename=false)[model]
     catch err
         @warn "产品 $(model) 读取失败，已跳过" exception = (err, catch_backtrace())
         return Dict{Symbol,Any}(:data_load_flag => false)

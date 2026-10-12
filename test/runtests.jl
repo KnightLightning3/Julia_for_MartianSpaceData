@@ -11,6 +11,7 @@ using Dates
 # `module` 只能定义在顶层，故 scratch 命名空间放在测试集之外
 module ScratchBlank end
 module ScratchAllow end
+module ScratchWhitelist end
 
 # 顶层验证 `@load` 的脚本用法（展开为 const 赋值）
 MarsData.@load MAVEN_SWEA
@@ -42,7 +43,7 @@ MarsData.@load MAVEN_SWEA
         @test info.name === :MAVEN_load
         @test info.kind === :module
         @test issubset([:constants, :MarsCommon, :Paths], info.deps)
-        @test isempty(info.allow)          # 阶段 A：白名单刻意留空
+        @test info.allow == [:load_cdf, :load_MAVEN_data]   # 已开放的白名单
         @test info.loaded isa Bool
     end
 
@@ -126,11 +127,41 @@ MarsData.@load MAVEN_SWEA
         end
     end
 
+    @testset "白名单内容与生效" begin
+        # 已开放的三条
+        @test MarsData.MODULE_REGISTRY[:MarsCommon].allow ==
+              [:searchsortednearest, :e_energy2v, :ion_energy2v]
+        @test MarsData.MODULE_REGISTRY[:MAVEN_load].allow == [:load_cdf, :load_MAVEN_data]
+        @test MarsData.MODULE_REGISTRY[:IGRF_calculate].allow ==
+              [:IGRF_pc, :pc2sphere, :sphere2pc]
+        # 其余仍留空
+        @test isempty(MarsData.MODULE_REGISTRY[:MAVEN_STATIC].allow)
+        @test isempty(MarsData.MODULE_REGISTRY[:MAVEN_SWEA].allow)
+
+        # MarsCommon 可独立装载（deps 已自动递归装入载体：constants）
+        mcm = MarsData.load_module(:MarsCommon; into = ScratchWhitelist)
+        @test mcm isa Module
+        @test isdefined(ScratchWhitelist, :MarsCommon)
+        @test isdefined(ScratchWhitelist, :searchsortednearest)
+        @test isdefined(ScratchWhitelist, :e_energy2v)
+        @test isdefined(ScratchWhitelist, :ion_energy2v)
+        # 不在白名单的名字不应成为裸名（MarsCommon 也未 export 它）
+        @test !isdefined(ScratchWhitelist, :spherical_to_cartesian)
+        # 白名单内的函数确实可调用
+        @test Core.eval(ScratchWhitelist, :(e_energy2v(1.0e3))) isa Real
+
+        # MAVEN_load 白名单
+        MarsData.load_module(:MAVEN_load; into = ScratchWhitelist)
+        @test isdefined(ScratchWhitelist, :load_cdf)
+        @test isdefined(ScratchWhitelist, :load_MAVEN_data)
+        @test !isdefined(ScratchWhitelist, :load_kp)
+    end
+
     @testset "重模块冒烟：MAVEN_load 装入 MarsData" begin
         m = MarsData.load_module(:MAVEN_load)
         @test m isa Module
         @test m === MarsData.MAVEN_load
-        @test isdefined(m, :data_get_from_date)
+        @test isdefined(m, :load_MAVEN_data)
         @test isdefined(m, :load_kp)
         # 载体机制：模块在运行时载体中求值（绕开包模块的严格依赖校验）
         @test parentmodule(m) === MarsData._carrier()

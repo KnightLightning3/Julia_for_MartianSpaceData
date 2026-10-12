@@ -844,7 +844,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     local energy_t = energy_mass .+ sc_pot
     energy_t[energy_t .<= 0] .= 0.001
     
-    local v0 = MarsCommon.ion_energy_to_speed.(energy_t, m_int) ./ 1e3
+    local v0 = MarsCommon.ion_energy2v.(energy_t, m_int) ./ 1e3
     
     local APP_position = MarsCommon.instrument_sphere_to_cartesian.(v0, theta_mass, phi_mass)
     
@@ -1112,7 +1112,7 @@ end # module
 #     :O_f => 84,
 #     :H_f => 78,
 #     )
-# # datas_dict = MAVEN_load.data_get_from_date(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
+# # datas_dict = MAVEN_load.load_MAVEN_data(DateTime(2015,10,29); model_index=["STATIC_c6","KP_l3","STATIC_d1"])
 # # --- 执行验证 ---
 
 # time_range = [DateTime(2015,10,29,11,20),DateTime(2015,10,29,11,40)]

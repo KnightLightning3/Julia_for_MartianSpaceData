@@ -137,7 +137,7 @@ MarsData.index_path();   MarsData.data_model();      MarsData.load_index()
 ## Full reader entry point
 
 ```
-Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_load.load_MAVEN_data(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
 This program requires a specific file tree structure, which is shared with the download section.
@@ -182,7 +182,7 @@ Heavy modules (`MAVEN_load`, `MAVEN_STATIC`, `MAVEN_SWIA`, `MAVEN_SWEA`, `IGRF_c
 using MarsData
 
 MarsData.load_module(:MAVEN_load)        # ≡ include("MAVEN_data/MAVEN_load.jl") into MarsData
-MarsData.MAVEN_load.data_get_from_date(date, model_index=["MAG_ss1s_cdf"])
+MarsData.MAVEN_load.load_MAVEN_data(date, model_index=["MAG_ss1s_cdf"])
 
 MarsData.@load MAVEN_STATIC IGRF_calculate   # load and bind in the caller's scope
 MAVEN_STATIC.static_c6_mass_mean(sta)
@@ -194,7 +194,23 @@ MarsData.validate_registry()        # self-check (paths, module names, dependenc
 ```
 
 - **Whitelist convention**: `@load` always uses per-name imports (`using .Mod: whitelist…`) and **never** a whole-module `using`. So whether a name becomes bare is decided solely by `ModuleSpec.allow` in the registry, independent of the module's own `export` (Julia's per-name import works for non-exported names too).
-- **Current state**: all 18 `allow` entries are **deliberately empty**, so `@load MAVEN_load` only binds the module name and introduces no bare names (write `MAVEN_load.xxx`); bare names unlock as you fill in the whitelist.
+- **Open whitelists**:
+
+  | Module | Bare names granted |
+  | --- | --- |
+  | `MarsCommon` | `searchsortednearest`, `e_energy2v`, `ion_energy2v` |
+  | `MAVEN_load` | `load_cdf`, `load_MAVEN_data` |
+  | `IGRF_calculate` | `IGRF_pc`, `pc2sphere`, `sphere2pc` |
+
+  All other modules stay empty, so `@load` only binds the module name. Usage:
+
+  ```julia
+  MarsData.@load MarsCommon MAVEN_load IGRF_calculate
+  searchsortednearest(time_axis, t)                       # bare name available
+  Data = load_MAVEN_data(date; model_index=["MAG_ss1s_cdf"])
+  x, y, z = pc2sphere(r, theta, phi)
+  ```
+- **Automatic dependency loading**: `ModuleSpec.deps` are loaded recursively into the same carrier **before** the target module, satisfying parent-relative references (`common/MarsCommon.jl` starts with `using ..constants`, so `constants` must already exist in the carrier).
 - **Idempotent**: each module is included only once per process; repeated calls return the **same object**; `:preloaded` entries (`Paths`, `MAVEN_plot`) return the in-package instance.
 - **Carrier mechanism**: modules are actually evaluated in a runtime *carrier* module (`MarsData._carrier()`) and then bound into `MarsData` as a `const` alias. Reason: Julia enforces strict dependency checks for `using` inside **package** modules — including `MAVEN_load.jl` directly into `MarsData` fails with `Package MarsData does not have CommonDataFormat in its dependencies`. A runtime carrier has no pkgid, so its `using` resolves through the `LOAD_PATH` fallback (same as `Main`), which means **none** of CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit need to be declared in this package. Side effect: `parentmodule(MarsData.MAVEN_load)` is the carrier, not `MarsData`.
 

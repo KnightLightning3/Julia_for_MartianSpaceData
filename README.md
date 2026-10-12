@@ -162,7 +162,7 @@ MarsData.index_path();   MarsData.data_model();      MarsData.load_index()
 MAVEN 数据的统一读取入口为 `MAVEN_data/MAVEN_load.jl`：
 
 ```
-Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_load.load_MAVEN_data(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 
 此程序需要特定的读取文件树格式,
@@ -208,7 +208,7 @@ save("overview.png", fig)
 using MarsData
 
 MarsData.load_module(:MAVEN_load)        # ≡ include("MAVEN_data/MAVEN_load.jl")，落点 MarsData
-MarsData.MAVEN_load.data_get_from_date(date, model_index=["MAG_ss1s_cdf"])
+MarsData.MAVEN_load.load_MAVEN_data(date, model_index=["MAG_ss1s_cdf"])
 
 MarsData.@load MAVEN_STATIC IGRF_calculate   # 在调用者作用域装载并绑定模块名
 MAVEN_STATIC.static_c6_mass_mean(sta)         # 直接可用
@@ -220,7 +220,23 @@ MarsData.validate_registry()        # 注册表自检（路径、module 名、�
 ```
 
 - **白名单约定**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。因此「能否裸名调用」完全由注册表 `ModuleSpec.allow` 决定，与模块自身 `export` 无关（Julia 的逐名引入对未 export 的名字同样有效）。
-- **当前状态**：全部 18 条 `allow` **刻意留空**，即 `@load MAVEN_load` 只绑定模块名，不引入任何裸名（需写 `MAVEN_load.xxx`）；白名单待逐模块填写后，裸名才会放开。
+- **已开放的白名单**：
+
+  | 模块 | 放行的裸名 |
+  | --- | --- |
+  | `MarsCommon` | `searchsortednearest`、`e_energy2v`、`ion_energy2v` |
+  | `MAVEN_load` | `load_cdf`、`load_MAVEN_data` |
+  | `IGRF_calculate` | `IGRF_pc`、`pc2sphere`、`sphere2pc` |
+
+  其余模块留空，`@load` 只绑定模块名。用法：
+
+  ```julia
+  MarsData.@load MarsCommon MAVEN_load IGRF_calculate
+  searchsortednearest(time_axis, t)                       # 裸名可用
+  Data = load_MAVEN_data(date; model_index=["MAG_ss1s_cdf"])
+  x, y, z = pc2sphere(r, theta, phi)
+  ```
+- **依赖自动装载**：`ModuleSpec.deps` 在装载目标模块**之前**递归装入同一载体，以满足相对父模块引用（`common/MarsCommon.jl` 的 `using ..constants` 需要载体里先有 `constants`）。
 - **幂等**：同一进程内每个模块只 include 一次，重复调用返回**同一对象**；`:preloaded`（`Paths`、`MAVEN_plot`）直接返回包内实例。
 - **载体机制**：模块实际在运行时载体模块（`MarsData._carrier()`）中求值，再以 `const` 别名绑定进 `MarsData`。原因是 Julia 对**包模块**内的 `using` 做严格依赖校验——直接把 `MAVEN_load.jl` include 进 `MarsData` 会因 `using CommonDataFormat` 等不在本包 `[deps]` 中而报 `Package MarsData does not have CommonDataFormat in its dependencies`；运行时载体无 pkgid，其 `using` 走 `LOAD_PATH` 回退（与 `Main` 一致），因此**无需**把 CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit 等重依赖声明进本包。副作用：`parentmodule(MarsData.MAVEN_load)` 是载体而非 `MarsData`。
 

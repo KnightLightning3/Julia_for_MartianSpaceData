@@ -1,5 +1,46 @@
 # 更新日志
 
+## [2026-10-13] 裸名白名单落地 + 能量/读取函数重命名 + 依赖自动装载
+
+### 白名单（`src/modules.jl`）
+
+按规格开放三组裸名（`@load` 时引入调用者作用域）：
+
+| 模块 | 放行的裸名 |
+| --- | --- |
+| `MarsCommon` | `searchsortednearest`、`e_energy2v`、`ion_energy2v` |
+| `MAVEN_load` | `load_cdf`、`load_MAVEN_data` |
+| `IGRF_calculate` | `IGRF_pc`、`pc2sphere`、`sphere2pc` |
+
+其余 15 个模块白名单仍留空（`@load` 只绑定模块名）。
+
+### 重命名（全局，含代码与现行文档共 24 个文件）
+
+- `electron_energy_to_speed` → **`e_energy2v`**
+- `ion_energy_to_speed` → **`ion_energy2v`**
+- `data_get_from_date` → **`load_MAVEN_data`**：原别名提升为正名，**旧名彻底删除**（无别名保留）；`MAVEN_load.jl` 中 `load_MAVEN_data = data_get_from_date` 一行移除，docstring 中"别名"说明同步删除。
+
+涉及代码：`common/MarsCommon.jl`、`calculate/calculate_models.jl`、`MAVEN_data/MAVEN_load.jl`、`MAVEN_data/MAVEN_plot.jl`、`MAVEN_data/MAVEN_STATIC.jl`、`MAVEN_data/MAVEN_SWEA.jl`、`TW_data/TW_load.jl`、`models/Pickup_ion.jl`、`download_data/get_all_orbit.jl`、`example/MAVEN_plot_sample/*.jl`、`src/modules.jl`、`test/runtests.jl`。
+
+**未改名（按指令只改这两个正向函数）**：逆函数 `ion_speed_to_energy` 保持原名，因此当前是 `ion_energy2v` ↔ `ion_speed_to_energy` 的不对称命名；`TW_data/TW_MINPA.jl` 的 `MINPA_energy2v` 是另一个函数，未受影响。
+
+**历史快照未改**（保持记录真实）：`CHANGELOG.md` 既有条目、`doc/refactoring_diagnosis_report.md`、`doc/refactoring_audit_a42e14b.md` 中仍保留旧名。
+
+### 实现修正：依赖自动装载
+
+`ModuleSpec.deps` 现在会在装载目标模块**之前**递归装入同一载体。原因是实测发现 `common/MarsCommon.jl` 首行为 `using ..constants`（相对父模块），单独装载会报 `UndefVarError: constants not defined`；先装 `constants` 再装 `MarsCommon` 才成功。修复后 `MarsData.load_module(:MarsCommon)` 可独立使用，用户要求的 `MarsCommon` 白名单才真正可用。
+
+### 文档
+
+- `README.md` / `README_EN.md`：模块装载章节补充"已开放的白名单"表与用法示例、依赖自动装载说明。
+- `docs/src/api.md`：同步白名单表与依赖自动装载说明；`load_MAVEN_data` 名称更新。
+
+### 验证
+
+- `julia --project=. test/runtests.jl` → **82/82 通过**（新增「白名单内容与生效」15 项：白名单内容断言、`MarsCommon` 独立装载、裸名可用性、未列入者不可裸名、白名单函数可调用）。
+- 15 个改动 `.jl` 文件 `Meta.parseall` 语法检查全部通过。
+- 端到端回归：概览绘图示例仍正常出图 → `%TEMP%/maven_rename_regress/MAVEN_overview_20150719_0200-0400.png`。
+
 ## [2026-10-12] 模块装载管理器（阶段 A）：load_module / @load + 白名单 + 载体机制
 
 ### 新增

@@ -867,8 +867,8 @@ function VDF_2d_mask(ax,range_data;rot=rot,vsc=vsc,backgroundcolor=:gray80)
     end
     # v_range = [(v1,v2)...etc]
     # 制作一个基于v和角度变化范围的掩码函数用于程序的遮掩
-    local v1 = MarsCommon.ion_energy_to_speed.(range_data[:energy], range_data[:m_int]) ./ 1e3
-    local v2 = MarsCommon.ion_energy_to_speed.(range_data[:energy] .+ range_data[:denergy], range_data[:m_int]) ./ 1e3
+    local v1 = MarsCommon.ion_energy2v.(range_data[:energy], range_data[:m_int]) ./ 1e3
+    local v2 = MarsCommon.ion_energy2v.(range_data[:energy] .+ range_data[:denergy], range_data[:m_int]) ./ 1e3
 
     local v_max = maximum(v2)
     local v_range = [(x1,x2) for (x1, x2) in zip(v1,v2)]

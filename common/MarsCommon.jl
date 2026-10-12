@@ -9,9 +9,9 @@ export instrument_sphere_to_cartesian,
     position_altitude,
     position_local_time,
     position_latitude,
-    ion_energy_to_speed,
+    ion_energy2v,
     ion_speed_to_energy,
-    electron_energy_to_speed,
+    e_energy2v,
     electron_eflux_to_psd,
     ion_eflux_to_psd,
     ion_eflux_to_psd_approx,
@@ -172,7 +172,7 @@ function position_latitude(position)
 end
 
 """
-    ion_energy_to_speed(energy, mass_amu) -> Float64 / AbstractArray
+    ion_energy2v(energy, mass_amu) -> Float64 / AbstractArray
 
 将离子动能（自**静质量起算**）换算为**相对论速度**，单位 m/s。
 
@@ -190,7 +190,7 @@ end
 - 非相对论极限下该式退化为 `v ≈ √(2E/m)`，与 `sqrt(2*e*E/(mp*m))` 的经典写法在低能时一致，
   但在高能区该实现更精确。
 """
-function ion_energy_to_speed(energy, mass_amu)
+function ion_energy2v(energy, mass_amu)
     rest_energy_kev = constants.KEV_PER_AMU * mass_amu
     gamma = energy .* 1e-3 ./ rest_energy_kev .+ 1.0
     beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
@@ -200,7 +200,7 @@ end
 """
     ion_speed_to_energy(speed, mass_amu) -> Float64 / AbstractArray
 
-将离子**相对论速度**反算为动能，单位 eV。是 `ion_energy_to_speed` 的逆运算。
+将离子**相对论速度**反算为动能，单位 eV。是 `ion_energy2v` 的逆运算。
 
 # 功能与算法概述
 由 `β = v/c` 得 `γ = 1/√(1 − β²)`，再按 `E = (γ − 1)mc²` 反算动能。
@@ -223,7 +223,7 @@ function ion_speed_to_energy(speed, mass_amu)
 end
 
 """
-    electron_energy_to_speed(energy) -> Float64 / AbstractArray
+    e_energy2v(energy) -> Float64 / AbstractArray
 
 将电子动能（自**静质量起算**）换算为**相对论速度**，单位 m/s。
 
@@ -236,7 +236,7 @@ end
 # 返回值
 - 相对论电子速度（**m/s**），形状与 `energy` 一致。
 """
-function electron_energy_to_speed(energy)
+function e_energy2v(energy)
     gamma = energy .* 1e-3 ./ constants.E0_electron_keV .+ 1.0
     beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
     return beta .* constants.c

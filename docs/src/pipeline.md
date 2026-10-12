@@ -24,7 +24,7 @@
 [5] 派生构建           Build_data：KP → KP/cdf/、MAG → MAG/l3/ ─► 回到 [3] 刷新索引
         │
         ▼
-[6] 读取与计算         Julia：MAVEN_load.data_get_from_date / models / 模型计算
+[6] 读取与计算         Julia：MAVEN_load.load_MAVEN_data / models / 模型计算
         │
         ▼
 [7] 测试与文档         python tests/… 、julia --project=docs docs/make.jl
@@ -178,7 +178,7 @@ python -m martian_pipeline scan --index-output E:/tmp/index.json   # 指定索�
 
 ```julia
 include("path/to/MAVEN_data/MAVEN_load.jl"); import .MAVEN_load
-Data_Dict = MAVEN_load.data_get_from_date(["20141220"], model_index = ["MAG_pc1s", "LPW_wave"])
+Data_Dict = MAVEN_load.load_MAVEN_data(["20141220"], model_index = ["MAG_pc1s", "LPW_wave"])
 mag_data  = Data_Dict["MAG_pc1s"][:B]
 ```
 

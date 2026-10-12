@@ -277,13 +277,13 @@ if !(current_date_str == date_str)
             include(pkg_path*"MAVEN_data/MAVEN_SWIA.jl");import .MAVEN_SWIA;
             include(pkg_path*"Magnetic_Model/IGRF_calculate.jl");import .IGRF_calculate;
         end
-        global swi_mom_data = MAVEN_load.data_get_from_date(time_event, model_index=["SWIA_mom"], show_filename=false)["SWIA_mom"]
+        global swi_mom_data = MAVEN_load.load_MAVEN_data(time_event, model_index=["SWIA_mom"], show_filename=false)["SWIA_mom"]
 
         if !swi_mom_data[:data_load_flag]
             error("MOM data load failed")
         end
 
-        KP_data = MAVEN_load.data_get_from_date(time_event, model_index=["KP_l3"], show_filename=false)["KP_l3"]
+        KP_data = MAVEN_load.load_MAVEN_data(time_event, model_index=["KP_l3"], show_filename=false)["KP_l3"]
 
         global is_in_sw_bool_all_day = false# 一整天的数据存在出太阳风的部分
         @inbounds for i in eachindex(KP_data[:time])
@@ -305,7 +305,7 @@ if !(current_date_str == date_str)
             "SWIA_coarse_svy_3d",
             "SWIA_quat",
         ]
-        @time MAVEN_data = MAVEN_load.data_get_from_date(time_event, model_index=model_index, show_filename=false)
+        @time MAVEN_data = MAVEN_load.load_MAVEN_data(time_event, model_index=model_index, show_filename=false)
 
         MAVEN_data["KP_l3"] = KP_data
         println("读取 $time_event 数据完成")

@@ -25,7 +25,7 @@ MAVEN_load.change_kp_read_data(Dict(
 - 依赖模块 `MAVEN_load` 已载入且已配置 `kp_dict`。
 """
 function get_data(date)
-    datas_dict = MAVEN_load.data_get_from_date(date, model_index = ["KP"])
+    datas_dict = MAVEN_load.load_MAVEN_data(date, model_index = ["KP"])
     return datas_dict["KP"]
 end
 """

@@ -60,7 +60,17 @@
 | `module_info(name)` | 路径 / 依赖 / 白名单 / 装载状态 |
 | `validate_registry()` | 注册表自检（路径存在、`module` 名一致、依赖无环） |
 
-**白名单机制**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。因此"能否裸名调用"完全由注册表 `ModuleSpec.allow` 决定，与模块自身 `export` 无关（Julia 的逐名引入对未 export 的名字同样有效）。当前 18 条 `allow` **刻意留空**，即只绑定模块名、不引入任何裸名。
+**白名单机制**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。因此"能否裸名调用"完全由注册表 `ModuleSpec.allow` 决定，与模块自身 `export` 无关（Julia 的逐名引入对未 export 的名字同样有效）。当前已开放：
+
+| 模块 | 放行的裸名 |
+| --- | --- |
+| `MarsCommon` | `searchsortednearest`、`e_energy2v`、`ion_energy2v` |
+| `MAVEN_load` | `load_cdf`、`load_MAVEN_data` |
+| `IGRF_calculate` | `IGRF_pc`、`pc2sphere`、`sphere2pc` |
+
+其余模块白名单留空（`@load` 只绑定模块名）。
+
+**依赖自动装载**：`ModuleSpec.deps` 会在装载目标模块**之前**递归装入同一载体。这满足相对父模块引用——`common/MarsCommon.jl` 首行是 `using ..constants`，因此 `constants` 必须先存在于载体中，否则单独装载 `MarsCommon` 会报 `UndefVarError: constants`。
 
 **载体机制**：模块实际在运行时载体模块（`MarsData._carrier()`）中求值，再以 `const` 别名绑定进目标命名空间。原因是 Julia 对**包模块**内的 `using` 做严格依赖校验——直接把 `MAVEN_load.jl` include 进 `MarsData` 会因 `using CommonDataFormat` 等不在本包 `[deps]` 中而失败；而运行时载体没有 pkgid，其 `using` 走 `LOAD_PATH` 回退，因此无需把 CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit 等重依赖声明进本包。副作用：`parentmodule(MarsData.MAVEN_load)` 是载体而非 `MarsData`；全进程共享同一模块实例（不重复编译）。
 
@@ -71,7 +81,7 @@
 - `show_load_models`：列出当前注册的数据产品读取器。
 - `file_list`：返回指定数据产品的本地文件路径列表。
 - `find_file_of_data`：按日期查找指定数据产品文件。
-- `data_get_from_date`：按日期和产品列表统一调度读取，并记录各产品加载状态。
+- `load_MAVEN_data`：按日期和产品列表统一调度读取，并记录各产品加载状态。
 - `get_orbits`：读取轨道号对应的时间范围。
 - `change_kp_read_data`：修改 KP 文件中要读取的变量编号映射。
 - `load_cdf`：把 CDF 变量读入 Julia 字典并整理数据维度；内部 `clean_dimensions` 统一清理维度。

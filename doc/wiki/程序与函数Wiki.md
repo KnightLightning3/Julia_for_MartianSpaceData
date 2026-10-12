@@ -29,7 +29,7 @@
 - `show_load_models`：列出当前注册的数据产品读取器。
 - `file_list`：返回指定数据产品的本地文件路径列表。
 - `find_file_of_data`：按日期查找指定数据产品文件。
-- `data_get_from_date`：按日期和产品列表统一调度读取，并记录各产品加载状态。
+- `load_MAVEN_data`：按日期和产品列表统一调度读取，并记录各产品加载状态。
 - `get_orbits`：读取轨道号对应的时间范围。
 - `change_kp_read_data`：修改 KP 文件中要读取的变量编号映射。
 - `load_cdf`：把 CDF 变量读入 Julia 字典并整理数据维度；内部 `clean_dimensions` 统一清理维度。

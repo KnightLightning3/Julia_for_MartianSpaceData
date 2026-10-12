@@ -117,10 +117,10 @@ end
     B1=B*1e-9  # 输入nT，转T
     if nQ == -1
         cc = constants.me /(B1*constants.e)
-        v = MarsCommon.electron_energy_to_speed(ek)
+        v = MarsCommon.e_energy2v(ek)
     else
         cc = constants.mp*nM/(B1*constants.e*nQ)
-        v = MarsCommon.ion_energy_to_speed(ek, nM)
+        v = MarsCommon.ion_energy2v(ek, nM)
     end
     # γ=(energy * 1e-3 /E0 + 1)
     # β=sqrt(1.0 - 1.0 / γ^2)

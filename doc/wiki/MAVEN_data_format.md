@@ -7,7 +7,7 @@
 STA操作example
 ```julia
 # 取得数据
-sta_data  = MAVEN_load.data_get_from_date(DateTime(2015,2,9), model_index = ["STATIC_cf"])["STATIC_cf"];
+sta_data  = MAVEN_load.load_MAVEN_data(DateTime(2015,2,9), model_index = ["STATIC_cf"])["STATIC_cf"];
 # 取得给定时间的切片
 sta_slip_data = MAVEN_load.static_slip(sta_data,time_ind);
 # 旋转坐标到MSO坐标系

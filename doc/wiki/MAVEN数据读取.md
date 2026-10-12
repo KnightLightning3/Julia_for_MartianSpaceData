@@ -14,7 +14,7 @@ include("$path/MAVEN_load.jl")
 import .MAVEN_load
 ```
 
-函数`MAVEN_load.data_get_from_date(date::DateTime; model_index=[], show_filename=false)`
+函数`MAVEN_load.load_MAVEN_data(date::DateTime; model_index=[], show_filename=false)`
 
 传入参数
 - `date{DateTime}`读取的日期，一次只能读取一天的数据
@@ -32,7 +32,7 @@ import .MAVEN_load
 
 如，
 ```Julia
-Data_Dict = MAVEN_load.data_get_from_date(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
+Data_Dict = MAVEN_load.load_MAVEN_data(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
 ```
 返回得到的磁场数据为：
 ```Julia

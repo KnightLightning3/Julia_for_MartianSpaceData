@@ -1,5 +1,5 @@
 # 读取和计算天问一号数据
-# 使用data_get_from_date函数做全局读取
+# 使用load_MAVEN_data函数做全局读取
 
 module TW_load
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
