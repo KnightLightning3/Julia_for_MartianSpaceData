@@ -571,7 +571,7 @@ mm = 12
 dd = 20
 time_range = [DateTime(yyyy, mm, dd, 22, 0), DateTime(yyyy, mm, dd, 23,59)]
 save_file_name = "/example/MAVEN_plot_sample/MAVEN_data_" * Dates.format(DateTime(yyyy, mm, dd), "yyyymmdd") * "_MAVEN_data.jld2"
-if !isfile(save_file_name)
+if isfile(save_file_name)
     data_dict = load(save_file_name)["data"]
     println("Read Done")
 else

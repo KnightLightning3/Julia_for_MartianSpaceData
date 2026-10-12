@@ -113,11 +113,10 @@ def compress_single_cdf(src_file, gzip_level=5):
             
     except Exception as e:
         print(f"\n\033[1;31m错误\033[0m: 压缩文件失败 {os.path.basename(src_file)}: {e}")
-        raise e
-        # 清理可能生成的残余临时文件
+        # 清理可能生成的残余临时文件（先清理再抛出，避免留下半成品）
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
-        return False
+        raise e
 def batch_compress_cdf_files(root_directory, min_size_mb=100, gzip_level_threshold=5):
     """遍历目录并批量压缩满足大小和压缩等级条件的 CDF 文件。"""
     """
