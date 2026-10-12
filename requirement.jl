@@ -30,7 +30,6 @@ Pkg_list = [
     "OffsetArrays"
     "Optim"
     "ProgressMeter"
-    "Quaternions"
     "Rotations"
     "IniFile"
     "DataInterpolations"

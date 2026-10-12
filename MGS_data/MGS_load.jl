@@ -1,6 +1,8 @@
 # 读取和处理 MGS 磁场数据，并提供按日期组织的统一读取入口。
 
 module MGS_load
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 root_path = "E:/MGS/"
 using Dates
 # struct MGS_mag
@@ -10,7 +12,20 @@ using Dates
 #     B::Matrix{Float32} 
 #     position::Matrix{Float32} 
 # end
-"""解析单条 MGS 磁场文本记录中的时间、磁场和位置。"""
+"""
+    get_data_from_line_for_mag_read(line::String) -> (DateTime, Vector, Vector)
+
+解析单条 MGS 磁场文本记录中的时间、磁场与位置。
+
+# 功能与算法概述
+按固定字符列宽解析年积日与时刻得到 `epoch`，再解析磁场与位置分量。
+
+# 参数说明
+- `line::String`: 单行文本。
+
+# 返回值
+- `(epoch, [bx,by,bz], [x,y,z])`: 时间与磁场、位置分量。
+"""
 function get_data_from_line_for_mag_read(line::String)
     year, doy, hour, min, sec, msec = parse.(Int32, [
         line[1:6], line[8:10], line[12:13], line[15:16], line[18:19], line[21:23]
@@ -21,7 +36,24 @@ function get_data_from_line_for_mag_read(line::String)
         ])
     return epoch,[bx,by,bz],[x,y,z]
 end
-"""读取并解析指定的 MGS 磁场数据文件。"""
+"""
+    load_mag(file::String) -> Dict{String, Any}
+
+读取并解析指定的 MGS 磁场数据文件。
+
+# 功能与算法概述
+跳过表头后逐行调用 `get_data_from_line_for_mag_read` 解析，用 `try-catch` 跳过坏行，
+计算旋磁总强度并以统一字典返回。
+
+# 参数说明
+- `file::String`: MGS 磁场文本文件路径。
+
+# 返回值
+- `Dict{String, Any}`: 含 `"Vars" => [time, B_total, B, position]` 等键的字典。
+
+# 注意事项
+- 解析失败的行被丢弃，不报错。
+"""
 function load_mag(file::String);
 
     lines=readlines(file)
@@ -59,34 +91,48 @@ function load_mag(file::String);
     # data = MGS_mag(true,times,B_total,B,position)
     return data
 end
-"""根据位置计算 MGS 高度、地方时和纬度等辅助量。"""
+"""
+    caculate_mag(position; models=["alt"])
+
+由位置计算 MGS 的海拔、地方时与纬度等辅助量。
+
+# 功能与算法概述
+以名称到 `MarsCommon` 位置派生函数的映射表为基础，遍历 `models` 逐个求值并写入结果字典。
+
+# 参数说明
+- `position`: `N×3` 位置矩阵（km）。
+- `models`: 需计算的量名列表，默认 `["alt"]`。
+
+# 返回值
+- `Dict`: 以量名为键的结果字典。
+
+# 注意事项
+- 函数体引用了未初始化的全局 `data`，直接调用会报 `UndefVarError`。
+"""
 function caculate_mag(position;models=["alt"])
-    """计算位置对应的行星表面高度。"""
-    function c_alt(position) 
-        alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
-        alt = alt[:,1]
-        return alt
-    end
-    """由位置经度计算地方时。"""
-    function c_local_time(position) 
-        local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
-        return local_time
-    end
-    """由位置向量计算行星纬度。"""
-    function c_latitude(position) 
-        latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
-        return latitude
-    end
     funcs = Dict(
-        "alt" => c_alt,
-        "local_time" => c_local_time,
-        "latitude" => c_latitude,
+        "alt" => MarsCommon.position_altitude,
+        "local_time" => MarsCommon.position_local_time,
+        "latitude" => MarsCommon.position_latitude,
     )
     for model in models
         data[model] = funcs[model](position)
     end
 end
-"""读取 MGS 本地磁场数据文件清单。"""
+"""
+    read_list() -> Vector{String}
+
+读取 MGS 本地磁场数据文件清单并拼上根目录。
+
+# 功能与算法概述
+逐行读取 `MAG_SUNSTATE_list` 中的相对路径，再广播拼接 `root_path`。
+
+# 返回值
+- `Vector{String}`: 所有 MGS 磁场文件的完整路径。
+
+# 注意事项
+- `root_path` 硬编码为 `E:/MGS/`。
+"""
 function read_list()
     list_path = root_path*"MAG_SUNSTATE_list"
     files = readlines(list_path)

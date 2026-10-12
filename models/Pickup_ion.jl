@@ -2,16 +2,64 @@
 
 include("../common/head.jl")
 include("../common/function_coordinate.jl")
+if !isdefined(@__MODULE__, :constants)
+    include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+end
+if !isdefined(@__MODULE__, :MarsCommon)
+    include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+end
 
 
 # E in keV, σ in cm^2，lindsayChargeTransferCross2005 电荷交换电离率
 σex(E) = (4.15-0.531*log(E))^2*(1-exp(-67.3/E))^4.5 * 1e-16
 
+"""
+    func_E_range(E, dE) -> (Float64, Float64)
+
+由中心能量 `E` 与能量分辨率 `dE` 计算**对数等分**的能量区间上下限。
+
+# 功能与算法概述
+解对数等分条件 `E_high − E_low = dE` 且 `E_low·k = E`、`E·k = E_high`，得等比因子 `k = R/2 + √((R/2)²+1)`（`R = dE/E`）。
+
+# 参数说明
+- `E`: 能量通道中心值（与 `dE` 同单位，通常 eV）。
+- `dE`: 该通道的能量宽度（半高全宽近似）。
+
+# 返回值
+- `(E_low, E_high)`: 起始元组，分别为区间下、上限（升序）。
+
+# 备注
+- 相比线性取 `(E−dE/2, E+dE/2)`，对数等分能保证低能端不出现负值。
+- 若 `E = 0` 则 `R` 发散，调用方需保证能量为正。
+"""
 function func_E_range(E,dE) # 对数能量分割法
         local R = dE/E
         local k_sqrt = R/2 + sqrt((R/2)^2+1)
         return (E/k_sqrt,E*k_sqrt)
 end
+"""
+    get_3d_slip_data_from_ins_FOR_PICKUP(dat, time_i; mode="swi", mass_range=[0,1.3], m_int=1) -> NamedTuple
+
+从仪器（SWI / STATIC / MINPA）数据中提取**单个时刻的三维速度切片**，并统一为标准化的
+拾取离子分析输入格式。
+
+# 功能与算法概述
+按 `mode` 将 SWI / STATIC / MINPA 三种仪器的原始切片统一为同一格式，计算各网格单元的速度空间体积元与能量/角度区间（供区间查找加速）。
+
+# 参数说明
+- `dat`: 仪器数据字典（需含 `:df`/`:energy`/`:theta`/`:phi`/`:dtheta`/`:dphi` 等键，随 `mode` 而异）。
+- `time_i`: 时间索引（时刻下标）。
+- `mode`: 仪器模式，可选 `"swi"`、`"sta"`、`"minpa"`。
+- `mass_range`: 质量数筛选区间（仅 `"sta"` 模式使用）。
+- `m_int`: 目标离子的荷质比参数（用于质量通道归位与 `d_V` 归一化）。
+
+# 返回值
+- `NamedTuple`: `(quat_mso, df_data, energy, d_V, bins_sc, energy_ranges, theta_ranges, phi_ranges, mode, quality_flag)`。
+
+# 注意事项
+- 三个分支依赖**不同的外部变量**：`"minpa"` 需要全局 `TW_minpa_data`，否则会报 `UndefVarError`。
+- 本文件为脚本级代码（依赖外部预定义的 `MAVEN_STATIC`、`time_event`、`instrument_mode` 等）。
+"""
 function get_3d_slip_data_from_ins_FOR_PICKUP(dat,time_i;mode = "swi",mass_range = [0,1.3],m_int=1) # 读取仪器切片数据
     # local time0_local = dat[:epoch][time_i]
     if mode == "swi"
@@ -112,6 +160,32 @@ function get_3d_slip_data_from_ins_FOR_PICKUP(dat,time_i;mode = "swi",mass_range
         quality_flag = quality_flag
     )
 end
+"""
+    get_pickup_point(pick_points_sphere, energy_range_data, theta_range_data, phi_range_data) -> Vector{Tuple}
+
+把三维速度空间中需保留的**采样点**映射回仪器网格索引，返回可用于快速查找的索引元组列表。
+
+# 功能与算法概述
+对采样点的能量/极角/方位角逐维在区间表中查找命中的网格索引（命中即 `break`），返回通过全部三维筛选的 `(iE, iθ, iφ, E)` 元组列表。
+
+# 参数说明
+- `pick_points_sphere`: 待定位的球坐标采样点集合，每个元素为 `(E, θ, φ)`（`E` 为模长）。
+- `energy_range_data`: 能量维度的区间列表（一维）。
+- `theta_range_data`: 极角维度的区间**矩阵**（行对应极角、列对应能量通道）。
+- `phi_range_data`: 方位角维度的区间列表（一维）。
+
+# 返回值
+- `Vector{Tuple}`: 每个元素为 `(energy_index, theta_index, phi_index, energy_value)`；
+  仅包含三个维度均命中区间的采样点。
+
+# 性能
+- 三重循环均带 `@inbounds` 且找到区间即 `break`，总体复杂度约为 `O(Npoints × Nchannel)`；
+  相比对全网格做广播比较，对稀疏拾取点集显著更快。
+
+# 注意事项
+- 落入区间之外的点会被**静默丢弃**（对应索引为 0 → 被 `range_bool` 过滤）。
+- 区间列表必须严格升序且互不重叠，否则先命中的区间优先。
+"""
 function get_pickup_point(pick_points_sphere,energy_range_data,theta_range_data,phi_range_data) # 较高效率取得拾取分布
     
     local energy_pick_points = [p[1] for p in pick_points_sphere]
@@ -214,7 +288,7 @@ if !(current_date_str == date_str)
         global is_in_sw_bool_all_day = false# 一整天的数据存在出太阳风的部分
         @inbounds for i in eachindex(KP_data[:time])
             local P_mso = (KP_data[:vars][:var_190][i],KP_data[:vars][:var_191][i],KP_data[:vars][:var_192][i])
-            local is_in_sw_bool = bowshock_zero(P_mso[1]/3393.5) < sqrt(P_mso[3]^2 + P_mso[2]^2)/3393.5
+            local is_in_sw_bool = bowshock_zero(P_mso[1] / constants.R_Mars) < sqrt(P_mso[3]^2 + P_mso[2]^2) / constants.R_Mars
             if is_in_sw_bool
                 global is_in_sw_bool_all_day = true
                 break
@@ -245,7 +319,7 @@ if !(current_date_str == date_str)
         global d1_data = MAVEN_data["STATIC_d1"] |> MAVEN_STATIC.STA_count2df_all
         MAVEN_data["STATIC_d1"] = d1_data
         global swi3d_data = MAVEN_SWIA.get_3dc!(MAVEN_data["SWIA_coarse_svy_3d"]; quat_data = MAVEN_data["SWIA_quat"])
-        global swi3d_data = MAVEN_SWIA.eflux2df!(swi3d_data)
+        global swi3d_data = MarsCommon.eflux_to_df!(swi3d_data)
         MAVEN_data["SWIA_coarse_svy_3d"] = swi3d_data
         # 磁场平滑化
         time_b_ss,B_ss,P_ss = MAVEN_data["MAG_ss1s_cdf"][:epoch],MAVEN_data["MAG_ss1s_cdf"][:B],MAVEN_data["MAG_ss1s_cdf"][:position]
@@ -345,11 +419,11 @@ points_data_df = DataFrame(  # 数据集
     local x1 ,y1 = -v_n*cosd(bv_angle),v_n*sind(bv_angle);
     local pick_points_instrument = [SVector{3}(rot_bv'*[x1,y1*cos(i),y1*sin(i)].+V_vec_sw) for i in pickup_circle]; # 仪器坐标系下的拾取速度分布圆环
 
-    local v0_sphere_pick_points = STATIC_xyz2sphere.(pick_points_instrument);
+    local v0_sphere_pick_points = [MarsCommon.instrument_cartesian_to_sphere(p...) for p in pick_points_instrument]
     local v0_pick_points = [p[1] for p in v0_sphere_pick_points] #球坐标的第一维度为模长
-    local energy_pick_points = ion_v2energy.(v0_pick_points.*1e3;m_int = m_int)
+    local energy_pick_points = MarsCommon.ion_speed_to_energy.(v0_pick_points .* 1e3, m_int)
     local pick_points_sphere = [SVector{3}(r,pp[2],pp[3]) for (r,pp) in zip(energy_pick_points,v0_sphere_pick_points)] # 仪器球坐标系Energy-theta-phi下的拾取分布
-    local energy_pick_points_O = ion_v2energy.(v0_pick_points.*1e3;m_int = 16) # 8倍太阳风能量
+    local energy_pick_points_O = MarsCommon.ion_speed_to_energy.(v0_pick_points .* 1e3, 16) # 8倍太阳风能量
     local pick_points_sphere_O = [SVector{3}(r,pp[2],pp[3]) for (r,pp) in zip(energy_pick_points_O,v0_sphere_pick_points)] # 仪器球坐标系Energy-theta-phi下的拾取分布
 
     # 由于做出来的STA数据就是16*4*32的, 所以可以和swi共享同一个算法

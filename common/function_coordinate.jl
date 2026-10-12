@@ -8,34 +8,40 @@ using Rotations
 """
     slice2d_cal_rot(v1, v2) -> RotMatrix{3}
 
-    根据给定的两个向量 `v1` 和 `v2`，计算构建 **2D 切片局部坐标系** 的 3D 旋转矩阵。
+根据给定的两个向量 `v1`、`v2`，通过 Gram-Schmidt 正交化构造 **2D 切片局部坐标系**的 3D 旋转矩阵。
 
-    # 几何原理
-    该函数通过 Gram-Schmidt 正交化构建一个右手正交坐标系 \$(\\mathbf{a}, \\mathbf{b}, \\mathbf{c})\$：
-    1. **主轴 \$a\$ (局部 X 轴)**：沿 `v1` 方向的单位向量。
-    2. **法轴 \$c\$ (局部 Z 轴)**：垂直于 `v1` 与 `v2` 所确定的切片平面的法向量 (\$\\mathbf{a} \\times \\mathbf{v2}\$)。
-    3. **辅轴 \$b\$ (局部 Y 轴)**：切片平面内垂直于 \$a\$ 的单位向量 (\$\\mathbf{c} \\times \\mathbf{a}\$)。
+# 功能与算法概述
+用 Gram-Schmidt 正交化构建切片局部坐标系（X 轴沿 `v1`，Z 轴为 `v1 × v2` 的法向，Y 轴由 `c × a` 补齐），并以 `SMatrix` 列主序零分配地组装为 `RotMatrix`。
 
-    # 返回值
-- 返回 `RotMatrix{3}` 旋转矩阵，可直接用于将全局坐标映射到该切片坐标系（使得切片平面落在局部 \$XY\$ 平面上）。
+# 参数说明
+- `v1`: 切片平面的第一参考向量（决定局部 X 轴方向），任意长度为 3 的 `AbstractVector`。
+- `v2`: 切片平面的第二参考向量，只需与 `v1` 不共线（无需归一化）。
+
+# 返回值
+- `RotMatrix{3}`: 旋转矩阵，可将全局坐标映射到该切片坐标系，使切片平面落在局部 `XY` 平面上；
+  可与 `QuatRotation`、普通 3×3 矩阵互换使用。
+
+# 注意事项
+- `v1` 与 `v2` 共线时会抛出异常，调用方需保证两向量能够张成一个平面。
+- 返回矩阵为**正交归一**矩阵，可直接参与 `rotation * vector` 运算。
 """
 function slice2d_cal_rot(v1, v2)
     # 1. 局部 X 轴：v1 归一化
     a = normalize(v1)
-    
+
     # 2. 局部 Z 轴（法向量）：直接计算 a × v2，节省一次 v2 的 normalize
     cross_av = cross(a, v2)
     norm_c = norm(cross_av)
-    
+
     # 防崩溃保护：如果 v1 与 v2 平行，无法确定唯一切片平面
     if norm_c < 1e-8
         error("v1 与 v2 共线，无法唯一定义切片平面的法向量！")
     end
     c = cross_av / norm_c
-    
+
     # 3. 局部 Y 轴：c × a 必然是单位向量，无需再次 normalize
     b = cross(c, a)
-    
+
     # 4. 零内存分配构造 SMatrix（注意 SMatrix 构造函数按列主序填充）
     # 目标矩阵为 [a b c]'，即第一行为 a，第二行为 b，第三行为 c
     R_static = SMatrix{3,3,Float64,9}(
@@ -43,7 +49,7 @@ function slice2d_cal_rot(v1, v2)
         a[2], b[2], c[2],  # 第二列
         a[3], b[3], c[3]   # 第三列
     )
-    
+
     return RotMatrix(R_static)
 end
 # using LinearAlgebra
@@ -72,20 +78,27 @@ end
 # v_a, v_b = generate_non_collinear_vectors()
 # slice2d_cal_rot(v_a, v_b)
 
-function rotate_vector_with_Matrix(in_data,Rotation_Matrix) # inv
-    out_data = Rotation_Matrix * in_data
-    return out_data
-end
-# function rotate_vector_with_quat(u::AbstractVector, q::QuaternionF64)
-#     local q_u = QuaternionF64(0, u[1], u[2], u[3])
-#     local q_v = q * q_u * conj(q)
-#     return [imag_part(q_v)...]
-# end
-# function rotate_vector_with_quat_reverse(u::AbstractVector, q::QuaternionF64)
-#     local q_u = QuaternionF64(0, u[1], u[2], u[3])
-#     local q_v = conj(q) * q_u * q
-#     return [imag_part(q_v)...]
-# end
+# 四元数向量旋转已统一由 calculate_models.Quaternion_Rot / Quaternion_Rot_reverse 提供
+# （基于 Rotations.QuatRotation，替代原先的 Quaternions 实现）。
+
+"""
+    pa_xyz2sphere(p::SVector{3,T}) -> SVector{3}
+
+将**笛卡尔向量**转换为**俯仰角球坐标** `(r, theta, phi)`（角度制）。
+
+# 功能与算法概述
+`theta` 为与 +X 轴的夹角、`phi` 为 Y-Z 平面内自 +Y 向 +Z 的角度；`r = 0` 时返回零向量以避免 `0/0`。
+
+# 参数说明
+- `p::SVector{3,T}`: 待转换的笛卡尔向量 `(x, y, z)`，`T <: Real`。
+
+# 返回值
+- `SVector{3}`: `(r, theta, phi)`，角度为**角度制**。
+- `SVector{3,T}`: 当 `r == 0` 时返回 `(0, 0, 0)`。
+
+# 备注
+- 与 `MINPA_xyz2sphere` 的差异在于**角度定义与量程约定**完全不同，两者不可混用。
+"""
 function pa_xyz2sphere(p::SVector{3,T}) where T <: Real
     local r = norm(p)
     if iszero(r)
@@ -97,7 +110,25 @@ function pa_xyz2sphere(p::SVector{3,T}) where T <: Real
         return SVector{3}(r, theta, phi)
     end
 end
-"""将俯仰角球坐标转换为笛卡尔向量。"""
+
+"""
+    pa_sphere2xyz(p::SVector{3,T}) -> SVector{3}
+
+将**俯仰角球坐标** `(r, theta, phi)` 转换为笛卡尔向量，是 `pa_xyz2sphere` 的逆变换。
+
+# 功能与算法概述
+`pa_xyz2sphere` 的逆变换：按俯仰角定义展开为 `x`、`R_yz = r·sind(θ)` 与 Y-Z 平面投影；`r = 0` 时返回零向量。
+
+# 参数说明
+- `p::SVector{3,T}`: `(r, theta, phi)`，其中 `theta ∈ [0°, 180°]`，`phi` 为 Y-Z 平面内角度。
+
+# 返回值
+- `SVector{3}`: 笛卡尔向量 `(x, y, z)`。
+- `SVector{3,T}`: 当 `r == 0` 时返回 `(0, 0, 0)`。
+
+# 备注
+- 因 `sind(theta) ≥ 0`（`theta` 限定在 `[0°, 180°]`），`x` 的符号由 `cosd(theta)` 唯一决定。
+"""
 function pa_sphere2xyz(p::SVector{3,T}) where T <: Real
     local r, theta_deg, phi_deg = p[1], p[2], p[3]
     if iszero(r)
@@ -113,23 +144,29 @@ function pa_sphere2xyz(p::SVector{3,T}) where T <: Real
         return SVector{3}(x,y,z)
     end
 end
-"""将 STATIC 笛卡尔向量转换为仪器球坐标。"""
-function STATIC_xyz2sphere(p::SVector{3,T}) where T <: Real
-    local x,y,z = p[1],p[2],p[3]
-    local r=sqrt(x^2 + y^2 + z^2)
-    local theta = 90.0 - acosd(z/r)
-    local phi = atand(y, x)
-    return SVector{3}(r, theta, phi)
-end
-"""将 STATIC 仪器球坐标转换为笛卡尔向量。"""
-function STATIC_sphere2xyz(p::SVector{3,T}) where T <: Real
-    local r,θ,ϕ = p[1],p[2],p[3]
-    local ct = cosd(θ)
-    local x = r * ct *  cosd(ϕ)
-    local y = r * ct *  sind(ϕ)
-    local z = r * sind(θ)
-    return SVector{3}(x,y,z)
-end;
+
+"""
+    MINPA_sphere2xyz(p::SVector{3,T}) -> SVector{3}
+
+将**天问一号 MINPA 仪器坐标系**的球坐标 `(r, θ, ϕ)` 转换为笛卡尔向量，并完成
+"视场方向 → 粒子速度方向"的符号反转。
+
+# 功能与算法概述
+MINPA 原始数据给出的是**视场指向**，故先做 `theta = 90° − θ`、`phi = 360° − ϕ` 镜像，展开后再整体反号，把视线方向还原为粒子速度方向；输入输出均为 `SVector{3}`，支持广播批处理。
+
+# 参数说明
+- `p::SVector{3,T}`: `(r, θ, ϕ)`，其中 `θ` 为 MINPA 定义的极角、`ϕ` 为方位角（**角度制**）。
+
+# 返回值
+- `SVector{3}`: 已反转符号的笛卡尔速度方向分量 `(x, y, z)`。
+
+# 参考
+- MINPA 官方说明：<https://www.swl.ac.cn/minpa/#/home/overview>
+
+# 备注
+- 本函数（基于 `SVector` 入参、内置反号）与 `TW_data/TW_MINPA.MINPA_sphere2xyz`
+  （基于三个标量入参、弧度制、需调用方自行 `*= -1`）**数学等价但接口不同**。
+"""
 function MINPA_sphere2xyz(p::SVector{3,T}) where T <: Real # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
     local r,θ,ϕ = p
     local theta = 90.0 - θ #由于数据是视野方向，所以需要反向
@@ -148,6 +185,29 @@ function MINPA_sphere2xyz(p::SVector{3,T}) where T <: Real # 转换为仪器坐�
 
     return SVector{3}(-x,-y,-z) #反转之匹配速度
 end
+
+"""
+    MINPA_xyz2sphere(p::SVector{3,T}) -> SVector{3}
+
+将笛卡尔向量反算为**天问一号 MINPA 仪器坐标系**球坐标 `(r, θ, ϕ)`（角度制），
+是 `MINPA_sphere2xyz` 的逆变换。
+
+# 功能与算法概述
+`MINPA_sphere2xyz` 的逆变换：先整体反号，再由投影正弦 `st` 与 `ct` 用 `atand` 解出极角/方位角，最后反演回视场方向约定。
+
+# 参数说明
+- `p::SVector{3,T}`: 笛卡尔向量 `(x, y, z)`。
+
+# 返回值
+- `SVector{3}`: `(r, θ, ϕ)`，角度为**角度制**，`ϕ` 已归一化到 `[0°, 360°)`。
+
+# 参考
+- MINPA 官方说明：<https://www.swl.ac.cn/minpa/#/home/overview>
+
+# 注意事项
+- 当 `r == 0` 或 `r_st == 0`（向量位于 X 轴上）时将出现除零，得到 `NaN`；调用方应自行过滤退化输入。
+- 与 `MINPA_sphere2xyz` 互为正逆变换，可用 `norm(sphere2xyz(xyz2sphere(p)) .- p)` 做自洽性验证。
+"""
 function MINPA_xyz2sphere(p::SVector{3,T}) where T <: Real # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
     local p1 = -p # 反转之一
     local r = norm(p1)
@@ -163,9 +223,29 @@ function MINPA_xyz2sphere(p::SVector{3,T}) where T <: Real # 转换为仪器坐�
     local ϕ = (360.0 - ϕ) % 360
 
     return SVector{3}(r,θ,ϕ)
-    
+
 end
-"""求指定位置上的弓形激波边界值。"""
+
+"""
+    bowshock_zero(xshock) -> Float64
+
+求解火星**弓激波曲面**在给定 Sun-Mars 轴向坐标处的圆柱半径，并把"曲面外"的输入钳制为 `0.0`。
+
+# 功能与算法概述
+与 `head.bowshock` 同用 Edberg et al. (2008) 的二次曲线模型，但把无定义的输入区域**钳制为 `0.0`**，以便外层做数值迭代/求根。
+
+# 参数说明
+- `xshock`: 日火连线方向（通常为 MSO/MSE 的 X 轴）坐标，单位 **火星半径 `R_Mars`**。
+
+# 返回值
+- `Float64`: 弓激波圆柱半径 `√(y²+z²)`（单位 `R_Mars`）；
+- `0.0`: 当该 `x` 处曲面无定义（`temp < 0`）时返回。
+
+# 参考文献
+- Edberg N J T, Lester M, Cowley S W H, et al., 2008. *Statistical analysis of the location of the
+  Martian magnetic pileup boundary and bow shock and the influence of crustal magnetic fields* [J].
+  Journal of Geophysical Research: Space Physics, 113(A8).
+"""
 function bowshock_zero(xshock)
     xF = 0.55 # R_Mars
     ϵ = 1.05

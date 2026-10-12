@@ -1,15 +1,26 @@
 """组合模型计算及常用坐标旋转、物理量派生函数。"""
 
 module calculate_models
-using Quaternions
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+using Rotations
+using StaticArrays
 
-function Matrix_Rot(in_data,Rotation_Matrix)
-    #使用旋转矩阵计算坐标系变换。逆变换时输入矩阵的inv()逆即可
-    out_data = Rotation_Matrix * in_data
-    return out_data
-end
+"""
+    rotation_matrix(θ, φ) -> Matrix{Float64}
 
-"""根据经纬角生成坐标旋转矩阵。"""
+由天顶角与方位角生成坐标旋转矩阵。
+
+# 功能与算法概述
+先绕 Y 轴旋转 θ、再绕 Z 轴旋转 φ，返回组合矩阵 `Rz(φ)·Ry(θ)`。
+
+# 参数说明
+- `θ`: 绕 Y 轴转角（弧度）。
+- `φ`: 绕 Z 轴转角（弧度）。
+
+# 返回值
+- `Matrix{Float64}`: 3×3 旋转矩阵。
+"""
 function rotation_matrix(θ, φ)
     # 创建绕z轴旋转φ的旋转矩阵
     Rz = [cos(φ) -sin(φ) 0;
@@ -24,75 +35,92 @@ function rotation_matrix(θ, φ)
     # 计算总旋转矩阵，先绕y轴旋转，然后绕z轴旋转
     return Rz * Ry
 end
-function Quaternion_Rot(u::AbstractVector,q::QuaternionF64) # rotate_vector_with_quat
-    #使用四元数计算坐标系变换。
-    q_u = QuaternionF64(0, u[1], u[2], u[3])
-    q_v = q*q_u*conj(q)
-    return [imag_part(q_v)...]
+"""
+    Quaternion_Rot(u::AbstractVector, q::QuatRotation) -> AbstractVector
+
+用旋转四元数对向量做正向坐标变换（等价 `q*u*conj(q)`）。
+
+# 参数说明
+- `u`: 待旋转向量。
+- `q`: `Rotations.QuatRotation` 四元数。
+
+# 返回值
+- 旋转后的向量。
+"""
+function Quaternion_Rot(u::AbstractVector, q::QuatRotation)
+    return q * u
 end
 
-"""使用四元数对向量执行逆向坐标旋转。"""
-function Quaternion_Rot_reverse(u::AbstractVector, q::QuaternionF64)
-    local q_u = QuaternionF64(0, u[1], u[2], u[3])
-    local q_v = conj(q) * q_u * q
-    return [imag_part(q_v)...]
-end
-"""将电子能量通量转换为相空间密度。"""
-function eflux2F(energy,eflux)
-    # 电子eflux2F
-    M = me
-    # E0=M*C^2/EV   #静止能量 eV
-    #energy 与 eflux 一一对应
-    # E0=M*C^2/EV
-    γ=(energy * 1e-3 /E0 + 1)
-    β=sqrt(1.0 - 1.0 / γ^2)
-    P=γ *M * β *C        # kg m/s
-    # V=β .* C
-    F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2
-    return F
-end
+"""
+    Quaternion_Rot_reverse(u::AbstractVector, q::QuatRotation) -> AbstractVector
 
-"""计算航天器运动引起的波频多普勒偏移。"""
-function Doppler_Shift(f,V_sc,k,θ) # wave frequency shift with spacecraft velocity
-    # θ angle between SC and wave vector
-    ω_obs = f * 2 * π
-    ω_real = ω_obs - k * V_sc * cos(θ)
-    return ω_real
-end
-"""根据粒子类型和质量数将能量换算为速度。"""
-function energy2v(energy;type="e",nM=1)
-    if type == "e"
-        E0 = 511.0
-    elseif type == "ion"
-        E0 = 511.0 * nM * 1836.23 
-    end
-    γ=(energy * 1e-3 /E0 + 1)
-    β=sqrt(1.0 - 1.0 / γ^2)
-    v = β .* 3e8
-    return v
-end
+用旋转四元数对向量做逆向坐标变换（等价 `inv(q)*u`）。
 
-    """计算指定行星表面逃逸所需的粒子能量。"""
+# 参数说明
+- `u`: 待旋转向量。
+- `q`: `Rotations.QuatRotation` 四元数。
+
+# 返回值
+- 旋转后的向量。
+"""
+function Quaternion_Rot_reverse(u::AbstractVector, q::QuatRotation)
+    return inv(q) * u
+end
+    """
+        escape_energy(; nM=1, planet="Mars") -> Float64
+
+    计算指定行星表面逃逸所需的最小粒子能量。
+
+    # 功能与算法概述
+    按 `E = ½·m·v_esc²` 计算并换算为 eV；`planet="Mars"` 时取逃逸速度 5.027 km/s。
+
+    # 参数说明
+    - `nM`: 质量数（AMU），默认 1。
+    - `planet`: 行星名（当前仅支持 `"Mars"`）。
+
+    # 返回值
+    - `Float64`: 逃逸能量（eV）。
+
+    # 注意事项
+    - 若 `planet` 非 `"Mars"`，`v` 未定义会报错。
+    """
     function escape_energy(;nM=1,planet="Mars")
-    mass = nM * Mp
+    mass = nM * constants.mp
     # G = 6.67430e-11
     if planet == "Mars"
         v = 5.027e3
     end
     # v2 = 2 * G * mass / R
-    E = 0.5 * mass * v^2 /EV
+    E = 0.5 * mass * v^2 / constants.eV
     return E
 end
 
-    """计算粒子回旋频率、回旋半径和速度。"""
+    """
+        cyclotron_radius(B, ek; nM=1, nQ=-1) -> (Float64, Float64, Float64)
+
+    计算带电粒子的回旋频率、回旋半径与速度。
+
+    # 功能与算法概述
+    由 `B`（nT→T）得回旋角频率 `ω=qB/m`，结合能量换算的速度得回旋半径 `r_c = v/ω`，
+    并返回 `f = ω/2π`。
+
+    # 参数说明
+    - `B`: 磁感应强度（nT）。
+    - `ek`: 动能（eV）。
+    - `nM`: 质量数，默认 1。
+    - `nQ`: 电荷数，`-1` 表示电子。
+
+    # 返回值
+    - `(f, rc, v)`: 回旋频率（Hz）、回旋半径（m）、速度（m/s）。
+    """
     function cyclotron_radius(B,ek;nM=1,nQ=-1)
     B1=B*1e-9  # 输入nT，转T
     if nQ == -1
-        cc = Me /(B1*Q)
-        v = energy2v(ek)
+        cc = constants.me /(B1*constants.e)
+        v = MarsCommon.electron_energy_to_speed(ek)
     else
-        cc = Mp*nM/(B1*Q*nQ)
-        v = energy2v(ek;type="ion",nM=nM)
+        cc = constants.mp*nM/(B1*constants.e*nQ)
+        v = MarsCommon.ion_energy_to_speed(ek, nM)
     end
     # γ=(energy * 1e-3 /E0 + 1)
     # β=sqrt(1.0 - 1.0 / γ^2)
@@ -102,19 +130,51 @@ end
     return f,rc,v
 end
 
-    """根据磁场、质量数和电荷数计算回旋频率。"""
+    """
+        cyclotron_frequency(B; nM=1, nQ=-1) -> Float64
+
+    计算带电粒子的回旋频率。
+
+    # 功能与算法概述
+    由 `ω=qB/m`（`B` 由 nT 换算为 T）得 `f = ω/2π`。
+
+    # 参数说明
+    - `B`: 磁感应强度（nT）。
+    - `nM`: 质量数，默认 1。
+    - `nQ`: 电荷数，`-1` 表示电子。
+
+    # 返回值
+    - `Float64`: 回旋频率（Hz）。
+    """
     function cyclotron_frequency(B;nM=1,nQ=-1)
     B1=B*1e-9  # 输入nT，转T
     if nQ == -1
-        cc = Me /(B1*Q)
+        cc = constants.me /(B1*constants.e)
     else
-        cc = Mp*nM/(B1*Q*nQ)
+        cc = constants.mp*nM/(B1*constants.e*nQ)
     end
     f = 1  / (cc *2*π)
     return f
 end
 
-    """对输入的一维数据执行线性拟合并返回拟合参数。"""
+    """
+        Linear_fit(x::AbstractVector, y::AbstractVector) -> NamedTuple
+
+    对一维数据做最小二乘线性拟合。
+
+    # 功能与算法概述
+    按闭式公式由均值与协方差求斜率 `P2`、截距 `P1`，并计算决定系数 `r_squared`，
+    同时返回拟合函数闭包。
+
+    # 参数说明
+    - `x`, `y`: 等长的自变量与因变量向量。
+
+    # 返回值
+    - `NamedTuple`: 含 `P1`（截距）、`P2`（斜率）、`r_squared`（拟合优度）与 `fit_function`。
+
+    # 注意事项
+    - `x`、`y` 长度不一致、点数少于 2 或 `x` 全相同时抛错。
+    """
     function Linear_fit(x::AbstractVector, y::AbstractVector)
     # 确保输入数据长度一致
     if length(x) != length(y)
@@ -179,13 +239,6 @@ end
         fit_function = new_x -> P1 .+ P2 .* new_x
     )
 end
-const EV=1.602176487e-19
-const C=3.0e8
-const Me=9.109e-31
-const Mp=1.67262192e-27
-const Q = 1.602176634e-19
-const M_to_Q_e = Me/Q
-const M_to_Q_p = Mp/Q
 end # module
 
 # import .calculate_models

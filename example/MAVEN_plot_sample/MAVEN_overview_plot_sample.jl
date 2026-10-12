@@ -1,6 +1,9 @@
 """生成 MAVEN 多仪器时间序列概览图的示例程序。"""
 
 using TimesDates, Dates
+if !isdefined(@__MODULE__, :constants)
+    include(joinpath(@__DIR__, "..", "..", "common", "constants.jl"))
+end
 using ColorTypes, CairoMakie
 using DataFrames
 using ProgressMeter
@@ -11,7 +14,17 @@ include("../../MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;
 include("../../MAVEN_data/MAVEN_STATIC.jl");import .MAVEN_STATIC;
 include("../../Magnetic_Model/IGRF_calculate.jl");import .IGRF_calculate;
 
-"""将两个时间点之间的时长格式化为时分秒字符串。"""
+"""
+    TimeFormat(time1, time2) -> String
+
+把两个时间点之间的时长格式化为 `HH:MM:SS.mmm` 字符串。
+
+# 参数说明
+- `time1`, `time2`: 起止时间。
+
+# 返回值
+- `String`: 格式化后的时长。
+"""
 function TimeFormat(time1, time2)
     elapsed_time_ms = Dates.value(time2 - time1)
     hours = div(elapsed_time_ms, 3600000)
@@ -109,12 +122,42 @@ end
     )
     return data_dict
 end
-"""将非正绘图数据原地替换为 NaN。"""
+"""
+    remove_0_point!(y) -> Vector
+
+将非正绘图数据原地替换为 `NaN`。
+
+# 参数说明
+- `y`: 数值数组（就地修改）。
+
+# 返回值
+- 修改后的同一数组。
+"""
 function remove_0_point!(y)
     y[y .<= 0] .= NaN
     return y
 end
-"""向图形对象添加 MAVEN 多仪器时间序列绘图面板。"""
+"""
+    plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
+
+向图形对象添加 MAVEN 多仪器时间序列绘图面板。
+
+# 功能与算法概述
+在给定时间范围内为磁场、密度、速度、电位及各仪器能谱等创建纵向堆叠面板，
+分别绘制曲线或热图。
+
+# 参数说明
+- `fig`: Makie `Figure`。
+- `x_range`: 时间范围 `[t_start, t_end]`。
+- `data_dict`: 由 `get_data` 返回的数据字典。
+- `time_step`: 时间刻度步长。
+
+# 返回值
+- 无（就地修改 `fig`）。
+
+# 注意事项
+- 依赖 `data_dict` 中各仪器键存在；面板名称在函数内固定。
+"""
 function plot_module(fig, x_range, data_dict; time_step=Dates.Minute(10))
     colors = Makie.wong_colors()
     t0 = Dates.datetime2unix((x_range[1]))
@@ -546,7 +589,7 @@ else
     data_dict["STATIC_mass"] = sta_mass
 
     x1, y1, z1 = data_dict["KP"][:GEO_x], data_dict["KP"][:GEO_y], data_dict["KP"][:GEO_z]
-    alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- 3393.5
+    alt = sqrt.(x1 .^ 2 .+ y1 .^ 2 .+ z1 .^ 2) .- constants.R_Mars
     data_dict["KP"][:alt] = alt
     swea_pad = data_dict["SWEA_pad_svy"]
     if swea_pad[:data_load_flag] == false

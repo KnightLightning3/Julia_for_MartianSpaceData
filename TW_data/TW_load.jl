@@ -2,6 +2,8 @@
 # 使用data_get_from_date函数做全局读取
 
 module TW_load
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 root_path = "E:/Tianwen-1/"
 using Dates
 
@@ -44,7 +46,25 @@ using Dates
 #     return epoch,[bx,by,bz],[x,y,z],iflag
 # end
 using DelimitedFiles,DataFrames
-"""读取并整理天问磁场 2C 数据文件。"""
+"""
+    load_mag_2c_bydlm(file::String) -> Dict{Symbol, Any}
+
+读取并整理天问一号磁场 2C 数据文件（文本格式，前 19 行为表头）。
+
+# 功能与算法概述
+用 `readdlm`+`DataFrame` 载入并按固定列名重命名，解析时间、去重排序后
+抽出磁场/位置/姿态/质量标志，并计算旋磁总强度 `B_total`。
+
+# 参数说明
+- `file::String`: 天问 2C 磁场文件的路径。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:time`/`:epoch`、`:B`、`:B_total`、`:position`、`:flag`、`:yaw`/`:pitch`/`:roll` 与 `:data_load_flag` 的字典（磁场 nT、位置 km）。
+
+# 注意事项
+- 文件被截断/字段缺失时 `readdlm` 会直接报错，本函数不做容错。
+- 代码中针对 `NaN` 的线性插值修复逻辑目前被注释掉。
+"""
 function load_mag_2c_bydlm(file::String);
     mag2c1hz = identity.(DataFrame(readdlm(file, skipstart=19), :auto))
     name = ["Time", "Sampling_Rate", "X_MSO", "Y_MSO", "Z_MSO", "Probe_Position_X_MSO", "Probe_Position_Y_MSO", "Probe_Position_Z_MSO", "Roll", "Pitch", "Yaw",  "Quality_Flags"]
@@ -86,35 +106,55 @@ function load_mag_2c_bydlm(file::String);
     return data
 end
 
-"""根据位置计算天问数据的高度、地方时和纬度辅助量。"""
+"""
+    calculate_mag(position; models=["alt"])
+
+根据位置矩阵计算天问数据的海拔、地方时、纬度辅助量。
+
+# 功能与算法概述
+以名称到 `MarsCommon` 位置派生函数的映射表为基础，遍历 `models` 逐个求值并写入结果字典。
+
+# 参数说明
+- `position`: `N×3` 的位置矩阵（通常为 MSO 坐标，单位 km）。
+- `models`: 需要计算的物理量名称列表，默认只算 `"alt"`。
+
+# 返回值
+- `Dict`: 以 `model` 名称为键的结果字典。
+
+# 注意事项
+- 函数体中直接引用了**未定义**的全局变量 `data`（缺少初始化），直接调用会报 `UndefVarError`。
+- `MarsCommon` 需已在调用环境中引入。
+"""
 function calculate_mag(position;models=["alt"])
-    """计算位置对应的行星表面高度。"""
-    function c_alt(position) 
-        alt = sqrt.(sum(position.^2, dims=2)) .- 3393.5
-        alt = alt[:,1]
-        return alt
-    end
-    """由位置经度计算地方时。"""
-    function c_local_time(position) 
-        local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
-        return local_time
-    end
-    """由位置向量计算行星纬度。"""
-    function c_latitude(position) 
-        latitude   = atan.(position[:, 3], sqrt.(sum(position[:,1:2].^2, dims=2)) ) ./ π .* 180.0
-        return latitude
-    end
     results = Dict{Symbol,Any}(
-        :alt => c_alt,
-        :local_time => c_local_time,
-        :latitude => c_latitude,
+        :alt => MarsCommon.position_altitude,
+        :local_time => MarsCommon.position_local_time,
+        :latitude => MarsCommon.position_latitude,
     )
     for model in models
         data[model] = results[model](position)
     end
 end
 
-"""根据天问姿态角数据构造航天器至 MSO 坐标系的旋转矩阵。"""
+"""
+    get_spc2mso_rot_matrix_via_2c(dat) -> (Vector{DateTime}, Array{Float64,3})
+
+由天问姿态角（Roll/Pitch/Yaw）构造星座系（SC）到 MSO 系的旋转矩阵时间序列。
+
+# 功能与算法概述
+把三个欧拉角由度转弧度后，逐时刻按 Z-Y-X（Yaw-Pitch-Roll）顺序写出
+`ntime×3×3` 旋转矩阵，并与时间向量一起返回。
+
+# 参数说明
+- `dat::Dict`: `load_mag_2c_bydlm` 的返回值，需含 `:time`、`:pitch`、`:yaw`、`:roll`。
+
+# 返回值
+- `(times, rot_matrix)`: 时间向量与 `ntime×3×3` 的旋转矩阵数组。
+
+# 注意事项
+- 用法：`B_mso[i, :] = rot_matrix[i, :, :] * B_sc[i, :]`。
+- 公式假定标准 YPR 约定；若天问定义不同（例如符号约定差异），需校对矩阵元素。
+"""
 function get_spc2mso_rot_matrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回值\
     ntime = length(dat[:time])
     rot_matrix = zeros(ntime,3,3)
@@ -137,7 +177,24 @@ function get_spc2mso_rot_matrix_via_2c(dat) # 需要load_mag_2c_bydlm的返回�
     end
     return dat[:time],rot_matrix
 end
-"""读取天问本地数据文件清单。"""
+"""
+    read_list() -> Vector{String}
+
+读取天问磁场本地文件清单（`mag_list.txt`）并拼上根目录，返回完整路径。
+
+# 功能与算法概述
+逐行读取清单中的相对路径，再用广播把 `root_path` 拼到每个路径前。
+
+# 参数说明
+- 无参数；依赖本文件顶部的全局 `root_path`。
+
+# 返回值
+- `Vector{String}`: 所有磁场数据文件的完整路径。
+
+# 注意事项
+- `root_path` 当前硬编码为 Windows 路径（`E:/Tianwen-1/`），需根据运行环境修改。
+- 清单文件不存在时会报 `SystemError`。
+"""
 function read_list()
     list_path = root_path*"List/"*"mag_list.txt"
     files = readlines(list_path)

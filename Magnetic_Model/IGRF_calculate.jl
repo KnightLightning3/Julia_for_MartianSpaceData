@@ -1,6 +1,7 @@
 """火星 IGRF/地壳磁场计算、坐标变换与磁力线追踪工具。"""
 
 module IGRF_calculate
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 using FortranFiles
 using LinearAlgebra
 using Statistics
@@ -19,14 +20,50 @@ export trace_mag_line
 
 # end
 ########### 以下函数只能计算单个点的关系
+"""
+    pc2sphere(x, y, z) -> (r, θ, ϕ)
+
+将行星笛卡尔坐标转为球坐标 `(r, θ, ϕ)`（θ 为与 +Z 轴的夹角，即天顶角/余纬）。
+
+# 功能与算法概述
+以 `hypot` 求半径避免中间平方溢出，再由 `acos(z/r)` 得余纬、`atan(y, x)` 得经度（保留象限），
+与 `sphere2pc` 互为正逆变换。
+
+# 参数说明
+- `x`: 笛卡尔 X 分量。
+- `y`: 笛卡尔 Y 分量。
+- `z`: 笛卡尔 Z 分量。
+
+# 返回值
+- `(r, θ, ϕ)`: 半径与两个**弧度制**角（元组，非数组，无堆分配）。
+
+# 注意事项
+- 方程与 `sphere2pc` 互为正逆变换；`r = 0` 时 `θ`/`ϕ` 未定义。
+"""
 function pc2sphere(x::Real, y::Real, z::Real)
-    r = norm([x, y, z])
+    r = hypot(x, y, z)
     # θ = π/2 - atan(z,sqrt(x^2+y^2))
     θ = acos(z / r) # [0,π]
     ϕ = atan(y, x)  # (-π/2, π/2)
     return r, θ, ϕ
 end
-"""将球坐标位置转换为行星笛卡尔坐标。"""
+"""
+    sphere2pc(r, θ, ϕ) -> (x, y, z)
+
+将行星球坐标转为笛卡尔坐标，是 `pc2sphere` 的逆变换。
+
+# 功能与算法概述
+一次预计算 `sinθ/cosθ/sinϕ/cosϕ` 后按标准展开式算出 `(x, y, z)`（θ 为天顶角），
+全程为标量运算，无堆分配。
+
+# 参数说明
+- `r`: 径向距离（单位与 `x`/`y`/`z` 一致，IGRF 模型中通常归一化为 `r/R_Mars`）。
+- `θ`: 天顶角/余纬（**弧度**，`0` 指向 +Z）。
+- `ϕ`: 经度（**弧度**）。
+
+# 返回值
+- `(x, y, z)`: 笛卡尔坐标元组（无堆分配）。
+"""
 function sphere2pc(r::Real, θ::Real, ϕ::Real)
     sinθ = sin(θ)
     cosθ = cos(θ)
@@ -37,7 +74,25 @@ function sphere2pc(r::Real, θ::Real, ϕ::Real)
     z = r * cosθ
     return x, y, z
 end
-"""将球坐标系磁场分量转换为行星笛卡尔分量。"""
+"""
+    Bsphere2pc(r, θ, ϕ, Br, Bθ, Bϕ) -> (Bx, By, Bz)
+
+将球坐标系下的磁场分量转换为笛卡尔分量（纯旋转变换，不改变大小）。
+
+# 功能与算法概述
+以球基矢量 `(r̂, θ̂, ϕ̂)` 到 `(x̂, ŷ, ẑ)` 的方向余弦作正交旋转变换，故磁场大小不变。
+
+# 参数说明
+- `r`: 径向距离（仅用于保持接口一致，不参与公式）。
+- `θ`: 天顶角/余纬（**弧度**）。
+- `ϕ`: 经度（**弧度**）。
+- `Br`: 径向磁场分量。
+- `Bθ`: 天顶角方向磁场分量（指向 θ 增大方向）。
+- `Bϕ`: 经度方向磁场分量（指向 ϕ 增大方向）。
+
+# 返回值
+- `(Bx, By, Bz)`: 笛卡尔坐标系下的磁场分量元组。
+"""
 function Bsphere2pc(r::Real, θ::Real, ϕ::Real, Br::Real, Bθ::Real, Bϕ::Real)
     sinθ = sin(θ)
     cosθ = cos(θ)
@@ -48,9 +103,23 @@ function Bsphere2pc(r::Real, θ::Real, ϕ::Real, Br::Real, Bθ::Real, Bϕ::Real)
     Bz = cosθ * Br - sinθ * Bθ
     return Bx, By, Bz
 end
-"""将行星笛卡尔坐标磁场分量转换为球坐标分量。"""
+"""
+    Bpc2sphere(x, y, z, bx, by, bz) -> (Br, Bθ, Bϕ)
+
+将笛卡尔坐标系下的磁场分量转换为球坐标分量，是 `Bsphere2pc` 的逆变换。
+
+# 功能与算法概述
+由观测点位置求出球基矢量 `(r̂, θ̂, ϕ̂)`，再与笛卡尔分量做点积投影；变换为正交旋转，`‖B‖` 不变。
+
+# 参数说明
+- `x`, `y`, `z`: 观测点的笛卡尔坐标。
+- `bx`, `by`, `bz`: 笛卡尔坐标系下的磁场分量。
+
+# 返回值
+- `(Br, Bθ, Bϕ)`: 球坐标系下的磁场分量元组（旋转不改变 `‖B‖`）。
+"""
 function Bpc2sphere(x::Real, y::Real, z::Real, bx::Real, by::Real, bz::Real)
-    r = norm([x, y, z])
+    r = hypot(x, y, z)
     θ = acos(z / r)
     ϕ = atan(y, x)
 
@@ -66,6 +135,26 @@ function Bpc2sphere(x::Real, y::Real, z::Real, bx::Real, by::Real, bz::Real)
     return Br, Bθ, Bϕ
 end
 ###########
+"""
+    CALCULATE_SCHMIDT_COEFFICIENTS() -> (Matrix, Matrix)
+
+预计算 IGRF 球谐展开所需的 Schmidt 准归一化因子 `SS` 与 Legendre 递推系数 `REALK`。
+
+# 功能与算法概述
+按 Schmidt 准归一化公式与关联 Legendre 函数的相邻阶递推关系，一次性生成两张
+`(NIGRF+1)×(NIGRF+1)` 系数表，供全部 `ccall` 内核复用。
+
+# 参数说明
+- 无输入参数；依赖模块级常量 `NIGRF`（默认 110）。
+
+# 返回值
+- `(SS, REALK)`: 两个 `(NIGRF+1)×(NIGRF+1)` 的 `Matrix{Float64}` 元组。
+
+# 注意事项
+- 仅在模块初始化时调用一次，结果绑定为 `const`。
+- 返回的是可变 `Matrix`（非静态数组），因为需作为 `Ptr{Float64}` 传入 Fortran。
+- `NIGRF` 不变时结果完全确定。
+"""
 function CALCULATE_SCHMIDT_COEFFICIENTS()
     SS = zeros(NIGRF + 1, NIGRF + 1)
     REALK = zeros(NIGRF + 1, NIGRF + 1)
@@ -84,17 +173,57 @@ function CALCULATE_SCHMIDT_COEFFICIENTS()
     end
     return SS, REALK
 end
-"""读取 IGRF 球谐磁场系数文件。"""
+"""
+    read_gh() -> (Matrix, Matrix)
+
+从 Fortran 无格式文件 `gh_gao` 中读取 IGRF 高斯球谐系数 `GG`、`HH`。
+
+# 功能与算法概述
+用 `FortranFile` 打开模块常量给出的文件，按 `(Float64, NIGRF+1, NIGRF+1)` 形状
+顺序读出两张系数矩阵并以元组返回，避免外层额外分配。
+
+# 参数说明
+- 无参数；依赖模块级常量 `gh_filename` 与 `NIGRF`。
+
+# 返回值
+- `(GG, HH)`: 两个 `(NIGRF+1)×(NIGRF+1)` 的 `Matrix{Float64}` 元组。
+
+# 注意事项
+- `GG`/`HH` 必须是**可变 `Matrix`**，因为会作为 `Ptr{Float64}` 传入 `ccall`；
+  因此不可改为静态数组。
+- 本函数在模块加载时被调用一次：`const GG, HH = read_gh()`；文件缺失会导致模块加载失败。
+"""
 function read_gh()
     f = FortranFile(gh_filename)
     GG = read(f, (Float64, NIGRF + 1, NIGRF + 1))
     HH = read(f, (Float64, NIGRF + 1, NIGRF + 1))
-    return [GG, HH]
+    return GG, HH
 end
+"""
+    IGRF_fortran_free(r, θ, ϕ) -> (Br, Bθ, Bϕ, BB)
+
+调用 Fortran 的 IGRF_FREE 内核计算球谐磁场，输入半径必须已归一化（除以 `R_Mars`）。
+
+# 功能与算法概述
+把归一化坐标、`GG/HH/REALK/SS` 及压缩场参数经 `ccall` 送入动态库的 110 阶
+`IGRF_FREE` 例程（归一化可避免大数值精度损失），回读并解包球坐标三分量与总强度。
+
+# 参数说明
+- `r`: 归一化半径（**单位：火星半径**，需调用方先除 `R_Mars`）。
+- `θ`: 天顶角/余纬（**弧度**）。
+- `ϕ`: 经度（**弧度**）。
+
+# 返回值
+- `(Br, Bθ, Bϕ, BB)`: 球坐标磁场三分量与总强度（nT）。
+
+# 注意事项
+- 需 `IGRF_DLL.dll` 可用，且平台/ABI 匹配（本仓库目前为 Windows/x86-64 路径）。
+- 与 `IGRF_fortran` 的区别在于**半径是否已归一化**；两者不可混用。
+"""
 function IGRF_fortran_free(r::Real, θ::Real, ϕ::Real)  #working on ,输入半径是归一化的,输入阶数
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     DBs = Array{Float64}(undef, 3)
-    path = Array{Float64}([r / 3393.5, θ, ϕ])
+    path = Array{Float64}([r / constants.R_Mars, θ, ϕ])
     B_compress_in = Array{Float64}(B_compress)
     ii = Ref{Int32}(110)
     ccall(("IGRF_FREE_MODEL_mp_IGRF_FREE", IGRF_DLL_PATH), Cvoid,
@@ -105,6 +234,27 @@ function IGRF_fortran_free(r::Real, θ::Real, ϕ::Real)  #working on ,输入半�
     Br, Bθ, Bϕ, BB = B_result[1], B_result[2], B_result[3], B_result[4]
     return Br, Bθ, Bϕ, BB
 end
+"""
+    IGRF_fortran(r, θ::Real, ϕ::Real) -> (Br, Bθ, Bϕ, BB)
+
+调用 Fortran IGRF_110 内核计算球谐磁场，`r` 为未归一化的实际半径。
+
+# 功能与算法概述
+把 `[r, θ, ϕ]` 与系数矩阵经 `ccall` 送入动态库的 `IGRF_110` 例程，
+回读球坐标三分量与总强度；`IGRF_sphere` 为它的别名。
+
+# 参数说明
+- `r`: 径向距离（**公里**，与 `IGRF_pc` / 磁力线追踪保持一致）。
+- `θ`: 天顶角/余纬（**弧度**）。
+- `ϕ`: 经度（**弧度**）。
+
+# 返回值
+- `(Br, Bθ, Bϕ, BB)`: 球坐标磁场三分量与总强度（nT）。
+
+# 注意事项
+- `IGRF_sphere` 是本函数的别名；`IGRF_pc` 依赖它做笛卡尔坐标下的场值计算。
+- 与 `IGRF_fortran_free` 相比少一步归一化，是 **径向单位不同** 的两个入口。
+"""
 function IGRF_fortran(r::Real, θ::Real, ϕ::Real) #fortran计算核心,输入球坐标，返回球坐标,r不需要归一化
     B_result = Array{Float64}(undef, 4)  #[Br,Bt,Bp,abs(B)]
     path = Array{Float64}([r, θ, ϕ])
@@ -117,7 +267,29 @@ function IGRF_fortran(r::Real, θ::Real, ϕ::Real) #fortran计算核心,输入�
     Br, Bθ, Bϕ, BB = B_result[1], B_result[2], B_result[3], B_result[4]
     return Br, Bθ, Bϕ, BB
 end
-"""调用 Fortran RK4 例程执行一次磁力线追踪步进。"""
+"""
+    RK4_Trace_fortran(r, θ, ϕ, h) -> (B_result, dB, path_next)
+
+调用 Fortran RK4_STEP 内核执行一次定步长 RK4 磁力线步进。
+
+# 功能与算法概述
+以 `[r, θ, ϕ]` 为当前点、带符号步长 `h` 送入动态库单步例程，返回该点磁场、
+误差估计 `dB` 与下一步位置，由调用方决定是否接受该步。
+
+# 参数说明
+- `r`: 当前球坐标半径（公里）。
+- `θ`: 当前天顶角（**弧度**）。
+- `ϕ`: 当前经度（**弧度**）。
+- `h`: 步长（弧长，带符号）。
+
+# 返回值
+- `(B_result::Vector{Float64}, dB::Float64, path_next::Vector{Float64})`:
+  当前点磁场 `[Br,Bθ,Bϕ]`、误差估计 `dB` 与下一步的位置。
+
+# 注意事项
+- 返回的 `B_result` / `path_next` 为复用缓冲区写出的新 `Array`；在密集循环中会产生分配。
+- `dB` 可用于自适应步长控制（参见 `mag_trace_rk4`）。
+"""
 function RK4_Trace_fortran(r::Real, θ::Real, ϕ::Real, h::Real)
     # DYs = Array{Float64}(undef, 9)
 
@@ -143,15 +315,56 @@ function RK4_Trace_fortran(r::Real, θ::Real, ϕ::Real, h::Real)
     return B_result, dB.x, path_next
 end
 IGRF_sphere = IGRF_fortran
-"""在行星笛卡尔坐标位置计算 IGRF 磁场。"""
+"""
+    IGRF_pc(x, y, z) -> (Bx, By, Bz)
+
+在行星笛卡尔坐标处计算 IGRF/地壳磁场矢量（nT）。
+
+# 功能与算法概述
+先把位置转到球坐标，调用 `IGRF_fortran` 求球坐标分量，再经 `Bsphere2pc` 旋转回笛卡尔分量，
+是磁力线追踪/单粒子轨道的外部接口。
+
+# 参数说明
+- `x`: 笛卡尔 X 分量（**公里**）。
+- `y`: 笛卡尔 Y 分量（**公里**）。
+- `z`: 笛卡尔 Z 分量（**公里**）。
+
+# 返回值
+- `(Bx, By, Bz)`: 笛卡尔坐标系下的磁场分量（**nT**）。
+
+# 注意事项
+- 常用调用形式：`B_field = x -> IGRF_pc(x[1]/1e3, x[2]/1e3, x[3]/1e3) .* 1e-9`（转 T）。
+"""
 function IGRF_pc(x::Real, y::Real, z::Real)
     r, θ, ϕ = pc2sphere(x, y, z)
     Br, Bθ, Bϕ, _ = IGRF_fortran(r, θ, ϕ)
     Bx, By, Bz = Bsphere2pc(r, θ, ϕ, Br, Bθ, Bϕ)
     return Bx, By, Bz
 end
+"""
+    IGRF(r, θ, ϕ) -> (BR, BT, BP, BB)
+
+纯 Julia 参考实现的球谐磁场求值（无动态库依赖），供校验与教学使用。
+
+# 功能与算法概述
+以内源球谐展开递推关联 Legendre 函数及其导数，逐阶累加各分量再乘径向功率，
+组装出球坐标磁场；生产路径请改用 `IGRF_fortran`。
+
+# 参数说明
+- `r`: 径向距离（公里，`R_Mars` 为参考半径）。
+- `θ`: 天顶角/余纬（**弧度**）。
+- `ϕ`: 经度（**弧度**）。
+
+# 返回值
+- `(BR, BT, BP, BB)`: 球坐标磁场三分量与总强度（nT）。
+
+# 注意事项
+- 作者注释标明"效率远远不及 fortran 内核, 弃用"；**生产路径请用 `IGRF_fortran`**。
+- 传入 `B_compress` 的压缩场修正在本实现中被**注释掉**（仅计算内源场）。
+- 函数内多处全局变量（`GG`/`HH`/`REALK`/`SS`）为 `const`，因此已消除装箱开销。
+"""
 function IGRF(r::Real, θ::Real, ϕ::Real) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBDPH] # 效率远远不及fortran内核,弃用
-    AA = Rm
+    AA = constants.R_Mars
     AARR = zeros(NIGRF + 3)
     COSMPH = zeros(NIGRF + 1)
     SINMPH = zeros(NIGRF + 1)
@@ -185,9 +398,9 @@ function IGRF(r::Real, θ::Real, ϕ::Real) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBD
         XX = 0.0e0
         YY = 0.0e0
         ZZ = 0.0e0
-        # DXX = 0.0e0 ; DYX = 0.0e0 ; DZX = 0.0e0
-        # DXY = 0.0e0 ; DYY = 0.0e0 ; DZY = 0.0e0
-        # DXZ = 0.0e0 ; DYZ = 0.0e0 ; DZZ = 0.0e0
+    BR = 0.0e0
+    BT = 0.0e0
+    BP = 0.0e0
 
         P[N+1, N+1] = SINTH * P[N, N]
         DP[N+1, N+1] = SINTH * DP[N, N] + COSTH * P[N, N]
@@ -291,7 +504,32 @@ function IGRF(r::Real, θ::Real, ϕ::Real) # r θ ϕ[BR,BT,BP,DBBDRR,DBBDTH,DBBD
     # )
     return BR, BT, BP, BB
 end
-function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Real, θ::Real, ϕ::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
+"""
+    mag_trace_rk4_fortran_ADAPTIVE_STEP(r, θ, ϕ; dir=1.0, step=0.5, r_range=[R_Mars, 2R_Mars], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)
+
+用 Fortran 内核执行自适应步长 RK4 磁力线追踪，输入/输出均为球坐标。
+
+# 功能与算法概述
+把起点与步长控制参数经 `ccall` 送入动态库的 `ADAPTIVE_STEP_TRACE` 循环内核，
+内核按误差容限自动细化/放粗步长并回写实际步数，返回时按步数截断轨迹。
+
+# 参数说明
+- `r`, `θ`, `ϕ`: 起始点球坐标（`r` 为公里，角度为**弧度**）。
+- `dir`: 追踪方向，`+1.0` 顺场、`-1.0` 逆场。
+- `step`: 初始弧长步长。
+- `r_range`: 允许的径向范围（超出即终止），单位公里。
+- `max_trace`: 最大步数上限（也是预分配行数）。
+- `maxfac` / `minfac`: 步长放大/缩小的上下限倍率。
+- `tol`: 步长控制的相对误差容限。
+
+# 返回值
+- `Matrix{Float64}`: `Nsteps×6`，列为 `[r, θ, ϕ, Br, Bθ, Bϕ]`（球坐标 + nT）。
+
+# 注意事项
+- 自适应步长在磁力线弯曲处自动细化，整体步数通常少于定步长版本。
+- 预分配了 `max_trace×6` 的内存（`30000×6` 约 1.4 MB/次）；批量追踪时需留意内存峰值。
+"""
+function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Real, θ::Real, ϕ::Real; dir=1.0, step=0.5, r_range=[constants.R_Mars, constants.R_Mars * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的可变步长磁力线追踪,输入球坐标，返回球坐标,fortran rk4循环内核
     B_data = Array{Float64}(undef, max_trace, 6)
     PATH = Array{Float64}([r, θ, ϕ])
     dir_in = Ref{Float64}(dir)
@@ -320,9 +558,34 @@ function mag_trace_rk4_fortran_ADAPTIVE_STEP(r::Real, θ::Real, ϕ::Real; dir=1.
     trace_conts = trace_conts.x
     return B_data[1:trace_conts, :]
 end
-function mag_trace_rk4(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
+"""
+    mag_trace_rk4(r0, θ0, ϕ0; dir=1.0, step=0.5, r_range=[R_Mars, 2R_Mars], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)
+
+用 Julia 侧循环 + Fortran 单步内核执行带自适应步长的 RK4 磁力线追踪。
+
+# 功能与算法概述
+主循环反复调用 `RK4_Trace_fortran` 得到新点与误差估计，按标准 RK4 的五阶误差指数
+`h_new = h·clamp((tol/error)^(1/5), minfac, maxfac)` 调整步长；作者称效率接近 Fortran 内置版本。
+
+# 参数说明
+- `r0`, `θ0`, `ϕ0`: 起始点球坐标（`r` 公里，角度**弧度**）。
+- `dir`: 追踪方向（`±1.0`）。
+- `step`: 初始步长。
+- `r_range`: 终止径向区间（公里）。
+- `max_trace`: 最大步数。
+- `maxfac` / `minfac`: 步长缩放上下限。
+- `tol`: 误差容限。
+
+# 返回值
+- `Matrix{Float64}`: `Nsteps×6`，列为 `[r, θ, ϕ, Br, Bθ, Bϕ]`。
+
+# 注意事项
+- `h` 的符号由 `dir` 决定，逆场追踪只需传 `dir = -1.0`。
+- 每步会为 `RK4_Trace_fortran` 的返回值分配 3 个数组，是批量追踪的主要分配源。
+"""
+function mag_trace_rk4(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[constants.R_Mars, constants.R_Mars * 2], max_trace=30000, maxfac=30.0, minfac=0.5, tol=0.1)  #RK4方法的固定步长磁力线追踪,输入球坐标，返回球坐标,fortranIGRF内核  效率和fortran内置接近
     r, θ, ϕ = r0, θ0, ϕ0
-    r_state = 500 + Rm
+    r_state = 500 + constants.R_Mars
     trace_steps = 0
     h = dir * step
     h_new = h
@@ -342,7 +605,31 @@ function mag_trace_rk4(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_rang
     end
     return B_data[1:trace_steps, :]
 end
-function mag_trace_Euler_step(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[Rm, Rm * 2], max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
+"""
+    mag_trace_Euler_step(r0, θ0, ϕ0; dir=1.0, step=0.5, r_range=[R_Mars, 2R_Mars], max_trace=30000)
+
+用定步长一阶 Euler 法追踪磁力线（速度最快但精度最低）。
+
+# 功能与算法概述
+每步调 `IGRF_fortran` 得场矢量，沿单位场方向以弧长 `Δs = dir·step` 推进 `(r, θ, ϕ)`
+（`θ`/`ϕ` 分别除以 `r`、`r·sinθ` 折算为角增量）。
+
+# 参数说明
+- `r0`, `θ0`, `ϕ0`: 起始点球坐标（`r` 公里，角度**弧度**）。
+- `dir`: 追踪方向（`±1.0`）。
+- `step`: 定步长（弧长）。
+- `r_range`: 终止径向区间（公里）。
+- `max_trace`: 最大步数。
+
+# 返回值
+- `Matrix{Float64}`: `Nsteps×6`，列为 `[r, θ, ϕ, Br, Bθ, Bϕ]`。
+
+# 注意事项
+- 一阶精度要求**很小的步长**才能避免径向漂移；宏现效果是磁力线会慢慢偏离真实轨迹。
+- 磁赤道附近 `sinθ → 0`，`ϕ` 的推进量会放大，需注意数值稳定性。
+- `trace_mag_line` 默认使用本函数（速度快），高精度场景请改用 `mag_trace_rk4*`。
+"""
+function mag_trace_Euler_step(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5, r_range=[constants.R_Mars, constants.R_Mars * 2], max_trace=30000)  #欧拉方法的固定步长磁力线追踪,输入球坐标，返回球坐标
     r, θ, ϕ = r0, θ0, ϕ0
     trace_steps = 0
     Δs = dir * step
@@ -358,6 +645,29 @@ function mag_trace_Euler_step(r0::Real, θ0::Real, ϕ0::Real; dir=1.0, step=0.5,
     end
     return B_data[1:trace_steps, :]
 end
+"""
+    combina_two_dir_trace(B_data_1, B_data_2; to_pc=false) -> Matrix{Float64}
+
+把两个相反方向追踪得到的磁力线段拼接为一条完整磁力线。
+
+# 功能与算法概述
+把第二段按行反序后与第一段纵向拼接（`[B_data_2; B_data_1]`）使两段在起点相接；
+`to_pc = true` 时逐行把球坐标位置与磁场分量都转为笛卡尔。
+
+# 参数说明
+- `B_data_1`: 正向追踪结果（`N1×6`，列为 `[r,θ,ϕ,Br,Bθ,Bϕ]`）。
+- `B_data_2`: 反向追踪结果（`N2×6`，同列序）。
+- `to_pc`: 是否输出笛卡尔坐标（默认 `false`，即保持球坐标）。
+
+# 返回值
+- `Matrix{Float64}`: `(N2+N1)×6` 的拼接后磁力线数据。
+
+# 注意事项
+- 本实现调用的是 `IGRF_calculate.sphere2pc` / `IGRF_calculate.Bsphere2pc`（带模块前缀）。
+  在模块**内部**调用会找不到 `IGRF_calculate` 这个名字从而导致 `UndefVarError`；
+  如需在本模块内使用，应将前缀去掉改为 `sphere2pc` / `Bsphere2pc`。
+- 两段的重叠起点会被保留两次（拼接处有重复行）。
+"""
 function combina_two_dir_trace(B_data_1, B_data_2; to_pc=false) # 翻转第二个，获得指向磁场方向的磁力线
     B_data_2 = reverse(B_data_2, dims=1)
     B_data = [B_data_2; B_data_1]
@@ -374,6 +684,26 @@ function combina_two_dir_trace(B_data_1, B_data_2; to_pc=false) # 翻转第二�
     end
     return B_data
 end
+"""
+    get_mag_line_s(data) -> Dict
+
+为磁力线结果字典原地补充沿线的弧长、海拔与磁场总强度。
+
+# 功能与算法概述
+对 `:position` 逐行累计欧氏距离得弧长 `:S`（首元素为 0），并额外写入
+距参考半径的海拔 `:alt` 与 `"B"` 的模长 `:B_total`。
+
+# 参数说明
+- `data::Dict`: 标准磁力线结果字典，需含 `:position`（`N×3`）与 `"B"`（`N×3`）。
+
+# 返回值
+- `Dict`: 已注入 `:S`、`:alt`、`:B_total` 的同一字典（原地修改）。
+
+# 注意事项
+- 磁场键使用的是**字符串键** `"B"`（而其它键为 Symbol）；若传入字典只有 `:B` 键，
+  本函数会报 `KeyError`。
+- 弧长基于笛卡尔坐标点间欧氏距离，与追踪步长（弧长参数）不完全一致。
+"""
 function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力线数据结构
     position = data[:position]
     mag_line_num = length(position[:, 1])
@@ -385,11 +715,38 @@ function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力
         s[i] = s[i-1] + norm(x2 - x1)
     end
     data[:S] = s
-    data[:alt] = [norm(x) for x in eachrow(position)] .- 3393.5
+    data[:alt] = [norm(x) for x in eachrow(position)] .- constants.R_Mars
     data[:B_total] = [norm(x) for x in eachrow(data["B"])]
     return data
 end
-function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[Rm, Rm * 2], max_trace=30000, input_frame="pc", output_frame="pc") #追踪磁力线
+"""
+    trace_mag_line(p1, p2, p3; step=0.5, r_range=[R_Mars, 2R_Mars], max_trace=30000, input_frame="pc", output_frame="pc") -> Dict
+
+顶层磁力线追踪接口：从给定起点沿磁场双向追踪并拼接成完整磁力线。
+
+# 功能与算法概述
+按 `input_frame` 统一到球坐标后分别以 `dir = ±1.0` 调用 `mag_trace_Euler_step`，
+反序拼接两段并按 `output_frame` 决定是否转回笛卡尔，最终封装为标准结果字典。
+
+# 参数说明
+- `p1`, `p2`, `p3`: 起点坐标；根据 `input_frame` 解释为笛卡尔或球坐标。
+- `step`: 追踪步长（弧长）。
+- `r_range`: 终止径向区间（公里）。
+- `max_trace`: 单方向最大步数。
+- `input_frame`: `"pc"`（笛卡尔）或其它值（球坐标）。
+- `output_frame`: `"pc"`（笛卡尔）或其它值（球坐标）。
+
+# 返回值
+- `Dict{Symbol,Any}`: 键为 `:position`（`N×3`）、`:B`（`N×3`）、`:num_steps`、`:step`、
+  `:frame`、`:start_position`（起点行号）。
+
+# 注意事项
+- 当前硬编码使用 `mag_trace_Euler_step`（一阶精度）；若需更高精度，应改为
+  `mag_trace_rk4` 或 `mag_trace_rk4_fortran_ADAPTIVE_STEP`。
+- `:num_steps` 仅在 `output_frame == "pc"` 分支被赋值，其它情况下未定义。
+- 代码中保留了对三种追踪器的注释选择，默认选择为第一行的 Euler 方案。
+"""
+function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[constants.R_Mars, constants.R_Mars * 2], max_trace=30000, input_frame="pc", output_frame="pc") #追踪磁力线
 
     # trace_function = Dict(
     #     1 => mag_trace_Euler_step,
@@ -430,16 +787,35 @@ function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[Rm, Rm 
     )
     return result
 end
-#global
-NIGRF = 110
-Rm = 3393.5
+const NIGRF = 110
 root_dir = dirname(@__FILE__)
 gh_filename = root_dir * "/gh_gao"
-IGRF_DLL_PATH = root_dir * "/IGRF_DLL.dll"
-GG, HH = read_gh()
-SS, REALK = CALCULATE_SCHMIDT_COEFFICIENTS()
+const IGRF_DLL_PATH = root_dir * "/IGRF_DLL.dll"
+# GG / HH 是大矩阵且直接作为 Ptr{Float64} 传入 ccall，必须保持为可变 Array；
+# 声明为 const 可避免全局变量装箱，显著提升 ccall 参数访问性能。
+const GG, HH = read_gh()
+const SS, REALK = CALCULATE_SCHMIDT_COEFFICIENTS()
 B_compress = [0.0, 0.0, 0.0]
-"""更新磁场压缩模型使用的参数值。"""
+"""
+    set_B_compress(new_values) -> Vector{Float64}
+
+更新模块全局的外源磁场压缩修正参数 `B_compress`。
+
+# 功能与算法概述
+通过 `global` 把模块级可变全局量 `B_compress` 重新绑定到传入向量，并返回该引用。
+
+# 参数说明
+- `new_values`: 新的压缩场参数，通常为 `[Bx, By, Bz]`（nT）。
+
+# 返回值
+- `Vector{Float64}`: 更新后的全局 `B_compress`。
+
+# 注意事项
+- 因为要支持**重新赋值**，`B_compress` 不能声明为 `const`（所以它保留为普通可变全局量，
+  在逐次 ccall 中会有一次全局查找开销）。
+- 修改在模块内全局生效，会影响后续所有 `IGRF_fortran*` / `RK4_Trace_fortran` 调用。
+- **非线程安全**：并行追踪时不要中途修改。
+"""
 function set_B_compress(new_values)
     global B_compress
     B_compress = new_values

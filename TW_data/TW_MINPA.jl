@@ -1,17 +1,34 @@
 """天问一号 MINPA 离子数据读取、坐标转换及速度分布计算。"""
 
 module TW_MINPA
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 using Dates
 using DelimitedFiles, DataFrames
 using LinearAlgebra
+using StaticArrays
 
-const mp = 1.6726219e-27 # 质子质量
-const me = 9.10938356e-31 # 电子质量
-const Q = 1.60217662e-19 # 电荷量
 root_path = "E:/Tianwen-1/"
 secondry_path = root_path*"MINPA/2B/"
 
-"""扫描 MINPA 数据目录并构建文件清单。"""
+"""
+    build_file_list() -> Nothing
+
+扫描 MINPA 数据目录并构建 `MINPA_list.txt` 文件清单。
+
+# 功能与算法概述
+按年（2020–2024）遍历次级目录，筛选 `.2BL` 文件并加上年份前缀，
+把全部相对路径逐行写入 `List/MINPA_list.txt`。
+
+# 参数说明
+- 无参数；依赖全局 `root_path`（`E:/Tianwen-1/`）与 `secondry_path`。
+
+# 返回值
+- `Nothing`: 通过副作用写入清单文件。
+
+# 注意事项
+- 目录不存在时跳过该年（`continue`），不报错；但 `MINPA_list.txt` 会被**覆盖**。
+- 中间变量 `time_range` 被计算但**未被使用**（保留供后续筛选扩展）。
+"""
 function build_file_list()
     files = []
     println(files)
@@ -35,14 +52,48 @@ function build_file_list()
     end
     return nothing
 end
-"""读取 MINPA 本地文件清单。"""
+"""
+    read_list() -> Vector{String}
+
+读取 MINPA 本地文件清单（`MINPA_list.txt`）并拼上根目录，返回完整路径。
+
+# 功能与算法概述
+逐行读取清单中的相对路径，再用广播把 `root_path` 拼到每个路径前。
+
+# 参数说明
+- 无参数；依赖全局 `root_path`。
+
+# 返回值
+- `Vector{String}`: 所有 MINPA 数据文件的完整路径。
+
+# 注意事项
+- 需先执行 `build_file_list()` 生成清单，否则报 `SystemError`。
+"""
 function read_list()
     list_path = root_path*"List/"*"MINPA_list.txt"
     files = readlines(list_path)
     files = root_path.*files  
     return files
 end
-"""读取并解码指定的 MINPA mod1 数据文件。"""
+"""
+    load_mod1(filename::String) -> Dict{Symbol, Any}
+
+读取并解码指定的 MINPA mod1 数据文件，补齐质量数、能量、极角与方位角网格。
+
+# 功能与算法概述
+用 `readdlm` 载入原始通量后，按硬编码的质量/能量/角度网格重塑为
+`(ntime, nmass, nφ, nθ, nenergy)` 五维数组，并用中心差分求各维间隔，最后打包为结果字典。
+
+# 参数说明
+- `filename::String`: MINPA mod1 文件的完整路径。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含能量/角度/质量网格及其间隔、原始通量等键。
+
+# 注意事项
+- 网格常量（质量通道、能量值、角度）硬编码，仪器标定版本变化时需同步修改。
+- 能量体积元 `denergy` 的定义存疑（见代码注释），使用前建议校对。
+"""
 function load_mod1(filename::String)
     data = DataFrame(readdlm(filename), :auto)
     mass = [1,2,4,16,28,32,44,64]
@@ -157,20 +208,27 @@ function load_mod1(filename::String)
     )
     return data_dict
 end
-function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, IS单位制
-    E0 = 938313.53 * AMU  # 质子静止能量 MeV
-    γ= energy*1e-3/E0 + 1.0
-    β=sqrt(1.0 - 1.0 / γ^2)
-    v = β * 3e8
-    return v
-end
-function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制,返回eV
-    E0 = 938313.53 * AMU
-    β  = v / 3e8
-    γ = 1.0 / sqrt(1.0 - β^2)
-    energy = (γ - 1.0) * E0 * 1e3
-    return energy
-end
+"""
+    MINPA_sphere2xyz(r, θ, ϕ) -> SVector{3}
+
+将 MINPA 仪器球坐标 `(r, θ, ϕ)` 转换为笛卡尔向量（弧度制输入）。
+
+# 功能与算法概述
+先做视场方向反演（`θ→π/2−θ`、`ϕ→2π−ϕ`）再按球坐标展开，返回 `SVector{3}`
+以便广播调用。
+
+# 参数说明
+- `r`: 速率/半径（与坐标同尺度，通常为 km/s）。
+- `θ`: MINPA 极角（**弧度**）。
+- `ϕ`: MINPA 方位角（**弧度**）。
+
+# 返回值
+- `SVector{3}`: 笛卡尔分量 `(x, y, z)`。
+
+# 注意事项
+- 本函数不含最终反号步骤，调用方需自行 `vv .*= -1.0`（见 `MINPA_energy2v`）。
+- 与 `common/function_coordinate.MINPA_sphere2xyz`（`SVector` 入参、角度制、内置反号）数学等价但接口不同。
+"""
 function MINPA_sphere2xyz(r,θ,ϕ) # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
     local theta = 0.5π - θ #由于数据是视野方向，所以需要反向
     local phi = 2π - ϕ
@@ -186,11 +244,32 @@ function MINPA_sphere2xyz(r,θ,ϕ) # 转换为仪器坐标系下的情况/ref: h
     local y = -r * st * cp
     local z = -r * st * sp
 
-    return [x,y,z]
+    return SVector(x, y, z)
 end
+"""
+    MINPA_xyz2sphere(x, y, z) -> SVector{3}
+
+将笛卡尔向量反算为 MINPA 仪器球坐标 `(r, θ, ϕ)`（弧度制输出），是 `MINPA_sphere2xyz` 的逆变换。
+
+# 功能与算法概述
+由模长与 Y-Z 平面投影求出中间角量，经 `atan` 得极角/方位角后再做视场方向反演，
+返回 `SVector{3}`。
+
+# 参数说明
+- `x`: 笛卡尔 X 分量。
+- `y`: 笛卡尔 Y 分量。
+- `z`: 笛卡尔 Z 分量。
+
+# 返回值
+- `SVector{3}`: `(r, θ, ϕ)`，角度为**弧度**制。
+
+# 注意事项
+- 当 `r == 0` 或 `r_st == 0`（向量沿 X 轴）时出现除零，得到 `NaN`；调用方需自行过滤。
+- 本函数当前在仓库内**无调用者**（保留供反变换校验使用）。
+"""
 function MINPA_xyz2sphere(x,y,z) # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
-    local r = norm([x,y,z])
-    local st = norm([y,z]) / r
+    local r = hypot(x, y, z)
+    local st = hypot(y, z) / r
     local ct = x / r
     local r_st = r*st
     local cp = -y/r_st
@@ -201,7 +280,7 @@ function MINPA_xyz2sphere(x,y,z) # 转换为仪器坐标系下的情况/ref: htt
     local θ = 0.5π - θ #反转回仪器的视野方向
     local ϕ = 2π - ϕ
 
-    return [r,θ,ϕ]
+    return SVector(r, θ, ϕ)
     
     # include(Package_path * "TW_data/TW_MINPA.jl");import .TW_MINPA; 已经验证反变换的可靠性
     # x1,y1,z1 = 1,10,-12
@@ -209,6 +288,26 @@ function MINPA_xyz2sphere(x,y,z) # 转换为仪器坐标系下的情况/ref: htt
     # x,y,z = TW_MINPA.MINPA_sphere2xyz(r,t,p)
     # @show norm([x,y,z] .- [x1,y1,z1])
 end
+"""
+    MINPA_energy2v(dat; m_int=1) -> (Array, Array)
+
+由能量、角度与质量数网格计算速度空间网格（单位 km/s），并完成视场方向反号。
+
+# 功能与算法概述
+由能道换算速率 `v0 = √(2eE/(mₚ·m_int))/1e3`，再用 `MINPA_sphere2xyz` 广播成
+三维方向向量并整体反号，得到粒子速度网格。
+
+# 参数说明
+- `dat`: 含 `:energy`、`:theta`、`:phi`、`:nenergy`、`:ntheta`、`:nphi` 的 MINPA 数据字典。
+- `m_int`: 质量数（AMU），默认 1（质子）。
+
+# 返回值
+- `(vv, v0)`: `vv` 为三维速度向量网格（元素为 `SVector{3}`，km/s），`v0` 为速度幅值网格。
+
+# 注意事项
+- `.*= -1.0` 是**广播重绑定**（重新分配内层数组），不修改原 `SVector`。
+- 非相对论公式；高能通道误差随能量增大而增大。
+"""
 function MINPA_energy2v(dat;m_int=1) #  取得质量数为m_int的速度分布,单位km/s
     nenergy = dat[:nenergy]
     ntheta = dat[:ntheta]
@@ -218,7 +317,7 @@ function MINPA_energy2v(dat;m_int=1) #  取得质量数为m_int的速度分布,�
     theta = reshape(dat[:theta],1,ntheta,1)
     phi = reshape(dat[:phi],nphi,1,1)
     
-    v0 = sqrt.(2 .*Q ./(mp.*m_int).*energy)./1e3#TW_MINPA.ion_energy2v.(energy1,m_int)./1e3
+    v0 = sqrt.(2 .* constants.e ./ (constants.mp .* m_int) .* energy) ./ 1e3
     vv = MINPA_sphere2xyz.(v0,theta,phi)# 内含角度修正
 
     # vv = stack(vv,dims=1)
@@ -230,6 +329,25 @@ function MINPA_energy2v(dat;m_int=1) #  取得质量数为m_int的速度分布,�
     vv .*= -1.0 #视场方向反向于实际方向
     return vv,v0
 end
+"""
+    MINPA_get_psd(dat) -> Dict{Symbol, Any}
+
+由微分方向通量计算相空间密度（PSD）并原地写入 `dat[:psd]`。
+
+# 功能与算法概述
+把方向通量单位由 `cm⁻²` 换算为 `m⁻²` 后乘尺度因子 `0.5·m²/E·(mₚ/e)²`
+（等价于除以 `v⁴` 再乘 2），得到 PSD。
+
+# 参数说明
+- `dat`: 含 `:differential_flux`、`:energy`、`:mass`、`:nenergy`、`:nmass` 的数据字典。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:psd` 键的同一字典（**原地修改**）。
+
+# 注意事项
+- `energy` 为 `0` 时会产生 `Inf`，建议先屏蔽无效能量通道。
+- 本函数与 `MarsCommon.ion_eflux_to_psd*` 使用不同的近似约定，不可直接互换。
+"""
 function MINPA_get_psd(dat) # 通过角度，能量，质量数，计算PSD
 
     # ntime = dat[:ntime]
@@ -247,13 +365,35 @@ function MINPA_get_psd(dat) # 通过角度，能量，质量数，计算PSD
 
     # flux = dflux.*energy #方向通量J=jE m^-2 s^-1 sr^-1
 
-    Const = 0.5*(mp / Q)^2
+    Const = 0.5 * (constants.mp / constants.e)^2
     Scale = mass.^2 ./ energy .*Const # 方向通量除以速度4次方乘2
     F = dflux .* Scale
 
     dat[:psd] = F  # 单位 IS
     return dat
 end
+"""
+    v3d(dat) -> (vel, flux, den)
+
+由全时段 MINPA 数据积分得到三维速度、通量与密度时间序列。
+
+# 功能与算法概述
+把方向通量乘能量得 `J`，在 `(θ, φ, E)` 上以立体角 `sinθ·dθ·dφ` 加权求和得到
+零阶与一阶速度矩，归一化并做单位换算，最后整体反号以修正视场与速度方向相反。
+
+# 参数说明
+- `dat`: MINPA 数据字典，需含 `:differential_flux`、`:energy`、`:theta`、`:phi`、`:mass`、`:dtheta`、`:dphi` 与各维度长度 `:ntime`/`:nmass`/`:ntheta`/`:nphi`/`:nenergy`。
+
+# 返回值
+- `(vel, flux, den)`:
+  - `vel`: `(ntime,nmass,3)`，速度，**km/s**；
+  - `flux`: `(ntime,nmass,3)`，通量，`cm⁻²s⁻¹`；
+  - `den`: `(ntime,nmass)`，密度，`cm⁻³`。
+
+# 注意事项
+- 视场方向与速度方向相反（`θ' = −θ`、`φ' = φ + π`），本实现通过镜像与最后的整体反号完成修正。
+- 积分**未使用** `denergy`（改用 `0.2/2` 的经验能道宽度），与 `load_mod1` 返回的 `denergy` 不一致。
+"""
 function v3d(dat) # 通过角度，能量，质量数，计算PSD
     dflux = dat[:differential_flux]
 
@@ -277,7 +417,7 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
     vel = zeros(ntime,nmass,3)
     den = zeros(ntime,nmass)
 
-    velocity = sqrt.(2 .*Q ./(mp.*mass).*energy)# 不同能量对应的速度
+    velocity = sqrt.(2 .* constants.e ./ (constants.mp .* mass) .* energy)# 不同能量对应的速度
 
     # 由于此处θ、φ表示的是视场接收的方向，但相空间分布函数表示的应为速度方向θ',φ',两者方向相反，关系为：θ'=-θ，φ'=φ+Π
 
@@ -313,6 +453,29 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
     
     return vel,flux,den #速度(ntime,nmass,3),km/s,通量，cm^-2s^-1, 密度(ntime,nmass),cm^-3
 end
+"""
+    v3d_single(dat, time_ind) -> (vel, flux, den)
+
+对单个时刻的 MINPA 切片积分得到三维速度、通量与密度。
+
+# 功能与算法概述
+逻辑与 `v3d` 相同但去掉时间维度：对 `(θ, φ, E)` 做同样的立体角加权求和得到速度矩，
+归一化、单位换算后整体反号。
+
+# 参数说明
+- `dat`: MINPA 数据字典（同 `v3d`）。
+- `time_ind`: 时间索引（行的下标）。
+
+# 返回值
+- `(vel, flux, den)`:
+  - `vel`: `(nmass,3)`，速度，**km/s**；
+  - `flux`: `(nmass,3)`，通量，`cm⁻²s⁻¹`；
+  - `den`: `(nmass,)`，密度，`cm⁻³`。
+
+# 注意事项
+- 适合逐时刻循环调用；大量时刻时可用 `v3d` 一次性向量化。
+- 与 `v3d` 一样未使用 `denergy`，而采用经验能道宽度 `0.2/2`。
+"""
 function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PSD
     dflux = dat[:differential_flux][time_ind,:,:,:,:]
 
@@ -336,7 +499,7 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     vel = zeros(nmass,3)
     den = zeros(nmass)
 
-    velocity = sqrt.(2 .*Q ./(mp.*mass).*energy)# 不同能量对应的速度
+    velocity = sqrt.(2 .* constants.e ./ (constants.mp .* mass) .* energy)# 不同能量对应的速度
 
     # 由于此处θ、φ表示的是视场接收的方向，但相空间分布函数表示的应为速度方向θ',φ',两者方向相反，关系为：θ'=-θ，φ'=φ+Π
 
@@ -372,7 +535,26 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     
     return vel,flux,den #速度(ntime,nmass,3),km/s,密度(ntime,nmass),cm^-3
 end
-"""根据两个方向向量计算二维切片的旋转矩阵。"""
+"""
+    slice2d_cal_rot(v1, v2)
+
+根据两个方向向量计算二维切片的局部坐标系旋转矩阵。
+
+# 功能与算法概述
+对两向量归一化后叉积得切片法向，再构造右手正交基并组装旋转矩阵，
+用于把三维数据投影到指定平面。
+
+# 参数说明
+- `v1`: 切片平面的第一参考方向。
+- `v2`: 切片平面的第二参考方向（与 `v1` 不共线）。
+
+# 返回值
+- `Matrix`: 由 `(a, b, c)` 正交基组装的三维旋转矩阵 `rot`。
+
+# 注意事项
+- 与 `common/function_coordinate.slice2d_cal_rot` **功能重叠**（本文件内为模块私有副本），
+  统一后建议只保留 common 中的版本。
+"""
 function slice2d_cal_rot(v1, v2)
     a = normalize(v1)
     d = normalize(v2)

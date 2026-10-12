@@ -10,12 +10,39 @@ MAVEN_load.change_kp_read_data(Dict(
     "Orbit Number"    =>210,
 ));
 
-"""按日期读取 MAVEN KP 轨道数据。"""
+"""
+    get_data(date) -> Dict{Symbol, Any}
+
+按日期读取 MAVEN KP 轨道数据。
+
+# 参数说明
+- `date`: 目标日期。
+
+# 返回值
+- `Dict{Symbol, Any}`: KP 数据字典（含 `:time` 与 `"Orbit Number"` 等）。
+
+# 注意事项
+- 依赖模块 `MAVEN_load` 已载入且已配置 `kp_dict`。
+"""
 function get_data(date)
     datas_dict = MAVEN_load.data_get_from_date(date, model_index = ["KP"])
     return datas_dict["KP"]
 end
-"""根据轨道号序列计算各轨道对应的时间范围。"""
+"""
+    time_by_orbits(time_kp, Orbit_Number) -> (Vector, Vector)
+
+根据轨道号序列计算各轨道对应的时间范围。
+
+# 功能与算法概述
+取唯一轨道号并剔除跨日轨道后，对每个轨道取其首末时间构成时间区间。
+
+# 参数说明
+- `time_kp`: 时间序列。
+- `Orbit_Number`: 与时间对应的轨道号序列。
+
+# 返回值
+- `(orbits, time_ranges)`: 轨道号列表与对应时间区间列表。
+"""
 function time_by_orbits(time_kp,Orbit_Number)
     #掐头去尾
     unique_elements = unique(Orbit_Number)
@@ -34,7 +61,17 @@ function time_by_orbits(time_kp,Orbit_Number)
     println(date_str,": done")
     return orbits,time_ranges
 end
-"""合并相邻日期数据中的时间和轨道号序列。"""
+"""
+    val_combine(datas_dict_1, datas_dict_2) -> (Vector, Vector)
+
+合并相邻日期数据中的时间与轨道号序列。
+
+# 参数说明
+- `datas_dict_1`, `datas_dict_2`: 相邻两日的 KP 数据字典。
+
+# 返回值
+- `(time_kp, Orbit_Number)`: 拼接后的时间与轨道号序列。
+"""
 function val_combine(datas_dict_1,datas_dict_2)
 
     Orbit_Number_1 = datas_dict_1["Orbit Number"]

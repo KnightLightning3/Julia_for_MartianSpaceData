@@ -9,7 +9,20 @@ import .MAVEN_plot;
 import .MAVEN_STATIC;
 """从 MAG 位置序列计算航天器在 MSO 坐标系中的速度。"""
 @inline function get_vsc(mag)
-    """使用局部二次拟合求位置数据对时间的导数。"""
+    """
+        quadratic_fitted_derivative(x, y) -> Vector{Float32}
+
+    使用局部二次拟合求位置数据对时间的导数。
+
+    # 功能与算法概述
+    对每个内部点用相邻三点拟合二次多项式并取其在中心点的导数；边界点用单侧三点外推。
+
+    # 参数说明
+    - `x`, `y`: 自变量（时间）与因变量（位置分量）。
+
+    # 返回值
+    - `Vector{Float32}`: 各点的导数（首尾用单侧拟合）。
+    """
     function quadratic_fitted_derivative(x, y)
         n = length(x)
         dy = NaN32 * ones(n)  # 初始化导数结果为 NaN

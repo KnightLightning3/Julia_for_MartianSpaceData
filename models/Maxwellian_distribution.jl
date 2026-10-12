@@ -2,44 +2,75 @@
 
 module Maxwellian_Distribution
 # dir = dirname(dirname(@__FILE__))
-# include(dir*"/models/constants.jl")
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 using LinearAlgebra
 using Statistics
-const e    = 1.6e-19
-const me   = 9.1093837e-31
-const mp   = 1.67262192e-27
-const μ0   = 4e-7 * π
-const q2me = -e / me
-const q2mp = e / mp
-const RAD=1.0 / 180 * π
-const eV=1.602176487e-19
-const c=3e8
-const κ = 1.38064852e-23  # 玻尔兹曼常数
 
 
-#----------速度模概率分布 单位: 1/unit.velocity------------
-function velocity_distribution(v,T;m=mp)
+"""
+    velocity_distribution(v, T; m=constants.mp) -> Real
+
+计算**速度模概率分布函数** `f(v)`（Maxwell–Boltzmann），单位 `1/(速度单位)`。
+
+# 功能与算法概述
+标准三维 Maxwell–Boltzmann 速率模分布 `f(v) = 4π(a/π)^{3/2}v²exp(−av²)`（`a = m/2k_BT`）。
+
+# 参数说明
+- `v`: 粒子速度（m/s），标量或数组。
+- `T`: 温度（**K**）。
+- `m`: 粒子质量（**kg**），默认质子质量 `constants.mp`。
+
+# 返回值
+- 速度模分布函数值，量纲为 `1/(m/s)`，形状与 `v` 一致。
+
+# 备注
+- 本函数为**非漂移**麦克斯韦分布；含漂移或含数密度的形式参见
+  `velocity_density_distribution`。
+- 高能尾巴衰减极快（指数平方），拟合时建议在**对数域**进行。
+"""
+function velocity_distribution(v,T;m=constants.mp)
     # 计算速度模分布函数 对数域
     # v: 速度
     # T: 温度 (开尔文)
     # m: 粒子质量 (kg)
-    a1 = m / (2 * κ * T)
+    a1 = m / (2 * constants.k_B * T)
     fv = 4π * (a1 / π)^1.5 * v^2 * exp(-a1 * v^2)
     return fv
 end
-"""拟合速度分布数据并返回 Maxwell 分布参数。"""
-function fit_velocity_distribution(v, fv; fit_function=:Linear,m=mp)
+"""
+    fit_velocity_distribution(v, fv; fit_function=:Linear, m=constants.mp) -> NamedTuple
+
+用**线性最小二乘**拟合速度模分布数据，反演 Maxwell 分布的温度等参数。
+
+# 功能与算法概述
+把分布取对数并除以 `v²` 线性化，再用普通最小二乘（正规方程）拟合直线斜率，由 `a1 = m/(2k_BT)` 反演温度，并给出 `SSR` 与 `R²` 作为拟合优度。
+
+# 参数说明
+- `v`: 速度采样点（m/s）。
+- `fv`: 对应的速度模分布值，须为**正值**（将取对数）。
+- `fit_function`: 拟合方式选择位，目前仅实现 `:Linear`。
+- `m`: 粒子质量（kg），默认质子。
+
+# 返回值
+- `NamedTuple`: `(T_estimated, C_fit, a1_fit, ssr, r_squared)`。
+
+# 注意事项
+- `fv` 中若含 `0` 或负值，`log` 将产生 `−Inf`/`NaN`，建议先过滤无效点。
+- 线性化会**放大低信号点**的权重，高能尾巴噪声可能显著影响结果；
+  对噪声数据建议改用 `fit_velocity_distribution_nonlinear`。
+"""
+function fit_velocity_distribution(v, fv; fit_function=:Linear,m=constants.mp)
     # 拟合计算速度分布函数 对数域, 默认粒子为质子
     Y = log.(fv ./ (v.^2))
     X = hcat(ones(length(v)), v.^2)
     P = (X' * X) \ (X' * Y)
     C_fit, neg_a1_fit = P
     a1_fit = -neg_a1_fit
-    T_estimated = m / (2 * κ * a1_fit)
+    T_estimated = m / (2 * constants.k_B * a1_fit)
 
     # 估计温度
     # 确保 a1_fit 为正，否则无法计算有效温度
-    T_estimated = (a1_fit > 0) ? (m / (2 * κ * a1_fit)) : NaN
+    T_estimated = (a1_fit > 0) ? (m / (2 * constants.k_B * a1_fit)) : NaN
 
     # --- 计算拟合优度指标 ---
     # 预测值 Y_predicted
@@ -69,18 +100,60 @@ function fit_velocity_distribution(v, fv; fit_function=:Linear,m=mp)
 
     # return T_estimated
 end
-#----------速度模密度分布 单位 unit.density/(unit.velocity)^3------------
-function velocity_density_distribution(v, T, N0; m=mp, v0 = 0)
+"""
+    velocity_density_distribution(v, T, N0; m=constants.mp, v0=0) -> Real
+
+计算含**数密度**与**漂移速度**的 Maxwell 速度模**密度**分布 `fd(v)`。
+
+# 功能与算法概述
+带数密度与漂移速度的 Maxwell 速度模密度分布 `fd(v) = N0(a/π)^{3/2}exp(−a(v−v0)²)`。
+
+# 参数说明
+- `v`: 粒子速度（m/s）。
+- `T`: 温度（**K**）。
+- `N0`: 总粒子数密度（与最终单位一致的密度量）。
+- `m`: 粒子质量（kg），默认质子。
+- `v0`: 漂移速度（m/s），默认 0（静止系）。
+
+# 返回值
+- 速度模密度分布值，形状与 `v` 一致。
+
+# 备注
+- 拟合后的参数可经 `fit_velocity_density_distribution` 返回的 `fit_function` 直接用于重绘模型曲线。
+"""
+function velocity_density_distribution(v, T, N0; m=constants.mp, v0 = 0)
     # 计算速度模密度分布函数 对数域
     # v: 速度
     # T: 温度 (开尔文)
     # m: 粒子质量 (kg)
-    a1 = m / (2 * κ * T)
+    a1 = m / (2 * constants.k_B * T)
     fd = N0*(a1 / π)^1.5 * exp(-a1 * (v-v0)^2)
     return fd
 end
-"""拟合含数密度和漂移速度的 Maxwell 速度分布。"""
-function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0)
+"""
+    fit_velocity_density_distribution(v, fd; fit_function=:Linear, m=constants.mp, v0=0) -> NamedTuple
+
+用**线性最小二乘**拟合带数密度与漂移速度的 Maxwell 速度密度分布。
+
+# 功能与算法概述
+对数域线性化后用普通最小二乘拟合，由截距与斜率同时反演数密度与温度（`v0` 需外部给定）。
+
+# 参数说明
+- `v`: 速度采样点（m/s）。
+- `fd`: 对应的速度密度分布值，须为**正值**。
+- `fit_function`: 拟合方式选择位，目前仅实现 `:Linear`。
+- `m`: 粒子质量（kg），默认质子。
+- `v0`: **已知的**漂移速度（m/s）；本线性方法不平反演 `v0`。
+
+# 返回值
+- `NamedTuple`: `(T_estimated, N_estimated, C_fit, a1_fit, v0_estimated, ssr, r_squared, fit_function)`；
+  失败时除 `fit_function` 外的字段均为 `NaN`。
+
+# 注意事项
+- `v0` 必须由外部给定；若需同时拟合漂移速度，请改用 `fit_velocity_distribution_nonlinear`。
+- `fd` 中不得含 `0` 或负值（否则对数发散）。
+"""
+function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=constants.mp,v0=0)
     if length(fd) <= 1
         @warn "数据点不够"
         return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN)
@@ -91,7 +164,7 @@ function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0
     P = (X' * X) \ (X' * Y)
     C_fit, neg_a1_fit = P
     a1_fit = -neg_a1_fit
-    T_estimated = m / (2 * κ * a1_fit)
+    T_estimated = m / (2 * constants.k_B * a1_fit)
 
     # 估计温度
     # 确保 a1_fit 为正，否则无法计算有效温度
@@ -99,7 +172,7 @@ function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0
         @warn "拟合为负值"
         return (T_estimated = NaN, N_estimated=NaN,C_fit = NaN, a1_fit = NaN, ssr = NaN, r_squared = NaN,v0_estimated = NaN,fit_function = vs-> NaN)
     end
-    T_estimated = (a1_fit > 0) ? (m / (2 * κ * a1_fit)) : NaN
+    T_estimated = (a1_fit > 0) ? (m / (2 * constants.k_B * a1_fit)) : NaN
 
     # 估计总密度
     N_estimated = exp(C_fit) / (1/π * a1_fit)^(3/2)
@@ -142,10 +215,44 @@ function fit_velocity_density_distribution(v, fd; fit_function=:Linear,m=mp,v0=0
 end
 using LsqFit, LinearAlgebra
 
-# 定义拟合模型函数 (在对数域)
-# v 是自变量数据 (速度值)
-# p 是参数数组: p[1] = ln(C), p[2] = a1, p[3] = v0
-function fit_velocity_distribution_nonlinear(v, fd; m=mp)
+"""
+    fit_velocity_distribution_nonlinear(v, fd; m=constants.mp) -> NamedTuple
+
+用**非线性最小二乘**（Levenberg–Marquardt）在对数域拟合 Maxwell 速度分布，**同时反演**
+温度、数密度与漂移速度。
+
+# 功能与算法概述
+以 `ln f_max`、`mean(v)` 与 100 eV 温度先验作初值，用 Levenberg–Marquardt（`LsqFit.curve_fit`）在对数域同时拟合截距、`a1` 与漂移速度。
+
+# 参数说明
+- `v`: 速度采样点（m/s）。
+- `fd`: 对应的速度分布值（正）。
+- `m`: 粒子质量（kg），默认质子。
+
+# 返回值
+- `NamedTuple`: 含 `T_estimated`、`N_estimated`、`C_fit`、`a1_fit`、`v0_estimated`、`ssr`、`r_squared`
+  以及可直接调用的 `fit_function`。
+
+# 注意事项
+- 相比线性化方法，本函数可**同时拟合漂移速度** `v0`，但需要合理初值，否则可能收敛到局部极小。
+- 依赖 `LsqFit`；初值 `T_init = 100 eV` 对火星电离层类等离子体较合适，极端温度下建议调整。
+"""
+function fit_velocity_distribution_nonlinear(v, fd; m=constants.mp)
+    """
+        log_maxwellian_model(v, p)
+
+    对数域 Maxwell 分布模型函数，供 `LsqFit.curve_fit` 调用。
+
+    # 功能与算法概述
+    对数域的抛物线模型 `ln f(v) = C − a1(v−v0)²`，供 `LsqFit.curve_fit` 作回归函数。
+
+    # 参数说明
+    - `v`: 自变量速度数据（m/s）。
+    - `p`: 长度为 3 的参数向量 `(C_fit, a1_fit, v0_fit)`。
+
+    # 返回值
+    - 模型预测的对数分布值，形状与 `v` 一致。
+    """
     function log_maxwellian_model(v, p)
         C_fit, a1_fit, v0_fit = p
         # 模型: log(f(v)) = C_fit - a1_fit * (v - v0_fit)^2
@@ -166,8 +273,8 @@ function fit_velocity_distribution_nonlinear(v, fd; m=mp)
     
     # 估算 a1_fit (从温度估算)
     # 假设一个合理的初始温度 T_init，例如 10 eV 或 10^5 K
-    T_init = 100.0 * 1.602e-19 / κ # 假设 100 eV (转换为 K)
-    a1_init = m / (2 * κ * T_init)
+    T_init = 100.0 * constants.eV / constants.k_B # 假设 100 eV (转换为 K)
+    a1_init = m / (2 * constants.k_B * T_init)
     
     # 初始参数向量 p0
     p0 = [C_init, a1_init, v0_init]
@@ -190,7 +297,7 @@ function fit_velocity_distribution_nonlinear(v, fd; m=mp)
     end
 
     # 温度 T 的估计
-    T_estimated = m / (2 * κ * a1_fit)
+    T_estimated = m / (2 * constants.k_B * a1_fit)
 
     # 密度 N 的估计 (假设拟合的是三维分布的截面 f(vx, 0, 0))
     # N = exp(C_fit) * (π / a1_fit)^(3/2)

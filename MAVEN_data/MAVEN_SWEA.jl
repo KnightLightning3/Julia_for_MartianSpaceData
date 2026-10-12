@@ -2,15 +2,14 @@
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
 # 默认能量单位: EV. 默认粒子质量单位:AMU
 module MAVEN_SWEA
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 using TimesDates, Dates
 using Statistics
-# using Quaternions
 using Rotations
 using CommonDataFormat
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d
-# export ion_energy2v,ion_v2energy
 #---------------------------初始化-------------------------------- 由于SWIA的糟糕数据,需要对其读取后进行初始化处理
 # function mvn_swe_getspec()
 
@@ -25,9 +24,30 @@ using CommonDataFormat
 
 
 # end
+"""
+    n1d(dat; energy_range=[0,1e8], sc_pot=0) -> Vector{Float64}
+
+由 SWEA 电子能谱计算电子数密度（cm⁻³）。
+
+# 功能与算法概述
+参考 SPEDAS 的 `mvn_swe_n1d`：对能谱乘立体角与能量幂律因子
+`4π·1e-5·√(m/2)·dE·√(1−eΦ/E)·E^(-3/2)` 后沿能量维求和；假定电子为各向同性分布。
+
+# 参数说明
+- `dat`: SWEA 数据字典，需含 `:energy`（64 能道）、`:diff_en_fluxes`。
+- `energy_range`: 能量窗（当前实现未用于掩膜，保留参数）。
+- `sc_pot`: 航天器电位（eV），用于低能截断修正。
+
+# 返回值
+- `Vector{Float64}`: 各时刻的电子密度（cm⁻³）。
+
+# 注意事项
+- 能道间隔 `dE` 用相邻能道的半间距近似（首尾单侧）。
+- 常量 `tiny = 1.0-31` 为笔误（疑应为 `1e-31`），但 `ff` 截断使其暂不影响结果。
+"""
 function n1d(dat;energy_range=[0,1e8],sc_pot=0) #projects/maven/swea/mvn_swe_n1d.pro
 
-    mass = 5.6856296585483802e-6                    # electron rest mass [eV/(km/s)^2]
+    mass = constants.me_eV_per_km_s2
     c1 = (mass/(2*π))^1.5
     c2 = (2e5/(mass*mass))
     c3 = 4.0*π*1e-5*sqrt(mass/2.0)  # assume isotropic electron distribution
@@ -66,6 +86,23 @@ function n1d(dat;energy_range=[0,1e8],sc_pot=0) #projects/maven/swea/mvn_swe_n1d
     dens = sum(N_j,dims=2)[:,1] # sum over energy bins
     return dens
 end
+"""
+    load_quat(filename::String) -> Matrix{Float64}
+
+读取 IDL 导出的 CSV 姿态数据（ut + 4 个矩阵元素）。
+
+# 功能与算法概述
+先统计行数预分配 `n×5` 矩阵，再按固定字符列宽解析每行的 `ut` 与 4 个浮点数。
+
+# 参数说明
+- `filename::String`: 文件路径（格式 `(I10,1x,4(f14.10,1x),4(f14.10,1x))`）。
+
+# 返回值
+- `Matrix{Float64}`: `n×5`，各列为 `ut` 与 4 个矩阵元素。
+
+# 注意事项
+- 采用固定字符列宽切片解析，列位置须与 IDL 导出格式严格一致。
+"""
 function load_quat(filename::String)#读取idl导出的quat数据
     # 数据格式, filename = file.csv ut, scrotmat, msorotmat, format="(I10,1x,4(f14.10,1x),4(f14.10,1x))"
     # 统计行数以预分配矩阵
@@ -94,63 +131,6 @@ function load_quat(filename::String)#读取idl导出的quat数据
     
     return data
 end
-function rotate_vector_with_Martrix(in_data,Rotation_Martrix) # inv
-    out_data = Rotation_Martrix * in_data
-    return out_data
-end
-function eflux2df!(dat) #projects/maven/swia/mvn_swia_convert_units.pro, 返回单位:1/(cm^3-(km/s)^3)
-    energy = reshape(dat[:energy],1,1,1,48)
-    mass = dat[:mass]
-    df = dat[:diff_en_fluxes] ./ (energy.^2 * 2.0 ./mass./mass.*1e5)
-    dat[:df] = df
-    return dat
-end
-function sphere2xyz_for_SWIA(r,θ,ϕ) #general/science/sphere_to_cart.pro
-    local ct = cosd(θ)
-    x = r * ct *  cosd(ϕ)
-    y = r * ct *  sind(ϕ)
-    z = r * sind(θ)
-    # local st = sind(θ)
-    # x = r * st *  cosd(ϕ)
-    # y = r * st *  sind(ϕ)
-    # z = r * cosd(θ)
-    return [x,y,z]
-end;
-"""将 SWEA 坐标系下的笛卡尔向量转换为球坐标。"""
-function xyz2sphere_for_SWIA(x,y,z)
-    r=sqrt(x^2 + y^2 + z^2)
-    theta = 90.0 - acosd(z/r)
-    phi = atand(y, x)
-    return [r,theta,phi]
-end
-function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位制, 与STA方法差了1e3倍
-    E0 = 511.0 * m_int * 1836.23
-    γ =(energy * 1e-3 /E0 + 1)
-    β =sqrt(1.0 - 1.0 / γ^2)
-    V = β * C
-    F = 2 * eflux *1e4 / V^4
-    return F
-end
-function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, IS单位制
-    E0 = 938313.53 * AMU  # 质子静止能量 MeV
-    γ= energy*1e-3/E0 + 1.0
-    β=sqrt(1.0 - 1.0 / γ^2)
-    v = β * 3e8
-    return v
-end
-function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制
-    E0 = 938313.53 * AMU
-    β  = v / 3e8
-    γ = 1.0 / sqrt(1.0 - β^2)
-    energy = (γ - 1.0) * E0 * 1e3
-    return energy
-end
-const EV=1.602176487e-19
-const C=3.0e8
-const Me=9.109e-31
-const Mp=1.672621637e-27
-const RADG=180.0/π
-
 end
 
 # # -------------------------Test parts-------------------------

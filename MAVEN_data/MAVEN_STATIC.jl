@@ -3,14 +3,16 @@
 # 所有物理量,如果没有说明,输入输出皆为IS单位.  运算过程中可能会有归一化
 # 默认能量单位: EV. 默认粒子质量单位:AMU
 module MAVEN_STATIC
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 using TimesDates, Dates
 using Statistics
 using CommonDataFormat
+using StaticArrays
 
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d
-# export ion_energy2v,ion_v2energy
 
 
 ion_mass_range = Dict{String,Any}( # 由于STATIC仪器本身的分辨问题，仪器组建议以以下质量范围为离子的参考，m_int为比荷
@@ -45,7 +47,25 @@ ion_mass_range = Dict{String,Any}( # 由于STATIC仪器本身的分辨问题，�
         mass_range = [40,60],
     )
 )
+"""
+    static_c6_mass_mean(data; mass_range=[0,200]) -> Dict{Symbol, Any}
 
+对 c6 的 3D（不含角度）数据在质量维度做筛选求和，得到 EFlux–energy 谱。
+
+# 功能与算法概述
+按 `mass_range`（AMU）构造质量掩膜，对各时刻的 `eflux` 沿质量维求和，
+并给出掩膜内的能量加权平均值；输入含 `:df` 时同时输出按质量求和后的 `df`。
+
+# 参数说明
+- `data`: c6 数据字典，需含 `:epoch`、`:energy`、`:denergy`、`:eflux`、`:swp_ind`、`:apid`、`:mass_arr`、`:num_dists`、`:nmass`、`:nswp`、`:nenergy`。
+- `mass_range`: 质量窗 `[lo, hi]`（AMU），默认 `[0, 200]`。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:energy`（`nenergy×nswp`）、`:eflux`（`ntime×nenergy`）等键；输入含 `:df` 时额外含 `:df`。
+
+# 注意事项
+- 质量掩膜按各时刻实际扫参 `swp_ind` 映射，避免跨扫参污染。
+"""
 function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(不包括角度信息)
     # energy_spec为在mass维度做求和,得到eflux,energy谱
     # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
@@ -103,6 +123,22 @@ function static_c6_mass_mean(data;mass_range=[0,200])  # static 3d数据处理(�
     end
     return return_data
 end
+"""
+    static_c6_energy_mean(data; energy_range=[0,1e6]) -> Dict{Symbol, Any}
+
+对 c6 的 3D（不含角度）数据在能量维度做筛选求和，得到 EFlux–mass 谱。
+
+# 功能与算法概述
+按 `energy_range`（eV）构造能量掩膜，对各时刻的 `eflux` 沿能量维求和，
+并给出掩膜内的质量加权平均值；输入含 `:df` 时同时输出按能量求和后的 `df`。
+
+# 参数说明
+- `data`: c6 数据字典，字段同 `static_c6_mass_mean`。
+- `energy_range`: 能量窗 `[lo, hi]`（eV），默认 `[0, 1e6]`。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:mass`（`nmass×nswp`）、`:eflux`（`ntime×nmass`）等键；含 `:df` 时额外输出 `:df`。
+"""
 function static_c6_energy_mean(data;energy_range=[0,1e6])  # static 3d数据处理(不包括角度信息)
     # 在energy维度做求和,得到eflux,mass谱
     # energy_range单位energy,不设置时默认计算所有energy的值
@@ -169,6 +205,24 @@ end
 #   'DF'     :  units = '1/(cm^3-(km/s)^3)'               ;particle distribution function in 6 dimensional (3 spatial, 3 velocity) phase space; note that MMS uses 1/(km^6/cm^3)
 
 # 使用一个变量记录(ntime,nbin,nenergy,nmass)的数据,计算时根据情况将数据转为对应4D数据
+"""
+    STA_count2df(dat) -> Dict{Symbol, Any}
+
+把 STATIC 单时刻计数数据换算为相空间密度（df）。
+
+# 功能与算法概述
+按 `df = (counts − bkg)·dead·m²/(2·1e5·dt·G·E²)`（`G = geom·eff·gf`）逐元素计算，
+并额外输出乘上 `mass_arr²` 的按质量归一的相空间密度。
+
+# 参数说明
+- `dat`: STATIC 单时刻切片字典，需含 `:nbins`、`:nenergy`、`:energy`、`:gf`、`:eff`、`:geom_factor`、`:time_integ`、`:mass`、`:mass_arr`、`:dead`、`:bkg`、`:data`。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:df_mass_mass`（未乘 `mass_arr²`）与 `:df` 的同一字典。
+
+# 注意事项
+- 单位为 SPEDAS 约定（df 为 `1/(cm³·(km/s)³)`），非 SI。
+"""
 function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     local nbins   = dat[:nbins]::Int16
     local nenergy = dat[:nenergy]::Int16
@@ -199,6 +253,24 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     # dat[:df_mass_mass] = df_t # 没有乘以质量的平方
     return dat
 end
+"""
+    STA_count2df_all(dat0) -> Dict{Symbol, Any}
+
+对 c6/d1 全时段计数数据一次性换算为相空间密度（df）。
+
+# 功能与算法概述
+先把 `gf`/`eff`/`mass`/`energy` 按各时刻的扫参/衰减/效率索引展开为四维广播数组，
+再逐元素计算 `df` 与乘质量平方的版本。
+
+# 参数说明
+- `dat0`: STATIC 全时段数据字典（字段同 `STA_count2df`，但含时间维）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:df`、`:df_mass_mass` 的同一字典。
+
+# 注意事项
+- 作者注释提示本函数**开销极大**，大规模数据建议改用新的批量实现。
+"""
 function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程序开销极大，考虑替换掉
     local dat = deepcopy(dat0)
     local ntime   = dat[:num_dists]
@@ -259,6 +331,21 @@ function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程�
     dat[:df_mass_mass] = scale .* tmp .* dat[:mass]^2
     return dat
 end
+"""
+    STA_count2eflux_all(dat) -> Dict{Symbol, Any}
+
+对全时段计数数据一次性换算为能量通量（eflux）。
+
+# 功能与算法概述
+按各时刻索引把 `gf`/`eff` 展开到四维后计算
+`eflux = (counts − bkg)·dead/(dt·geom·eff·gf)`，结果写入 `:eflux_from_count`。
+
+# 参数说明
+- `dat`: STATIC 全时段数据字典，需含 `:num_dists`、`:nmass`、`:nbins`、`:nenergy`、`:natt`、`:nswp`、`:neff`、`:time_integ`、`:dead`、`:bkg`、`:data`、`:gf`、`:eff`、`:geom_factor`、`:swp_ind`、`:att_ind`、`:eff_ind`。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:eflux_from_count` 的同一字典。
+"""
 function STA_count2eflux_all(dat) #计算df,对非时间切片数据
     local ntime   = dat[:num_dists]
 
@@ -295,7 +382,24 @@ function STA_count2eflux_all(dat) #计算df,对非时间切片数据
     dat[:eflux_from_count] = scale .* tmp
     return dat
 end
-"""将 STATIC 计数数据转换为能量通量。"""
+"""
+    STA_count2eflux(dat; m_int=m_int) -> Dict{Symbol, Any}
+
+把 STATIC 单时刻计数数据换算为能量通量（eflux）。
+
+# 功能与算法概述
+按 `eflux = (counts − bkg)·dead/(dt·geom·eff·gf)` 逐元素计算并写入 `:eflux`。
+
+# 参数说明
+- `dat`: STATIC 单时刻切片字典，需含 `:nbins`、`:nenergy`、`:gf`、`:eff`、`:geom_factor`、`:time_integ`、`:dead`、`:bkg`、`:data`。
+- `m_int`: 比荷/质量数（保留参数，当前未参与计算）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:eflux` 的同一字典。
+
+# 注意事项
+- 默认值引用未定义全局 `m_int`，显式传入更安全。
+"""
 function STA_count2eflux(dat;m_int=m_int)
     local nbins   = dat[:nbins]
     local nenergy = dat[:nenergy]
@@ -314,7 +418,24 @@ function STA_count2eflux(dat;m_int=m_int)
     dat[:eflux] = scale .* tmp
     return dat
 end
-"""将 STATIC 能量通量数据转换为相空间密度。"""
+"""
+    STA_eflux2df(dat; m_int=m_int) -> Dict{Symbol, Any}
+
+把 STATIC 能量通量数据换算为相空间密度（df）。
+
+# 功能与算法概述
+按 `df = eflux/(E²·2/m²·1e5)`（`m = mass·m_int`）逐元素换算并写入 `:df`。
+
+# 参数说明
+- `dat`: STATIC 单时刻切片字典，需含 `:energy`、`:mass`、`:eflux`。
+- `m_int`: 比荷/质量数，用于修正质量。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:df` 的同一字典。
+
+# 注意事项
+- 默认值引用未定义全局 `m_int`，显式传入更安全。
+"""
 function STA_eflux2df(dat;m_int=m_int)
     local energy = dat[:energy]
     local mass = dat[:mass].*m_int
@@ -323,6 +444,25 @@ function STA_eflux2df(dat;m_int=m_int)
     return dat
 end
 #数据切片
+"""
+    static_slip(dat, time_ind) -> Dict{Symbol, Any}
+
+取得 STATIC 数据在指定时刻的切片（不做时间插值）。
+
+# 功能与算法概述
+浅拷贝原字典后，把各字段按 `time_ind` 抽单时刻，半径方向的扫参字段（`energy`、`theta`、`phi`、`mass_arr`、`gf`、`eff` 等）再按该时刻的 `swp_ind`/`att_ind`/`eff_ind` 切片。
+
+# 参数说明
+- `dat`: STATIC 全时段数据字典。
+- `time_ind`: 目标时刻的索引。
+
+# 返回值
+- `Dict{Symbol, Any}`: 单时刻切片字典，供 `sta_v_4d` / `sta_n_4d` / `static_rotation` 等使用。
+
+# 注意事项
+- 采用 `@views` 生成视图而非拷贝，后续就地修改切片需注意别名效应。
+- 因平滑会引入插值误差，刻意不做时间插值。
+"""
 function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑
     local dat_slip =Dict{Symbol,Any}()
     for key in keys(dat)
@@ -376,10 +516,34 @@ function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_in
     return dat_slip
 end
 # 速度计算
+"""
+    sta_v_4d(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit="eflux", unit_cover=true)
+
+由 STATIC 切片（3D：mass×bins×energy）计算离子速度、通量与密度。
+
+# 功能与算法概述
+先由 `sc_pot` 修正能量并按质量/能量窗掩膜，在速度空间做立体角加权求和得到
+通量三分量与密度（速度矩法），再归一化得速度；`unit_cover=true` 时先经 `STA_count2df` 换算。
+
+# 参数说明
+- `dat`: `static_slip` 产生的单时刻切片。
+- `energy_range`: 能量窗 `[lo, hi]`（eV）。
+- `mass_range`: 质量窗 `[lo, hi]`（AMU）。
+- `m_int`: 比荷/质量数。
+- `unit`: 输入量类型（保留参数）。
+- `unit_cover`: 是否内部执行计数→df 的换算。
+
+# 返回值
+- `(vel, flux, density)`: 速度 `SVector{3}`（km/s）、通量 `SVector{3}`（cm⁻²s⁻¹）、密度（cm⁻³）。
+
+# 注意事项
+- `dat[:valid] == 0` 时返回全 `NaN`。
+- 沿用 SPEDAS 的立体角与几何约定。
+"""
 function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="eflux", unit_cover=true)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位km/s,cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
-        return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
+        return SVector(NaN, NaN, NaN), SVector(NaN, NaN, NaN), NaN
     end
     # Use distribution function
     # if unit !=:df
@@ -397,10 +561,10 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     end
     
     local denergy = dat[:denergy]
-    local theta = dat[:theta].*inv_RADG
-    local phi = dat[:phi] .*inv_RADG
-    local dtheta = dat[:dtheta] .*inv_RADG
-    local dphi = dat[:dphi] .*inv_RADG
+    local theta = dat[:theta] .* constants.inv_RADG
+    local phi = dat[:phi] .* constants.inv_RADG
+    local dtheta = dat[:dtheta] .* constants.inv_RADG
+    local dphi = dat[:dphi] .* constants.inv_RADG
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
@@ -421,15 +585,34 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     local Const = mass^(-1.5)*2.0^(0.5)
     local density = sum(Const.*denergy.*sqrt.(energy).*masked_data.*2.0.*cos.(theta).*sin.(dtheta./2.0).*dphi)
     #units are 1/cm^3
-    local flux = [flux3dx,flux3dy,flux3dz]
+    local flux = SVector(flux3dx, flux3dy, flux3dz)
     local vel = 1e-5 .* flux ./(density .+ 1e-10)
     #units are km/s
     return vel,flux,density
 end
-"""从 STATIC 四维分布计算离子速度矩和密度。"""
+"""
+    sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=true)
+
+`sta_v_4d` 的优化实现：单次遍历计算离子速度矩与密度。
+
+# 功能与算法概述
+用 `@views`+类型标注消除复制并把通量/密度的公共因子提到循环外，在单层 `@inbounds` 循环中
+累加密度与通量三分量，减少掩膜数组与中间分配，避免全数组广播。
+
+# 参数说明
+- `dat`: `static_slip` 产生的单时刻切片。
+- `energy_range` / `mass_range` / `m_int` / `unit_cover`: 同 `sta_v_4d`。
+
+# 返回值
+- `(vel, flux, density)`: 速度（km/s）、通量（cm⁻²s⁻¹）、密度（cm⁻³）。
+
+# 注意事项
+- 与 `sta_v_4d` 数值等价，但假定 `dat[:energy]` 等为 `Float32` 三维数组。
+- `dat[:valid] == 0` 时返回全 `NaN`。
+"""
 function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=true)
     # 1. 快速非法检查
-    dat[:valid] == 0 && return [NaN,NaN,NaN],[NaN,NaN,NaN],NaN
+    dat[:valid] == 0 && return SVector(NaN, NaN, NaN), SVector(NaN, NaN, NaN), NaN
 
     # 2. 提取数据并显式转换类型 (Type Anchoring)
     # 使用 @views 配合类型声明，确保后续索引不产生拷贝且编译器已知类型
@@ -449,7 +632,6 @@ function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, u
     # 3. 预计算常数 (减少循环内除法和乘法)
     const_flux = 2.0 / (mass * mass) * 1e5
     const_den  = (mass^(-1.5)) * (2.0^(0.5))
-    inv_RADG   = 1.0 / RADG  # 提前算好 1/RADG
 
     # 4. 初始化累加器
     density = 0.0
@@ -469,10 +651,10 @@ function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, u
             
             # --- 物理计算部分 ---
             
-            t_val  = theta[i] * inv_RADG
-            p_val  = phi[i] * inv_RADG
-            dt_val = dtheta[i] * inv_RADG
-            dp_val = dphi[i] * inv_RADG
+            t_val  = theta[i] * constants.inv_RADG
+            p_val  = phi[i] * constants.inv_RADG
+            dt_val = dtheta[i] * constants.inv_RADG
+            dp_val = dphi[i] * constants.inv_RADG
             
             # 公共中间项：data * denergy * dphi
             # 提取公共项可以减少 CPU 乘法指令次数
@@ -495,11 +677,31 @@ function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, u
     end
 
     # 6. 计算最终速度
-    flux = [f3dx, f3dy, f3dz]
+    flux = SVector(f3dx, f3dy, f3dz)
     vel  = 1e-5 .* flux ./ (density + 1e-10)
 
     return vel, flux, density
 end
+"""
+    sta_n_4d(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=false)
+
+由 STATIC 切片仅计算离子密度。
+
+# 功能与算法概述
+采用与 `sta_v_4d` 相同的能量/质量掩膜与速度空间积分，但只累加零阶矩
+`Σ √E·dE·cosθ·sin(dθ/2)·dφ·df` 得密度。
+
+# 参数说明
+- `dat`: `static_slip` 产生的单时刻切片。
+- `energy_range` / `mass_range` / `m_int` / `unit_cover`: 同 `sta_v_4d`。
+
+# 返回值
+- `Float64`: 数密度（cm⁻³）。
+
+# 注意事项
+- `dat[:valid] == 0` 时返回 `NaN`。
+- 比 `sta_v_4d` 省去通量计算，开销更小。
+"""
 function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_cover =false)#计算离子速度,流速，密度，需要导入static_slip取得的切片,单位cm^-3
     if dat[:valid] == 0
         println("Invalid Data")
@@ -514,10 +716,10 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
     end
 
     local denergy = dat[:denergy] 
-    local theta = dat[:theta].*inv_RADG
-    # local phi = dat[:phi] .*inv_RADG
-    local dtheta = dat[:dtheta] .*inv_RADG
-    local dphi = dat[:dphi] .*inv_RADG
+    local theta = dat[:theta] .* constants.inv_RADG
+    # local phi = dat[:phi] .*constants.inv_RADG
+    local dtheta = dat[:dtheta] .* constants.inv_RADG
+    local dphi = dat[:dphi] .* constants.inv_RADG
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
@@ -538,22 +740,26 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
     #units are 1/cm^3
     return density
 end
+"""
+    static_rotation(dat; frame="MSO") -> Dict{Symbol, Any}
+
+把 STATIC 切片的角度网格与磁场矢量旋转到指定坐标系（MSO 或 SC）。
+
+# 功能与算法概述
+用该时刻的四元数（`QuatRotation`）对单位球的仪器方向做旋转，再转回球坐标得到新
+`theta`/`phi`；磁场矢量同样旋转。仅支持 3D（mass×bins×energy）切片。
+
+# 参数说明
+- `dat`: `static_slip` 产生的切片，需含 `:theta`、`:phi`、`:magf`、`:nmass`、`:nbins`、`:nenergy` 与四元数键。
+- `frame`: `"MSO"`（用 `:quat_mso`）或 `"SC"`（用 `:quat_sc`）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已就地更新 `:theta`、`:phi`、`:magf` 的同一字典。
+
+# 注意事项
+- 四元数约定须与 `Rotations.QuatRotation` 一致；坐标系字符串非法时 `frame_t` 未定义会报错。
+"""
 function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片旋转到对应坐标系,仅限3D数据(mass,bins,energy)，需要STA_slip产生的切片
-    """将 STATIC 球坐标方向转换为笛卡尔方向。"""
-    function sphere2xyz_for_static_rotation(θ,ϕ)
-        x = cosd(θ) *  cosd(ϕ)
-        y = cosd(θ) *  sind(ϕ)
-        z = sind(θ)
-        return [x,y,z]
-    end;
-    """将笛卡尔方向转换为 STATIC 球坐标角度。"""
-    function xyz2sphere_for_static_rotation(xyz)
-        x,y,z=xyz[1],xyz[2],xyz[3]
-        z = clamp(z, -1, 1) # avoid numerical error
-        theta = 90. - acosd(z)
-        phi = atand(y, x)
-        return theta,phi
-    end
     local dat2
     dat2 = dat
     theta = dat2[:theta]
@@ -568,19 +774,21 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
         frame_t = :quat_sc
     end
 
-    # quat = QuaternionF64(dat2[frame_t][1],dat2[frame_t][2],dat2[frame_t][3],dat2[frame_t][4]) # 弃用此方法
+    # quat = QuaternionF64(...) 的旧写法已弃用，统一改用 Rotations 的 QuatRotation
     quat = QuatRotation(dat2[frame_t])
 
-    xyz = sphere2xyz_for_static_rotation.(theta,phi);
-    xyz_mso = quat * xyz
-    sphere_mso = xyz2sphere_for_static_rotation.(xyz_mso)
+    xyz = MarsCommon.instrument_sphere_to_cartesian.(1.0, theta, phi)
+    # 显式逐元素旋转：xyz 为三维数组，元素现在是 SVector{3}，
+    # 逐元素调用 `quat * p` 可稳定命中 Rotations.jl 的向量旋转方法。
+    xyz_mso = map(p -> quat * p, xyz)
+    sphere_mso = [MarsCommon.instrument_cartesian_to_sphere(point...) for point in xyz_mso]
 
     thetaT=zeros(n_m,n_b,n_e)
     phiT=zeros(n_m,n_b,n_e)
 
     for (i,var) in enumerate(sphere_mso)
-        phiT[i] = var[2]
-        thetaT[i] = var[1]
+        thetaT[i] = var[2]
+        phiT[i] = var[3]
     end
     magfT = quat * magf
     dat2[:theta] = thetaT
@@ -588,6 +796,27 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
     dat2[:magf] = magfT
     return dat2
 end
+"""
+    static_slip_2_V(dat; mass_range=[10,20], m_int=16, vsc=[0,0,0]) -> Dict{Symbol, Any}
+
+把 STATIC 切片投影到速度空间网格（含航天器速度平移）。
+
+# 功能与算法概述
+按质量窗对 `df`/`eflux` 沿质量维求和，再由 `sc_pot` 修正能量换算速率，
+用仪器方向得到速度三分量网格，并叠加航天器速度 `vsc`。
+
+# 参数说明
+- `dat`: `static_slip` 产生的切片，需含 `:nenergy`、`:nbins`、`:energy`、`:phi`、`:theta`、`:mass_arr`、`:sc_pot`、`:df`、`:eflux`、`:magf`。
+- `mass_range`: 质量窗 `[lo, hi]`（AMU）。
+- `m_int`: 比荷/质量数。
+- `vsc`: 航天器速度三分量（km/s）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:df`、`:eflux`（`nbins×nenergy`）、`:v`（`nbins×nenergy×3`）、`:energy`、`:magf` 等键。
+
+# 注意事项
+- 能量修正后非正值被置为 `0.001` 以避免除零。
+"""
 function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use slip_data
     local nenergy  = dat[:nenergy]
     local nbins    = dat[:nbins]
@@ -615,9 +844,9 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     local energy_t = energy_mass .+ sc_pot
     energy_t[energy_t .<= 0] .= 0.001
     
-    local v0 = ion_energy2v.(energy_t,m_int) ./1e3
+    local v0 = MarsCommon.ion_energy_to_speed.(energy_t, m_int) ./ 1e3
     
-    local APP_position = sphere2xyz_for_STATIC.(v0,theta_mass,phi_mass)
+    local APP_position = MarsCommon.instrument_sphere_to_cartesian.(v0, theta_mass, phi_mass)
     
     V_[:,:,1] = [x[1] for x in APP_position]
     V_[:,:,2] = [x[2] for x in APP_position]
@@ -641,6 +870,25 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
 end
 
 #-----------------基于c6数据包的3d(time,energy,mass)计算
+"""
+    STA_count3df(dat) -> Dict{Symbol, Any}
+
+把 c6 数据包（含时间轴）换算为 3D（time×mass×energy）相空间密度。
+
+# 功能与算法概述
+由 `swp_ind`/`att_ind`/`eff_ind` 把 `energy`/`mass_arr`/角度/`eff`/`gf` 对齐到
+`(ntime, nmass, nenergy)`，再按 `df = m²·5e-6·(counts−bkg)·dead/(dt·G·E²)` 计算，
+并输出乘 `mass_arr²` 的 `:df`。
+
+# 参数说明
+- `dat`: c6 数据字典，需含 `:num_dists`、`:nenergy`、`:nmass`、`:swp_ind`、`:att_ind`、`:eff_ind`、`:energy`、`:denergy`、`:mass_arr`、`:phi`、`:dphi`、`:theta`、`:dtheta`、`:eff`、`:gf`、`:geom_factor`、`:time_integ`、`:dead`、`:bkg`、`:data`、`:mass`。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入 `:energy3d`、`:theta3d` 等对齐字段及 `:df`、`:df_mass_mass`。
+
+# 注意事项
+- 内部嵌套函数 `expand_3d` 负责按 `swp_ind` 扩展并转置维度。
+"""
 function STA_count3df(dat) #计算c6数据的df,必须有时间轴
     ntime = dat[:num_dists]
     nenergy = dat[:nenergy]
@@ -650,7 +898,21 @@ function STA_count3df(dat) #计算c6数据的df,必须有时间轴
     att_indices = dat[:att_ind] .+ 1
     eff_indices = dat[:eff_ind] .+ 1
 
-    """扩展并对齐 c6 数据字段的维度。"""
+    """
+        expand_3d(src_key) -> Array
+
+    按各时刻的扫参索引扩展并对齐 c6 数据字段的维度。
+
+    # 功能与算法概述
+    用 `swp_indices` 选择半径方向切片后，把结果转置为 `(ntime, nmass, nenergy)`，
+    使 c6 字段与三维广播布局一致。
+
+    # 参数说明
+    - `src_key`: 要扩展的字段名（如 `:energy`、`:mass_arr`）。
+
+    # 返回值
+    - `Array`: 形状为 `(ntime, nmass, nenergy)` 的对齐数组。
+    """
     function expand_3d(src_key)
         src = dat[src_key]
         res = src[:, :, swp_indices]
@@ -686,16 +948,38 @@ function STA_count3df(dat) #计算c6数据的df,必须有时间轴
 
     return dat
 end
+"""
+    sta_v_1d(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16)
+
+由 c6 的 3D 相空间密度计算全时段一维离子速度、通量与密度时间序列。
+
+# 功能与算法概述
+按能量/质量掩膜在 (mass, energy) 维求和得到各时刻的通量与密度，再归一化得速度；
+对 `dat[:valid] == 0` 的时刻置 `NaN`。
+
+# 参数说明
+- `dat`: 经 `STA_count3df` 处理的数据字典（含 `:df_mass_mass` 等 3D 字段）。
+- `energy_range`: 能量窗 `[lo, hi]`（eV）。
+- `mass_range`: 质量窗 `[lo, hi]`（AMU）。
+- `m_int`: 比荷/质量数。
+
+# 返回值
+- `(vel, flux, density)`: 三个长度 `ntime` 的向量——速度（km/s）、通量（cm⁻²s⁻¹）、密度（cm⁻³）。
+
+# 注意事项
+- 使用 `df_mass_mass .* m_int²` 作为相空间密度。
+- 旧的 `time_ind` 参数已废弃，本函数始终计算全域时间序列。
+"""
 function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16)#使用c6数据计算一维离子速度,流速，密度，需要导入STA_count3df取得的相空间密度,单位km/s,cm^-3 time_ind暂时无效，计算全域数据
     # local dat= deepcopy(dat0)
     local ntime = dat[:num_dists]
     
     local data0=dat[:df_mass_mass] .*m_int^2
     local denergy = dat[:denergy3d]
-    local theta = dat[:theta3d].*inv_RADG
-    # local phi = dat[:phi3d] .*inv_RADG
-    local dtheta = dat[:dtheta3d] .*inv_RADG
-    local dphi = dat[:dphi3d] .*inv_RADG
+    local theta = dat[:theta3d] .* constants.inv_RADG
+    # local phi = dat[:phi3d] .*constants.inv_RADG
+    local dtheta = dat[:dtheta3d] .* constants.inv_RADG
+    local dphi = dat[:dphi3d] .* constants.inv_RADG
     local mass_arr = dat[:mass_arr3d]
     local pot = reshape(dat[:sc_pot],ntime,1,1)
     
@@ -723,19 +1007,41 @@ function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16)#使用
 
     return vel,flux,density
 end
-"""提取 STATIC 数据中的质量标志值。"""
+"""
+    get_quality_flag(x) -> NTuple{16, Bool}
+
+把整数质量标志位解码为 16 元素的布尔元组。
+
+# 功能与算法概述
+逐位取 `(x >> (i-1)) & 1`，用 `ntuple` 生成定长不可变元组，避免堆分配。
+
+# 参数说明
+- `x`: 质量标志整数（低 16 位有效）。
+
+# 返回值
+- `NTuple{16, Bool}`: 第 `i` 位对应第 `i` 个标志的布尔值。
+"""
 function get_quality_flag(x)
     #取得二进制的质量标志，Int转二进制
     # flags = [i == '1' for i in string(x, base=2)] |> reverse
-    flags = Vector{Bool}(undef, 16)
-    for i in 0:15
-        # (x >> i) & 1 取出第 i 位的值（0 或 1）
-        # 然后检查是否等于 1 转换为布尔值
-        flags[i+1] = ( (x >> i) & 1 ) == 1
-    end
-    return flags
+    # 使用 ntuple 生成定长不可变元组，避免堆分配
+    return ntuple(i -> ((x >> (i - 1)) & 1) == 1, 16)
 end
-"""判断质量标志是否属于指定的无效标志集合。"""
+"""
+    compare_quality(flag::Integer; bad_flags=[5,6,7,8]) -> Bool
+
+判断质量标志是否命中指定的无效标志位集合。
+
+# 功能与算法概述
+把 `bad_flags` 各位置 1 求和成掩码，再与 `flag` 按位与非零即视为命中。
+
+# 参数说明
+- `flag::Integer`: 质量标志整数。
+- `bad_flags`: 视为无效的标志位索引列表（默认第 5–8 位）。
+
+# 返回值
+- `Bool`: 命中任一无效位返回 `true`。
+"""
 function compare_quality(flag::Integer;bad_flags=[5,6,7,8])
     #比较质量标志是否包含某个标志
     # qf = [
@@ -779,85 +1085,6 @@ function compare_quality(flag::Integer;bad_flags=[5,6,7,8])
     # 按位与运算：检查 flag 中对应的位是否有任何一个是 1
     return (flag & mask) != 0
 end
-function rotate_vector_with_Matrix(in_data,Rotation_Matrix) # inv
-    out_data = Rotation_Matrix * in_data
-    return out_data
-end
-function ion_eflux2F(energy,eflux;m_int=1)  # 离子eflux转PSD, 使用IS单位制, 与STA方法差了1e3倍
-    # M = m_int * Mp
-    # E0 = 511.0 * m_int * 1836.23 # 离子静止能量
-    # #energy 与 eflux 一一对应
-    # γ=(energy * 1e-3 /E0 + 1)
-    # β=sqrt(1.0 - 1.0 / γ^2)
-    # P=γ *M * β *C        # kg m/s
-    # # V=β .* C
-    # F = (γ*M)^3 * eflux/energy *1e4 /EV / P^2 
-
-    # M = m_int * Mp
-    # V2 = energy * EV / M *2  # m/s
-    # F = 2* eflux / V2^2*1e4
-
-    local E0 = 511.0 * m_int * 1836.23
-    local γ =(energy * 1e-3 /E0 + 1)
-    local β =sqrt(1.0 - 1.0 / γ^2)
-    local V = β * C
-    # F = 2 * eflux *1e4 / V^4
-    return 2 * eflux *1e4 / V^4
-end
-function sphere2xyz_for_STATIC(r,θ,ϕ) #spedas_6_1\general\science\sphere_to_cart.pro
-    local ct = cosd(θ)
-    local x = r * ct *  cosd(ϕ)
-    local y = r * ct *  sind(ϕ)
-    local z = r * sind(θ)
-    return [x,y,z]
-end;
-"""将 STATIC 坐标系下的笛卡尔向量转换为球坐标。"""
-function xyz2sphere_for_STATIC(x,y,z)
-    local r=sqrt(x^2 + y^2 + z^2)
-    local theta = 90.0 - acosd(z/r)
-    local phi = atand(y, x)
-    return [r,theta,phi]
-end
-"""将球坐标位置转换为笛卡尔坐标。"""
-function sphere2xyz(r,θ,ϕ)
-    local x = r * sind(θ) *  cosd(ϕ)
-    local y = r * sind(θ) *  sind(ϕ)
-    local z = r * cosd(θ)
-    return [x,y,z]
-end
-function ion_energy2v(energy,AMU) # 离子子能量对应速度(相对论),输入eV, IS单位制
-    local E0 = 938313.53 * AMU  # 质子静止能量 MeV
-    local γ= energy*1e-3/E0 + 1.0
-    local β=sqrt(1.0 - 1.0 / γ^2)
-    # v = β * 3e8
-    return β * 3e8
-end
-function ion_v2energy(v,AMU) # 离子子能量对应速度(相对论) v:速度, IS单位制,返回eV
-    local E0 = 938313.53 * AMU
-    local β  = v / 3e8
-    local γ = 1.0 / sqrt(1.0 - β^2)
-    # energy = (γ - 1.0) * E0 * 1e3
-    return (γ - 1.0) * E0 * 1e3
-end
-# function ion_v2energy(v,mass) # 离子子能量对应速度(相对论)
-#     E0 = 511.0 * mass * 1836.23
-#     β = v / 3e8
-#     γ = 1.0 / sqrt(1.0 - β^2)
-#     energy = (γ - 1.0) * E0 * 1e3
-#     return energy
-# end
-const EV=1.602176487e-19
-const C=3.0e8
-const Me=9.109e-31
-const Mp=1.672621637e-27
-const RADG=180.0/π
-const inv_RADG=π/180.0
-
-# vv0 =9.8e3
-# ee = ion_v2energy(vv0 ,32)
-# vv = ion_energy2v(ee,32)
-# println(vv0," ",vv," ",ee)
-# vv0^2 * 0.5*32*Mp/EV
 end # module
 
 # # # # -------------------------Test parts-------------------------

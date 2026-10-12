@@ -9,18 +9,24 @@ using IniFile
 using Statistics
 using Rotations
 
-const Q = 1.602176487e-19 # 库仑
-const EV = 1.602176487e-19
-const C = 3.0e8
-const Me = 9.109e-31
-const Mp = 1.672621637e-27
-const RADG = 180.0 / π
-
 dir = dirname(@__FILE__)
 root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
 println(dirname(dir) * "/download_data/MAVEN_download_config.ini")
 # -------------------------Read filelist parts-------------------------
-"""读取并整理 OMNI2 太阳风支持数据。"""
+"""
+    load_omni2_data() -> DataFrame
+
+读取并整理 OMNI2 太阳风支持数据。
+
+# 功能与算法概述
+按固定列名与空格分隔读取 OMNI2 数据文件，并把 `Year/DOY/Hour` 转换为 Unix 时间戳列 `time_unix`。
+
+# 返回值
+- `DataFrame`: 含各太阳风参数与 `time_unix` 的数据表。
+
+# 注意事项
+- 依赖 `root_path` 下的 `support_datas/omni2_all_years.dat`。
+"""
 function load_omni2_data(;)
     local file_path = root_path*"support_datas/omni2_all_years.dat"
     col_names = [
@@ -63,6 +69,17 @@ function load_omni2_data(;)
 
     # 3. 时间转换 (Year + DOY + Hour -> Unix Time)
     # OMNI 的 Hour 是 0-23，DOY 从 1 开始
+    """
+        row_to_datetime(y, d, h) -> Float64
+
+    由年、年积日与小时得到 Unix 时间戳。
+
+    # 参数说明
+    - `y`, `d`, `h`: 年、年积日（1 起）、小时（0–23）。
+
+    # 返回值
+    - `Float64`: Unix 时间戳（取该小时的起始时刻）。
+    """
     function row_to_datetime(y, d, h)
         # 注意：OMNI 的小时代表该小时的平均值（例如 1 代表 01:00 到 02:00）
         # 这里统一取起始时间
@@ -74,6 +91,23 @@ function load_omni2_data(;)
 
     return df
 end
+"""
+    load_drivers_merge_data(; high_res=true) -> DataFrame
+
+读取 Halekas 等人推导的太阳风参数文件。
+
+# 功能与算法概述
+按固定列名读取质子/α 密度、速度、温度与磁场等列，并把时间字符串转为 Unix 时间戳列 `time_unix`。
+
+# 参数说明
+- `high_res`: `true` 读取高分辨率文件，否则读取普通版。
+
+# 返回值
+- `DataFrame`: 含各太阳风参数与 `time_unix` 的数据表。
+
+# 注意事项
+- 时间格式为 `yyyy-mm-dd/HH:MM:SS`；依赖 `root_path` 下的 `support_datas` 目录。
+"""
 function load_drivers_merge_data(;high_res = true) # 读取Halekas等人推导的太阳风参数文件
     # UT, n_proton, n_alpha (per cc), |v_proton|, vx, vy, vz (km/s), T_proton (eV), Bx, By, Bz (nT).
     #  "2014-11-12/11:48:47     2.204     0.131   426.555  -426.431     9.984    -2.617     8.831    -0.232     1.644    -0.331"

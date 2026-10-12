@@ -7,6 +7,8 @@
 # 默认能量单位: EV. 默认粒子质量单位:AMU
 using CommonDataFormat
 module MAVEN_load
+include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 using CommonDataFormat
 using TimesDates, Dates
 using DataFrames
@@ -20,13 +22,6 @@ using FortranFiles
 export load_MAVEN_data
 export mean_SWEA_pad_pa, carclu_SWEA_pad
 
-const Q = 1.602176487e-19 # 库仑
-const EV = 1.602176487e-19
-const C = 3.0e8
-const Me = 9.109e-31
-const Mp = 1.672621637e-27
-const RADG = 180.0 / π
-
 dir = dirname(@__FILE__)
 open(dir * "/MAVEN_data_format.json", "r") do f
     data = JSON.parse(f)
@@ -36,7 +31,15 @@ end
 root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
 # -------------------------Read filelist parts-------------------------
 """
-打印所有可支持的数据的读取.
+    show_load_models() -> Vector{String}
+
+列出当前已注册可读取的所有数据模型名称。
+
+# 功能与算法概述
+遍历全局 `read_models` 的键并逐个打印，返回键数组。
+
+# 返回值
+- `Vector{String}`: 已注册模型/仪器的名称列表。
 """
 function show_load_models()
     keys_arr = keys(read_models)
@@ -46,25 +49,22 @@ function show_load_models()
     return keys_arr
 end
 """
-    file_list(model::Union{Symbol, String}) -> Vector{String}
+    file_list(model::String) -> Vector{String}
 
-    获取指定模型/仪器（`model`）在本地存储目录下的**所有已下载文件的完整绝对路径列表**。
+获取指定模型在本地已下载的全部文件绝对路径。
 
-    # 主要功能与逻辑
-    1. **全局路径检索**：从全局字典 `read_models` 读取模型相对子目录 `path`，与项目根目录 `root_path` 进行拼接。
-    2. **文件名映射**：从全局字典 `filename_list` 中匹配该模型关联的所有文件名列表。
-    3. **路径向量化广播**：将基础目录与文件名列表按元素（Element-wise）拼接，生成完整的文件路径数组。
+# 功能与算法概述
+由全局 `read_models` 取该模型的相对子目录，与 `root_path` 及 `filename_list[model]`
+广播拼接，生成完整路径数组。
 
-    # 参数说明
-    - `model`: 模型或仪器标识符（支持 `Symbol` 或 `String`，如 `:maven_fgm` 或 `"maven_fgm"`）。
+# 参数说明
+- `model`: 模型/仪器标识符（如 `"MAG_l2"`）。
 
-    # 依赖全局变量
-    - `root_path::String`: 项目根目录。
-    - `read_models::Dict`: 注册有各模型相对路径信息的字典。
-    - `filename_list::Dict`: 注册有各模型对应已下载文件名列表的字典。
+# 返回值
+- `Vector{String}`: 该模型所有文件的完整路径。
 
-    # 返回值
-    - `Vector{String}`: 包含该模型所有文件完整路径的字符串数组。
+# 注意事项
+- 依赖全局 `root_path`、`read_models`、`filename_list`。
 """
 function file_list(model::String)
     path = read_models[model][1]
@@ -73,8 +73,19 @@ function file_list(model::String)
     return data
 end
 """
-    输入model,日期    
-    返回(bool::判断文件是否存在,String::对应文件的文件路径)  
+    find_file_of_data(model::String, date::DateTime) -> (Bool, String)
+
+在指定模型的本地文件中按日期匹配目标文件。
+
+# 功能与算法概述
+把日期格式化为 `yyyymmdd`，在文件列表中以子串匹配返回首个命中的文件路径。
+
+# 参数说明
+- `model`: 模型/仪器标识符。
+- `date::DateTime`: 目标日期。
+
+# 返回值
+- `(Bool, String)`: `(是否存在, 文件路径)`；未命中时路径为 `"NaN"`。
 """
 function find_file_of_data(model::String, date::DateTime)
     FileList_path = root_path * read_models[model][1]
@@ -90,23 +101,23 @@ end
 """
     data_get_from_date(date::DateTime; model_index=[], show_filename=false) -> Dict{String, Any}
 
-    按日期统一调度并加载多个空间物理仪器（如 STATIC, SWIA 等）数据文件的**顶级调度函数**。
+按日期统一调度并加载多个仪器的数据（顶级调度函数）。
 
-    # 主要功能与逻辑
-    1. **多模型批量检索**：遍历指定的 `model_index` 模型列表，调用 `find_file_of_data` 自动匹配该日期下的目标文件路径。
-    2. **函数动态分发**：根据全局映射表 `read_models` 中注册的读取函数（如 `load_cdf`），动态调用对应的解析器进行数据加载。
-    3. **加载状态标记与元数据注入**：
-    - 加载成功：注入 `:filename`（文件路径）与 `:data_load_flag => true`；
-    - 加载失败/文件丢失：返回 `Dict(:data_load_flag => false)`，保障批量处理时不会因单文件缺失而中断。
-    4. **控制台日志输出**：开启 `show_filename=true` 时打印绿色格式化的加载日志。
+# 功能与算法概述
+遍历 `model_index`，用 `find_file_of_data` 定位文件后按 `read_models` 注册的读取函数动态分发；
+成功时注入 `:filename` 与 `:data_load_flag => true`，失败则返回 `Dict(:data_load_flag => false)`。
 
-    # 参数说明
-    - `date::DateTime`: 目标数据日期（`DateTime` 类型对象）。
-    - `model_index`: 需加载的模型/仪器标识符列表（例如 `[STATIC_c6, MAG_ss1s_cdf]`）。
-    - `show_filename::Bool`: 是否在终端实时显示正在加载的文件路径（默认 `false`）。
+# 参数说明
+- `date::DateTime`: 目标数据日期。
+- `model_index`: 需加载的模型标识符列表。
+- `show_filename::Bool`: 是否在终端打印正在加载的文件路径。
 
-    # 返回值
-    - `Dict`: 以 `model` 标识符为 Key、数据字典为 Value 的主数据字典。
+# 返回值
+- `Dict{String, Any}`: 以模型名为键、数据字典为值的主字典。
+
+# 注意事项
+- `load_MAVEN_data` 是本函数的别名。
+- 单个文件缺失不会中断批量加载。
 """
 function data_get_from_date(date::DateTime; model_index=[], show_filename=false) #全局读取函数 date 格式为yyyymmdd
     datas_dict = Dict{String,Any}()
@@ -127,6 +138,20 @@ function data_get_from_date(date::DateTime; model_index=[], show_filename=false)
     return datas_dict
 end
 load_MAVEN_data = data_get_from_date
+"""
+    get_orbits() -> Vector
+
+读取 `orbit_time_range.txt`，返回各轨道的编号与起止时间。
+
+# 功能与算法概述
+逐行按逗号切分，解析轨道号与两个时间字符串为元组。
+
+# 返回值
+- `Vector`: 元素为 `(orbit::Int, start::DateTime, stop::DateTime)` 的数组。
+
+# 注意事项
+- 时间字符串格式固定为 `yyyy-mm-ddTHH:MM:SS`。
+"""
 function get_orbits()  # 获取每个轨道对应的time_range
     file_path = root_path * "orbit_time_range.txt"
     lines = readlines(file_path)
@@ -139,6 +164,21 @@ function get_orbits()  # 获取每个轨道对应的time_range
     end
     return data
 end
+"""
+    change_kp_read_data(kp_dict_in) -> Dict
+
+重设 KP 变量的列映射表。
+
+# 功能与算法概述
+把输入的 `变量名 => 变量序号` 转为 `变量名 => (序号, 列区间)` 并写入全局 `kp_dict`，
+供 `load_kp` 使用。
+
+# 参数说明
+- `kp_dict_in`: `Dict{String,Int32}`，变量名到序号的映射。
+
+# 返回值
+- `Dict`: 更新后的 `kp_dict`。
+"""
 function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读取的值有哪些. 格式为Dict{String,Int32}(变量名 => 变量序号)
     kp_dict_out = Dict()
     for (key, n) in kp_dict_in
@@ -151,23 +191,37 @@ end
 """
     load_cdf(file::String) -> Dict{Symbol, Any}
 
-    读取空间物理标准的 **CDF (Common Data Format)** 数据文件，并将其变量完全解析加载为内存字典（`Dict`）。
+读取 CDF 数据文件并全部载入内存为字典。
 
-    # 主要功能与逻辑
-    1. **自动内存化**：将存储在磁盘上的 CDF 变量（如 `epoch`、`time_unix` 等）转存入内存（RAM），加速后续的高频数值分析与绘图。
-    2. **时间格式自动转换**：对 `epoch` 变量自动转换为 Julia 标准的 `DateTime` 时间数组。
-    3. **维度调整（Record Variance 处理）**：
-    - 对于随时间变化的记录变量（RV，`flags & 1 == 1`），将其 Record 维度重排置于首位 (`permutedims`)，符合时间序列分析习惯。
-    - 对于静态非记录变量（NRV），自动剥离多余的 `1` 维（`dropdims`）或将其解包为标量。
-    4. **错误容错**：内置 `try-catch` 捕获异常，若文件损坏或路径错误，安全返回 `Dict(:data_load_flag => false)`。
+# 功能与算法概述
+遍历 CDF 变量：`epoch` 转为 `DateTime` 数组；记录型变量（RV）把记录维重排到首位；
+非记录变量剥离冗余单维或解包为标量。`try-catch` 容错，失败返回 `Dict(:data_load_flag => false)`。
 
-    # 参数说明
-    - `file`: CDF 文件的路径。
+# 参数说明
+- `file::String`: CDF 文件路径。
 
-    # 返回值
-    - `Dict{Symbol, Any}`: 包含所有变量的字典（Key 为 `Symbol`），并在成功时包含 `:data_load_flag => true`。
+# 返回值
+- `Dict{Symbol, Any}`: 变量字典，成功时含 `:data_load_flag => true`。
+
+# 注意事项
+- 内部辅助函数 `clean_dimensions` 负责剥离大小为 1 的维度。
+- 将数据读入内存以加速后续高频访问，代价是内存占用。
 """
 function load_cdf(file::String)  # 将CDF文件读为字典
+    """
+        clean_dimensions(data) -> typeof(data)
+
+    剥离数组所有大小为 1 的冗余维度。
+
+    # 功能与算法概述
+    找出 `size` 为 1 的维度，仅在维度数大于 1 时用 `dropdims` 一次删除全部冗余维。
+
+    # 参数说明
+    - `data`: 待处理的数组。
+
+    # 返回值
+    - 同类型数组（可能降维）。
+    """
     function clean_dimensions(data)
         # 找出所有大小为 1 的维度索引
         local s = size(data)
@@ -217,9 +271,39 @@ function load_cdf(file::String)  # 将CDF文件读为字典
         data_dict[:data_load_flag] = true
         return data_dict
 end
-"""读取并解析 MAVEN MAG L2 文本磁场文件。"""
+"""
+    load_mag_l2(file::String) -> Dict{Symbol, Any}
+
+读取并解析 MAVEN MAG L2 文本磁场文件。
+
+# 功能与算法概述
+跳过表头（定位末条以 `END` 开头的行），按固定字符列宽逐行解析时间、磁场与位置，
+并计算旋磁总强度 `B_total`。
+
+# 参数说明
+- `file::String`: MAG L2 文本文件路径。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:type`、`:B`、`:B_total`、`:position` 的字典。
+
+# 注意事项
+- 内部辅助 `get_data_from_line_for_mag_read` 负责单行解析；列宽固定，格式变化需同步修改。
+"""
 function load_mag_l2(file::String)
-    """解析 MAG 文本文件中的单条时间、磁场和位置记录。"""
+    """
+        get_data_from_line_for_mag_read(line::String) -> (DateTime, Vector, Vector)
+
+    解析 MAG 文本文件中的单条时间、磁场与位置记录。
+
+    # 功能与算法概述
+    按固定字符列宽解析年积日与时刻得到 `epoch`，再解析磁场与位置分量。
+
+    # 参数说明
+    - `line::String`: 单行文本。
+
+    # 返回值
+    - `(epoch, [bx,by,bz], [x,y,z])`: 时间与磁场、位置分量。
+    """
     function get_data_from_line_for_mag_read(line::String)
         # colspecs = [(1,6),(8,10),(12,13),(15,16),(18,19),(21,23),(39,48),(50,58),(60,68),(74,88),(90,103),(105,118)]
         year, doy, hour, min, sec, msec = parse.(Int32, [
@@ -259,7 +343,23 @@ function load_mag_l2(file::String)
     )
     return data
 end
-"""读取 Fortran 无格式文件中的航天器速度和位置数据。"""
+"""
+    load_mag_vsc(file::String) -> Dict{Symbol, Any}
+
+读取 Fortran 无格式文件中的航天器速度与位置数据。
+
+# 功能与算法概述
+用 `FortranFile` 按 `Int64` 计数后顺序读出 `time_unix`、`vsc`、`position`。
+
+# 参数说明
+- `file::String`: Fortran 无格式数据文件路径。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:time_unix`、`:vsc`、`:position` 的字典。
+
+# 注意事项
+- `vsc` 与 `position` 为 `(n_time, 3)` 的 `Float32` 数组。
+"""
 function load_mag_vsc(file::String)
     f = FortranFile(file, "r")
     n_time = read(f, Int64)
@@ -279,9 +379,38 @@ function load_mag_vsc(file::String)
     )
     return data
 end
-"""读取 KP 文本文件，可选解析坐标变换矩阵或保留字符串变量。"""
+"""
+    load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false) -> Dict{Symbol, Any}
+
+读取 KP 文本文件（可选解析坐标变换矩阵）。
+
+# 功能与算法概述
+按 `kp_dict` 的列区间抽取各变量（默认解析为 `Float64`，`str_model=true` 时保留字符串），
+解析时间为 `DateTime`；`pc2ss_Matrix_load=true` 时额外从指定列区间组装 `pc2ss_Matrix`。
+
+# 参数说明
+- `filename::String`: KP 文本文件路径。
+- `pc2ss_Matrix_load::Bool`: 是否加载并组装坐标变换矩阵。
+- `str_model::Bool`: 是否以字符串形式保留变量值。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含各 KP 变量、`:time`（及可选的 `:pc2ss_Matrix`）的字典。
+
+# 注意事项
+- 内部辅助 `kp_indicate` 由变量序号推算列区间。
+"""
 function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
-    """由 KP 变量序号计算固定宽度文本中的列区间。"""
+    """
+        kp_indicate(n) -> UnitRange
+
+    由 KP 变量序号计算固定宽度文本中的列区间。
+
+    # 参数说明
+    - `n`: 变量序号。
+
+    # 返回值
+    - `UnitRange{Int}`: 该变量在行内的字符列区间。
+    """
     function kp_indicate(n)
         m = n * 16 - 16 .+ (4:19)
         return m
@@ -344,7 +473,21 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
         return result_dict
     end
 end
-"""读取 SWEA PAD CDF 文件，并可选合并俯仰角数据。"""
+"""
+    load_swea_pad(file::String; mean_PA=true) -> Dict{Symbol, Any}
+
+读取 SWEA PAD CDF 文件，并可选合并俯仰角数据。
+
+# 功能与算法概述
+先 `load_cdf` 载入，`mean_PA=true` 时再经 `mean_SWEA_pad_pa` 把 360° 的 16 方向平均为 180° 的 8 点。
+
+# 参数说明
+- `file::String`: SWEA PAD CDF 文件路径。
+- `mean_PA::Bool`: 是否执行俯仰角平均。
+
+# 返回值
+- `Dict{Symbol, Any}`: 数据字典（`mean_PA=true` 时含 `:diff_en_fluxes_mean`、`:pa_mean` 等）。
+"""
 function load_swea_pad(file::String; mean_PA=true)
     # 默认将360°的数据投影到180°
     # "diff_en_fluxes_mean"
@@ -356,7 +499,23 @@ function load_swea_pad(file::String; mean_PA=true)
     end
     return data_dict
 end
-"""读取 NGIMS L3 日产品密度表。"""
+"""
+    load_NGIMS_den_l3(file::String) -> Dict{String, Any}
+
+读取 NGIMS L3 日产品密度表。
+
+# 功能与算法概述
+跳过表头后逐行按逗号切分，把 `t_unix` 转为 `DateTime`，并按 `species` 分组存入字典。
+
+# 参数说明
+- `file::String`: NGIMS L3 密度表文件路径。
+
+# 返回值
+- `Dict{String, Any}`: 以中性成分名为键，值为含 `:epoch`、`:orbit`、`:alt`、`:mass`、`:density_bins`、`:quality` 等的字典。
+
+# 注意事项
+- 列序固定，格式变化需同步修改。
+"""
 function load_NGIMS_den_l3(file::String)
     lines = readlines(file)
     lines = lines[2:end]
@@ -386,13 +545,41 @@ function load_NGIMS_den_l3(file::String)
     end
     return data_out_dict
 end
-"""读取 NGIMS L4 日产品密度表。"""
+"""
+    load_NGIMS_den_l4(file::String) -> Any
+
+读取 NGIMS L4 日产品密度表（JLD2 格式）。
+
+# 功能与算法概述
+打开 JLD2 文件并直接取出 `"data"` 字段。
+
+# 参数说明
+- `file::String`: NGIMS L4 文件路径。
+
+# 返回值
+- `Any`: 文件中 `"data"` 字段的内容。
+"""
 function load_NGIMS_den_l4(file::String)
     f = jldopen(file, "r")
     data_out_dict = f["data"]
     close(f)
     return data_out_dict
 end
+"""
+    load_NGIMS_sht_l3(file::String) -> Dict{String, Any}
+
+读取 NGIMS L3 重采样标高表。
+
+# 功能与算法概述
+跳过表头逐行按逗号切分，`t_unix` 转 `DateTime` 后按 `species` 分组，
+输出标高、温度及其误差、拟合残差与质量等字段。
+
+# 参数说明
+- `file::String`: NGIMS L3 标高表文件路径。
+
+# 返回值
+- `Dict{String, Any}`: 以成分名为键，值为含 `:epoch`、`:exo_alt`、`:scale_height`、`:Temperature`、`:fit_residual`、`:quality` 等的字典。
+"""
 function load_NGIMS_sht_l3(file::String) # L3 resampled scale height table of NGIMs
     lines = readlines(file)
     lines = lines[2:end]
@@ -426,6 +613,21 @@ function load_NGIMS_sht_l3(file::String) # L3 resampled scale height table of NG
     end
     return data_out_dict
 end
+"""
+    load_d1_v4d(file::String) -> Dict{Symbol, Any}
+
+读取 STATIC d1 四维（离子速度/通量/密度）Fortran 无格式数据。
+
+# 功能与算法概述
+按 `Int64` 计数后顺序读出 H/He/O/O2/CO2 的速度、通量与密度，以及位置、磁场、
+质量标志、模式与 vsc 质量标志，组装为字典。
+
+# 参数说明
+- `file::String`: d1 v4d 数据文件路径（已由 sc_pot 与 vsc 修正）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:*_vel`、`:*_f`、`:*_den`、`:pos_sc_mso`、`:mag_mso`、`:quality_flag`、`:mode`、`:vsc_quality` 的字典。
+"""
 function load_d1_v4d(file::String) # build using STATIC d1 data. already been corrected by sc_pot(static) and vsc by MAG_ss1s
     f = FortranFile(file, "r")
     Ntime = read(f, Int64)
@@ -477,6 +679,24 @@ function load_d1_v4d(file::String) # build using STATIC d1 data. already been co
     )
     return data
 end
+"""
+    load_c6_v3d(file::String) -> Dict{Symbol, Any}
+
+读取 STATIC c6 三维（离子速度/通量/密度）数据（JLD2 格式）。
+
+# 功能与算法概述
+打开 JLD2 取出 `"data"` 字段，把简写键映射为规范键
+（如 `:H_v → :H_vel`、`:H_n → :H_den`、`:pos → :P_mso`）。
+
+# 参数说明
+- `file::String`: c6 v3d 数据文件路径。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含各离子速度/通量/密度、`:P_mso`、`:B_mso`、`:quality_flag`、`:mode`、`:mass_range`、`:discribe` 的字典。
+
+# 注意事项
+- 文件内键名为简写（`H_v`/`H_f`/`H_n` 等），须与映射保持一致。
+"""
 function load_c6_v3d(file::String) # build using STATIC d1 data. already been corrected by sc_pot(static) and vsc by MAG_ss1s
     # f = FortranFile(file, "r")
     # Ntime = read(f, Int64)
@@ -552,6 +772,24 @@ function load_c6_v3d(file::String) # build using STATIC d1 data. already been co
     close(f)
     return data_out_dict
 end
+"""
+    load_quat(filename::String) -> Dict{Symbol, Any}
+
+读取 IDL 导出的四元数 CSV 文件。
+
+# 功能与算法概述
+先统计行数预分配 `n×5` 矩阵，按固定列宽解析 `ut` 与 4 个四元数分量，
+再用 `Rotations.QuatRotation` 构造四元数数组。
+
+# 参数说明
+- `filename::String`: 文件路径（格式 `(I10,1x,4(f14.10,1x),4(f14.10,1x))`）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:time_unix`、`:quat`、`:coordinate` 的字典。
+
+# 注意事项
+- 采用固定字符列宽解析；`:coordinate` 由文件名约定给出。
+"""
 function load_quat(filename::String)::Dict{Symbol,Any}#读取idl导出的quat数据
     # 数据格式, filename = file.csv ut, scrotmat, msorotmat, format="(I10,1x,4(f14.10,1x),4(f14.10,1x))"
     # 统计行数以预分配矩阵
@@ -577,7 +815,7 @@ function load_quat(filename::String)::Dict{Symbol,Any}#读取idl导出的quat数
             @inbounds data[i, :] .= (ut, mso1, mso2, mso3, mso4)
         end
     end
-    # local quat_s = [QuaternionF64(data[i, 2],data[i, 3],data[i, 4],data[i, 5]) for i in 1:n]
+    # 使用 Rotations 的 QuatRotation（原 Quaternions 写法已弃用）
     local quat_s = [QuatRotation(data[i,2:5]) for i in 1:n]
     dd0 = Dict{Symbol,Any}(
         :epoch => unix2datetime.(data[:, 1]),
@@ -599,6 +837,25 @@ kp_dict_0 = Dict(
     :Orbit_Number => 210,
     :Shape_parameter => 39,
 )
+"""
+    convert_kp_l3(data::Dict; kp_dict=kp_dict_0) -> Dict{Symbol, Any}
+
+把 KP L3 原始字典转换为便于使用的规范字典。
+
+# 功能与算法概述
+先复制元信息类键（`:time`、`:pc2ss_Matrix` 等），再按 `kp_dict` 把 `:vars` 中对应的
+按序号命名变量重命名为语义化键名。
+
+# 参数说明
+- `data::Dict`: KP L3 数据字典，需含 `:vars` 与各元信息键。
+- `kp_dict`: 语义名到变量序号的映射（默认 `kp_dict_0`）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 重命名后的字典。
+
+# 注意事项
+- 若 `data` 缺少 `:vars` 中对应序号的键会报错。
+"""
 function convert_kp_l3(data::Dict;kp_dict=kp_dict_0)
     data_out = Dict{Symbol,Any}()
     for key in [:sc2ss_Matrix, :filename, :varsion, :data_load_flag, :pc2ss_Matrix, :time]
@@ -610,6 +867,24 @@ function convert_kp_l3(data::Dict;kp_dict=kp_dict_0)
     end
     return data_out
 end
+"""
+    Bpc2sphere(x, y, z, bx, by, bz) -> (Br, Bθ, Bϕ)
+
+将笛卡尔磁场分量转为球坐标分量。
+
+# 功能与算法概述
+由位置求出球基矢量 `(r̂, θ̂, ϕ̂)`，再与笛卡尔分量做点积投影（正交旋转，`‖B‖` 不变）。
+
+# 参数说明
+- `x`, `y`, `z`: 观测点笛卡尔坐标。
+- `bx`, `by`, `bz`: 笛卡尔磁场分量。
+
+# 返回值
+- `(Br, Bθ, Bϕ)`: 球坐标磁场分量元组。
+
+# 注意事项
+- 与 `common/function_coordinate` 及 `IGRF_calculate.Bpc2sphere` 功能重复（本文件内为副本）。
+"""
 function Bpc2sphere(x, y, z, bx, by, bz)
     r = sqrt(x^2 + y^2 + z^2)
     θ = acos(z / r)
@@ -626,29 +901,49 @@ function Bpc2sphere(x, y, z, bx, by, bz)
 
     return Br, Bθ, Bϕ
 end
+"""
+    calculate_mag(position; models=[:alt])
+
+由位置矩阵计算海拔、地方时、纬度等辅助量。
+
+# 功能与算法概述
+以名称到 `MarsCommon` 位置派生函数的映射表为基础，遍历 `models` 逐个求值并写入结果字典。
+
+# 参数说明
+- `position`: `N×3` 位置矩阵（通常 MSO，单位 km）。
+- `models`: 需计算的量名列表，默认 `[:alt]`。
+
+# 返回值
+- `Dict`: 以量名为键的结果字典。
+
+# 注意事项
+- 函数体引用了未初始化的全局 `data`，直接调用会报 `UndefVarError`（与 `TW_load.calculate_mag` 同源）。
+"""
 function calculate_mag(position; models=[:alt])
-    function c_alt(position)
-        alt = sqrt.(sum(position .^ 2, dims=2)) .- 3393.5
-        alt = alt[:, 1]
-        return alt
-    end
-    function c_local_time(position)
-        local_time = atan.(position[:, 2], position[:, 1]) ./ π .* 12.0 .+ 12.0
-        return local_time
-    end
-    function c_latitude(position)
-        latitude = atan.(position[:, 3], sqrt.(sum(position[:, 1:2] .^ 2, dims=2))) ./ π .* 180.0
-        return latitude
-    end
     funcs = Dict{Symbol,Any}(
-        :alt => c_alt,
-        :local_time => c_local_time,
-        :latitude => c_latitude,
+        :alt => MarsCommon.position_altitude,
+        :local_time => MarsCommon.position_local_time,
+        :latitude => MarsCommon.position_latitude,
     )
     for model in models
         data[model] = funcs[model](position)
     end
 end
+"""
+    mean_SWEA_pad_pa(data_dict) -> Dict{Symbol, Any}
+
+把 SWEA PAD 的 360°（16 方向）俯仰角数据平均为 180°（8 方向）。
+
+# 功能与算法概述
+将前 8 与后 8 个方向（反序）配对求平均，先做互 NaN 填补再平均，写出
+`:diff_en_fluxes_mean`、`:g_pa_mean`、`:pa_mean`。
+
+# 参数说明
+- `data_dict`: SWEA PAD CDF 字典，需含 `:diff_en_fluxes`、`:pa`、`:g_pa`。
+
+# 返回值
+- `Dict{Symbol, Any}`: 已注入平均结果的同一字典。
+"""
 function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典,将其角度做平均. pad数据返回360°的16个方向的数据,可以做平均,使其变为180°的8个数据点
     flux = data_dict[:diff_en_fluxes]
     pitch_angle = data_dict[:pa]
@@ -671,6 +966,25 @@ function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典,将其角度�
     data_dict[:pa_mean] = pitch_angle_mean
     return data_dict
 end
+"""
+    static_c6_mass_mean(data; mass_range=[0, 200])
+
+对 c6 的 3D（不含角度）数据在质量维度做筛选求和，得到 EFlux–energy 谱。
+
+# 功能与算法概述
+按 `mass_range`（AMU）构造质量掩膜，对各时刻的 `eflux` 沿质量维求和，
+并给出掩膜内的能量加权平均值。
+
+# 参数说明
+- `data`: c6 数据字典，需含 `:epoch`、`:energy`、`:denergy`、`:eflux`、`:swp_ind`、`:apid`、`:mass_arr`、`:num_dists`、`:nmass`、`:nswp`、`:nenergy`。
+- `mass_range`: 质量窗 `[lo, hi]`（AMU）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:energy`（`nenergy×nswp`）、`:eflux`（`ntime×nenergy`）等键。
+
+# 注意事项
+- 本文件内为 `MAVEN_STATIC.static_c6_mass_mean` 的旧副本（无 `:df` 分支）。
+"""
 function static_c6_mass_mean(data; mass_range=[0, 200])  # static 3d数据处理(不包括角度信息)
     # energy_spec为在mass维度做求和,得到eflux,energy谱
     # 默认计算所有的mass_range,设置mass_range后会计算对应范围的值
@@ -720,6 +1034,25 @@ function static_c6_mass_mean(data; mass_range=[0, 200])  # static 3d数据处理
     )
     return return_data
 end
+"""
+    static_c6_energy_mean(data; energy_range=[0, 1e6])
+
+对 c6 的 3D（不含角度）数据在能量维度做筛选求和，得到 EFlux–mass 谱。
+
+# 功能与算法概述
+按 `energy_range`（eV）构造能量掩膜，对各时刻的 `eflux` 沿能量维求和，
+并给出掩膜内的质量加权平均值。
+
+# 参数说明
+- `data`: c6 数据字典，字段同 `static_c6_mass_mean`。
+- `energy_range`: 能量窗 `[lo, hi]`（eV）。
+
+# 返回值
+- `Dict{Symbol, Any}`: 含 `:epoch`、`:mass`（`nmass×nswp`）、`:eflux`（`ntime×nmass`）等键。
+
+# 注意事项
+- 本文件内为 `MAVEN_STATIC.static_c6_energy_mean` 的旧副本（无 `:df` 分支）。
+"""
 function static_c6_energy_mean(data; energy_range=[0, 1e6])  # static 3d数据处理(不包括角度信息)
     # 在energy维度做求和,得到eflux,mass谱
     # energy_range单位energy,不设置时默认计算所有energy的值
@@ -768,6 +1101,25 @@ function static_c6_energy_mean(data; energy_range=[0, 1e6])  # static 3d数据�
     )
     return return_data
 end
+"""
+    carclu_SWEA_pad(data; energy_range=[]) -> Dict{Symbol, Any}
+
+对 SWEA PAD 数据按能量窗做加权归并。
+
+# 功能与算法概述
+`energy_range` 为标量时取最接近的单一能道；为区间时以 `g_pa`/`g_engy` 为权重把
+窗内俯仰角与通量加权平均为单值，并把 `NaN` 置为 `1e-10`。
+
+# 参数说明
+- `data`: SWEA PAD 字典，需含 `:epoch`、`:pa`、`:energy`、`:diff_en_fluxes`、`:g_pa`、`:g_engy`。
+- `energy_range`: 标量（单能道）或 `[lo, hi]`（能量窗）。
+
+# 返回值
+- `Dict`: 含 `:epoch`、`:pa`、`:diff_en_fluxes`、`:energy`、`:data_load_flag` 的字典。
+
+# 注意事项
+- 输出 `:energy` 在区间模式下为 `[E_lo, E_hi]` 两端值。
+"""
 function carclu_SWEA_pad(data; energy_range=[])  # SWEA PAD数据处理
     time = data[:epoch]
     pitch_angle = data[:pa]
@@ -821,52 +1173,22 @@ function carclu_SWEA_pad(data; energy_range=[])  # SWEA PAD数据处理
         return return_data #[time,pitch_angle_PAD,flux_PAD,energy_double]
     end
 end
-function rotate_vector_with_Martrix(in_data, Rotation_Martrix) # inv
-    out_data = Rotation_Martrix * in_data
-    return out_data
-end
-function eflux2F(energy, eflux)  # 电子eflux转PSD
-    M = me
-    E0 = 511.0   #静止能量 eV
-    #energy 与 eflux 一一对应
-    # E0=M*C^2/EV
-    γ = (energy * 1e-3 / E0 + 1)
-    β = sqrt(1.0 - 1.0 / γ^2)
-    P = γ * M * β * C        # kg m/s
-    # V=β .* C
-    F = (γ * M)^3 * eflux / energy * 1e4 / EV / P^2
-    return F
-end
-function ion_eflux2F(energy, eflux, mION)  # 离子eflux转PSD
-    M = mION * Mp
-    E0 = 511.0 * mION * 1836.23 # 离子静止能量
-    #energy 与 eflux 一一对应
-    γ = (energy * 1e-3 / E0 + 1)
-    β = sqrt(1.0 - 1.0 / γ^2)
-    P = γ * M * β * C        # kg m/s
-    # V=β .* C
-    F = (γ * M)^3 * eflux / energy * 1e4 / EV / P^2
-    return F
-end
-function Doppler_Shift(f, V_sc, k, θ) # wave frequence shift with spacecraft velocity
-    # θ angle between SC and wave vector
-    ω_obs = f * 2 * π
-    ω_real = ω_obs - k * V_sc * cos(θ)
-    return ω_real
-end
-function sphere2xyz(r, θ, ϕ)
-    x = r .* sind.(θ) .* cosd.(ϕ)
-    y = r .* sind.(θ) .* sind.(ϕ)
-    z = r .* cosd.(θ)
-    return [x, y, z]
-end
-function energy2v(energy) # 电子能量对应速度(相对论)
-    E0 = 511.0
-    γ = (energy * 1e-3 / E0 + 1)
-    β = sqrt(1.0 - 1.0 / γ^2)
-    v = β .* 3e8
-    return v
-end
+"""
+    find_segments(x::Vector{T}, y::BitVector) -> (Vector, Vector)
+
+在布尔掩膜 `y` 中提取所有连续 `true` 段的起止横坐标。
+
+# 功能与算法概述
+线性扫描 `y`，遇到 `1` 记起点、回到 `0` 记终点，返回两段起止值；
+末尾仍为 `1` 时以 `x[end]` 收尾。
+
+# 参数说明
+- `x::Vector{T}`: 与 `y` 同长的横坐标。
+- `y::BitVector`: 布尔掩膜。
+
+# 返回值
+- `(starts, stops)`: 各 `true` 段的起始与终止 `x` 值。
+"""
 function find_segments(x::Vector{T}, y::BitVector) where {T}
     segments1 = []
     segments2 = []
@@ -888,25 +1210,98 @@ function find_segments(x::Vector{T}, y::BitVector) where {T}
     end
     return segments1, segments2
 end
-function ion_energy2v(energy, mass) # 离子子能量对应速度(相对论)
-    E0 = 511.0 * mass * 1836.23
-    γ = (energy * 1e-3 / E0 + 1)
-    β = sqrt(1.0 - 1.0 / γ^2)
-    v = β .* 3e8
-    return v
-end
-function  cyclone_frequency(B; mass = Me) 
+"""
+    cyclone_frequency(B; mass=constants.me) -> Float64
+
+计算带电粒子的回旋频率。
+
+# 功能与算法概述
+按 `f = qB/(2πm)` 计算（`B` 由 nT 换算为 T）。
+
+# 参数说明
+- `B`: 磁感应强度（nT）。
+- `mass`: 粒子质量（kg），默认电子质量。
+
+# 返回值
+- `Float64`: 回旋频率（Hz）。
+"""
+function cyclone_frequency(B; mass=constants.me)
     # 计算离子子的回旋频率, 默认电子, B nT
-    f = Q * B*1e-9 / (2 * π * mass)
+    f = constants.e * B*1e-9 / (2 * π * mass)
     return f
 end
-function  cyclone_R(v,B; mass = Me) 
+"""
+    cyclone_R(v, B; mass=constants.me) -> Float64
+
+计算带电粒子的回旋半径。
+
+# 功能与算法概述
+按 `R = v/(ω_c·2π)` 计算。
+
+# 参数说明
+- `v`: 粒子速度（m/s）。
+- `B`: 磁感应强度（nT）。
+- `mass`: 粒子质量（kg），默认电子质量。
+
+# 返回值
+- `Float64`: 回旋半径（m）。
+"""
+function cyclone_R(v, B; mass=constants.me)
     # 计算离子子的回旋半径, 默认电子,v m/s B nT
     R = v / (cyclone_frequency(B; mass) * 2 * π) # m
     return R
 end
+"""
+    SWEA_calc_shape_arr(dat; energy_range=[20,80], pad_range=[0,30], time_i=nothing) -> Vector{Float64}
+
+计算 SWEA 指定俯仰角范围的 shape parameter。
+
+# 功能与算法概述
+参考 SPEDAS：先把 `pad_range` 内能谱按 `d_pa` 加权平均，再在 `energy_range` 内对
+`log10(eflux)` 作数值一阶导，与电离层响应模板 `df_iono` 之差的绝对值求和即 shape parameter。
+
+# 参数说明
+- `dat`: SWEA PAD 字典，需含 `:num_dists`、`:diff_en_fluxes`、`:energy`、`:pa`、`:d_pa`、`:filename`。
+- `energy_range`: 能量窗 `[lo, hi]`（eV）。
+- `pad_range`: 俯仰角窗 `[lo, hi]`（度）。
+- `time_i`: 时间索引范围，`nothing` 表示全部。
+
+# 返回值
+- `Vector{Float64}`: 各时刻的 shape parameter。
+
+# 注意事项
+- 由文件名判断分辨率（`arc` → 高分辨率模板）。
+- 嵌套函数 `mvn_swe_calc_shape_arr` 与 `deriv` 分别做模板拟合与非均匀一阶差分。
+"""
 function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time_i = nothing)# 计算指定pa范围的shape parameter,设置time_i后可以计算指定时间段的数据以增加运行速度
+    """
+        mvn_swe_calc_shape_arr(npts, fin, energy; hresflg=true, energy_range=[0.0, 100.0]) -> Vector{Float64}
+
+    对对数能谱做一阶导并与电离层响应模板比较，得到 shape parameter。
+
+    # 参数说明
+    - `npts`: 样本数。
+    - `fin`: 能谱矩阵（`npts×nenergy`）。
+    - `energy`: 能量网格。
+    - `hresflg`: 是否使用高分辨率模板。
+    - `energy_range`: 能量窗 `[lo, hi]`。
+
+    # 返回值
+    - `Vector{Float64}`: 各样本的 shape parameter（无效谱为 `NaN`）。
+    """
     function mvn_swe_calc_shape_arr(npts, fin, energy; hresflg=true, energy_range = [0.0, 100.0])
+        """
+            deriv(x, y) -> Vector
+
+        对非均匀采样数据做数值一阶差分（仿 IDL `deriv`）。
+
+        # 参数说明
+        - `x`: 自变量网格。
+        - `y`: 因变量。
+
+        # 返回值
+        - `Vector`: 同 `y` 长度的一阶导数。
+        """
         function deriv(x, y)
             # ref deriv for idl
             # Ensure we have at least 3 points
@@ -997,6 +1392,28 @@ function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time
     par = mvn_swe_calc_shape_arr(npts,flux_pad_mean,energy; energy_range=energy_range, hresflg=hresflg)
     return par
 end
+"""
+    SWEA_calc_shape_arr_mars_towrads(SWEA_dat, MAG_dat; energy_range=[0,100], time_i=nothing, pa_width=30)
+
+计算 SWEA shape parameter 并区分"指向火星(toward)"与"背离火星(away)"。
+
+# 功能与算法概述
+由磁场方向与位置方向的夹角判断磁力线指向（用最近邻 MAG 时间匹配），
+分别对平行/反平行与中间俯仰角窗调用 `SWEA_calc_shape_arr`，再按 `B_out` 组合出指向/背离结果。
+
+# 参数说明
+- `SWEA_dat`: SWEA PAD 数据字典。
+- `MAG_dat`: MAG 数据字典，需含 `:epoch`、`:position`、`:B`、`:B_total`。
+- `energy_range`: 能量窗 `[lo, hi]`（eV）。
+- `time_i`: 时间索引范围。
+- `pa_width`: 平行方向俯仰角窗宽度（度）。
+
+# 返回值
+- `(par_twd, par_away, par_mid)`: 指向、背离与中间分布的 shape parameter 向量。
+
+# 注意事项
+- 建议 MAG 使用 pc 坐标（ss 亦可）。
+"""
 function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],time_i = nothing,pa_width =30)#将sp计算为指向和指出火星,需要同时导入磁场,建议pc,ss理论上也可,pa_width为PAD角度范围,设置time_i后可以计算指定时间段的数据以增加运行速度; 指向和指出单纯由磁场Br的正负和平行或反平行决定.
     # ref projects\maven\swea\mvn_swe_shape_par_pad_l2.pro
     ntimes = SWEA_dat[:num_dists]
