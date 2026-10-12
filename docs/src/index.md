@@ -33,8 +33,16 @@ Data_Dict = MAVEN_load.data_get_from_date(["20141220"], model_index = ["MAG_pc1s
 mag_data = Data_Dict["MAG_pc1s"][:B]
 ```
 
+```julia
+# 4. 绘制多仪器概览图（绘图功能已包化进 MarsData，无需手动 include MAVEN_plot.jl）
+using MarsData, CairoMakie
+fig = Figure(; size=(2500, 2500))
+fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
+save("overview.png", fig)
+```
+
 ```bash
-# 4. 下载与索引（Python 侧）
+# 5. 下载与索引（Python 侧）
 python tools/migrate_config.py --apply          # 一次性：INI → TOML 配置
 python -m martian_pipeline scan                 # 扫描本地文件并刷新索引
 ```
@@ -56,7 +64,7 @@ python -m martian_pipeline scan                 # 扫描本地文件并刷新索
 | `common/`、`support_data/` | 通用坐标/物理计算函数和外部支持数据读取 |
 | `calculate/` | 模型计算流程与组合入口 |
 | `example/` | 绘图和数据分析示例 |
-| `src/`、`Project.toml` | Julia 包 `MarsData`（轻量公共 API 入口） |
+| `src/`、`Project.toml` | Julia 包 `MarsData`：轻量公共 API + 包化绘图（`plot_module` 及 `MAVEN_plot` 基元） |
 | `pyproject.toml` | Python 运行依赖与可选依赖清单 |
 | `docs/` | 本 Documenter 文档源与构建产物 |
 

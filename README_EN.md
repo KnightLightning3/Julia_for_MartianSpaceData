@@ -12,6 +12,7 @@
 - [Mars Magnetic Field Model](#mars-magnetic-field-model)
 - [Custom Data Description](#custom-data-description)
 - [MAVEN Data Tips](#maven-data-tips)
+- [Plotting](#plotting)
 - [Program and Function Index](#program-and-function-index)
 - [Documentation Build](#documentation-build)
 - [ToDo List](#todo-list)
@@ -37,7 +38,7 @@ This project provides tools for downloading, reading, processing, and visualizin
 | `common/`, `support_data/` | Shared coordinate/physics utilities and external support-data readers |
 | `calculate/` | Model calculation workflows and composition entry points |
 | `example/` | Plotting and data-analysis examples |
-| `src/`, `Project.toml` | Julia package `MarsData` (lightweight public API entry point) |
+| `src/`, `Project.toml` | Julia package `MarsData`: lightweight public API + packaged plotting (`plot_module`, …) |
 | `pyproject.toml` | Python runtime and optional dependency manifest |
 | `docs/` | [Documenter documentation](docs/src/index.md): pipeline, reading/format, program index |
 
@@ -154,6 +155,23 @@ import .IGRF_calculate
 For specific reading methods, refer to: [MAVEN Data Format](docs/src/data_format.md)
 
 Reading guide: [MAVEN Data Reading](docs/src/data_reading.md)
+
+# Plotting
+
+Plotting is now **packaged into `MarsData`** — no need to `include MAVEN_plot.jl` manually:
+
+```julia
+using MarsData          # plotting primitives + the overview composition plot_module
+using CairoMakie        # Figure / Axis / save
+
+fig = Figure(; size=(2500, 2500))
+fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
+save("overview.png", fig)
+```
+
+- **Implementation**: `src/plotting.jl` holds the overview composition (`plot_module` / `TimeFormat` / `remove_0_point!`); the primitives live in `MAVEN_data/MAVEN_plot.jl`, loaded as the submodule `MarsData.MAVEN_plot` and available with `using MarsData`.
+- **Primitive API**: `time2x`, `time_ticks`, `x_ticks`, `sta_heatmap`, `STA_2d_slip`, `SWEA_PAD_heatmap`, `WaveSpectra_heatmap`, `Orbit`, `PAD_slice`, `PAD_slice_polar`, `PAD_slice_velocity`.
+- **Examples**: `example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl` (single interval) and `MAVEN_overview_cases.jl` (batch over 2-hour windows; output directory via `MAVEN_OVERVIEW_OUTDIR`).
 
 ## Program and Function Index
 

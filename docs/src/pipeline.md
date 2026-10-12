@@ -192,6 +192,17 @@ MarsData.data_model();  MarsData.load_index()
 
 **模型与计算**：`models/`（冷等离子体色散、麦克斯韦拟合、单粒子轨道）、`Magnetic_Model/`（IGRF 磁场，含 Fortran DLL）、`calculate/`（组合计算入口）。
 
+**绘图（已包化）**：绘图功能随 `using MarsData` 提供，无需手动 `include`：
+
+```julia
+using MarsData, CairoMakie
+fig = Figure(; size=(2500, 2500))
+fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
+save("overview.png", fig)
+```
+
+其中 `plot_module` / `TimeFormat` / `remove_0_point!` 定义于 `src/plotting.jl`，绘图基元来自子模块 `MarsData.MAVEN_plot`（源文件 `MAVEN_data/MAVEN_plot.jl`）。示例见 `example/MAVEN_plot_sample/`。
+
 **时间轴查找**：所有被读取数据的时间轴（除特别说明）均为排序时序数据；时间轴最近邻查找统一使用 `MarsCommon.searchsortednearest`（二分，`O(log N)`），**不要**使用 `findmin(abs.(x .- x0))`（线性扫描）。能量轴、色标等非时序数据仍用 `findmin`。
 
 ---

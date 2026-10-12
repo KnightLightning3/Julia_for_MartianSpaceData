@@ -1,5 +1,31 @@
 # 更新日志
 
+## [2026-10-12] 绘图功能包化：MarsData 提供 plot_module 与绘图基元
+
+### 新增
+
+- **`src/plotting.jl`**：概览绘图合成（`TimeFormat` / `remove_0_point!` / `plot_module`），由 `example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl` 迁入包内、在 `module MarsData` 中 include，通过 `using MarsData` 直接调用。
+- **`Project.toml`** 新增绘图依赖（UUID 由 `Pkg.add` 写入）：CairoMakie、Makie、ColorTypes、DataFrames、DataInterpolations、DelaunayTriangulation、LaTeXStrings、ProgressMeter、StaticArrays、TimesDates、LinearAlgebra、Statistics。
+
+### 修改
+
+- **`src/MarsData.jl`**：在轻量公共 API（路径 / 注册表 / 索引）之上 include `MAVEN_data/MAVEN_plot.jl`（作为子模块 `MarsData.MAVEN_plot`）与 `src/plotting.jl`，并以 `using .MAVEN_plot` 使绘图基元随 `using MarsData` 可用。
+- **`example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl`**：659 → 196 行。删除本地 `TimeFormat` / `remove_0_point!` / `plot_module` 定义与 `MAVEN_plot.jl` 直接 include，改为 `using MarsData`；仅保留数据准备（`mag2sphere` / `get_data` / `get_B_model_ss`）。
+- **`example/MAVEN_plot_sample/MAVEN_overview_cases.jl`**：670 → 209 行，同样改造。
+- **`README.md` / `README_EN.md`**：新增「绘图 / Plotting」章节与目录项；项目结构表更新 `src/` 说明。
+- **`docs/src/index.md`、`pipeline.md`、`api.md`**：补充包化绘图用法、快速开始绘图步骤与函数索引说明。
+
+### 验证
+
+- `using MarsData` 加载成功；`MarsData.plot_module`、`MarsData.TimeFormat`、子模块 `MarsData.MAVEN_plot` 与导出基元 `time2x` 均可用；`MarsData.TimeFormat(2015-07-19 02:00, 04:00)` → `02:00:00.000`。
+- 单日概览示例（2015-07-19 02:00-04:00）运行成功 → `%TEMP%/maven_plot_pkg/MAVEN_overview_20150719_0200-0400.png`（5.36 MB）。
+- 批量示例（2015-07-19 全天 12 个 2 小时窗口）运行成功 → `%TEMP%/maven_plot_pkg_batch/2015/07/*.png`（含目标窗口 `2015-07-19_02.png`）。
+- `julia --project=docs docs/make.jl` 文档重建成功。
+
+### 说明
+
+- `using MarsData` 现在会加载 CairoMakie/Makie，首次加载较慢（预编译后约数十秒）；`Figure` / `save` 等仍由 `using CairoMakie` 提供（MarsData 不重新导出 Makie）。
+
 ## [2026-10-12] example 概览/批量绘图适配 + MAVEN_plot 加载阻塞修复
 
 ### 修复

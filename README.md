@@ -24,6 +24,7 @@
   - [麦克斯韦分布拟合](#麦克斯韦分布拟合)
   - [单粒子轨道追踪](#单粒子轨道追踪)
 - [MAVEN数据说明](#maven数据说明)
+- [绘图](#绘图)
 - [程序与函数索引](#程序与函数索引)
 - [文档构建](#文档构建)
 - [其他](#其他)
@@ -51,7 +52,7 @@
 | `common/`、`support_data/` | 通用坐标/物理计算函数和外部支持数据读取 |
 | `calculate/` | 模型计算流程与组合入口 |
 | `example/` | 绘图和数据分析示例 |
-| `src/`、`Project.toml` | Julia 包 `MarsData`（轻量公共 API 入口） |
+| `src/`、`Project.toml` | Julia 包 `MarsData`：轻量公共 API + 包化绘图（`plot_module` 等） |
 | `pyproject.toml` | Python 运行依赖与可选依赖清单 |
 | `docs/` | [Documenter 文档](docs/src/index.md)：执行流程、数据读取/格式、程序函数索引 |
 
@@ -180,6 +181,23 @@ import .IGRF_calculate
 具体读取方法: [MAVEN 数据格式](docs/src/data_format.md)
 
 读取介绍：[MAVEN 数据读取](docs/src/data_reading.md)
+
+# 绘图
+
+绘图功能已**包化进 `MarsData`**，无需再手动 `include MAVEN_plot.jl`：
+
+```julia
+using MarsData          # 绘图基元 + 概览合成 plot_module（一并可用）
+using CairoMakie        # Figure / Axis / save 等图形对象
+
+fig = Figure(; size=(2500, 2500))
+fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
+save("overview.png", fig)
+```
+
+- **包内实现**：`src/plotting.jl`（概览合成 `plot_module` / `TimeFormat` / `remove_0_point!`）；绘图基元位于 `MAVEN_data/MAVEN_plot.jl`，作为子模块 `MarsData.MAVEN_plot` 载入并随 `using MarsData` 一同可用。
+- **基元 API**：`time2x`、`time_ticks`、`x_ticks`、`sta_heatmap`、`STA_2d_slip`、`SWEA_PAD_heatmap`、`WaveSpectra_heatmap`、`Orbit`、`PAD_slice`、`PAD_slice_polar`、`PAD_slice_velocity`。
+- **完整示例**：`example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl`（单日概览）、`MAVEN_overview_cases.jl`（批量，按 2 小时窗口切分，输出目录可用环境变量 `MAVEN_OVERVIEW_OUTDIR` 覆盖）。
 
 # 其他模型
 

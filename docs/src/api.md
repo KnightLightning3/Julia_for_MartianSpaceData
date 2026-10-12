@@ -95,7 +95,9 @@
 - `sphere2xyz_for_SWIA`、`xyz2sphere_for_SWIA`：球坐标和笛卡尔坐标转换辅助函数（保留源码中的函数名）。
 - `ion_energy2v`、`ion_v2energy`：离子能量和速度换算。
 
-### `MAVEN_data/MAVEN_plot.jl`
+### `MAVEN_data/MAVEN_plot.jl`（已包化为子模块 `MarsData.MAVEN_plot`）
+
+> 该文件作为子模块被 `src/MarsData.jl` 载入，`using MarsData` 后其导出基元直接可用。
 
 - `vspan_plot`：在时间序列坐标轴上绘制布尔区间。
 - `sta_heatmap_test`、`sta_heatmap`：绘制 STATIC 能量/角度分布热图。
@@ -291,7 +293,9 @@
 
 ## 示例程序
 
-[`MAVEN_overview_cases.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) 与 [`MAVEN_overview_plot_sample.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl) 提供事件概览绘图流程：`TimeFormat` 生成时长字符串；`mag2sphere` 转换磁场分量；`get_data` 读取所需产品；`get_B_model_ss` 计算模型磁场；`remove_0_point!` 处理非正绘图值；`plot_module` 绘制多仪器时间序列面板。
+概览绘图流程已**包化进 `MarsData`**：`TimeFormat`（时长字符串）、`remove_0_point!`（非正绘图值置 NaN）、`plot_module`（多仪器时间序列面板）定义于 [`src/plotting.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/src/plotting.jl)，随 `using MarsData` 可用；绘图基元来自子模块 `MarsData.MAVEN_plot`。
+
+[`MAVEN_overview_cases.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) 与 [`MAVEN_overview_plot_sample.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl) 只保留数据准备部分：`mag2sphere` 转换磁场分量；`get_data` 读取所需产品（KP 用 `load_kp` + 坐标变换矩阵）；`get_B_model_ss` 计算模型磁场；随后调用 `MarsData.plot_module` 绘图。
 
 ## 其他无函数入口文件
 

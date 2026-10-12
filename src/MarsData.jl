@@ -1,10 +1,20 @@
-"""MarsData：火星空间数据工具包的轻量公共 API 入口（P4）。
+"""MarsData：火星空间数据工具包（路径 / 注册表 / 索引 + 绘图功能）。
 
-仅暴露路径解析、产品注册表与索引读取等公共 API，不加载任何科学数据 loader，
-因此可在无本地数据、无 Fortran DLL 的环境下加载。
+- **轻量公共 API**：路径解析、产品注册表与索引读取（不加载任何科学数据 loader）。
+- **绘图功能（包化）**：`MAVEN_data/MAVEN_plot.jl` 的绘图基元 + 概览绘图合成
+  （`plot_module`），`using MarsData` 即可调用。
+
+用法：
+```julia
+using MarsData
+MarsData.maven_data_root()          # 数据根目录
+fig = Figure(; size=(2500, 2500))
+MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
+```
 """
 module MarsData
 
+# ==================== 轻量公共 API：路径 / 注册表 / 索引 ====================
 include(joinpath(@__DIR__, "..", "common", "paths.jl"))
 using .Paths
 using JSON
@@ -36,5 +46,19 @@ function load_index()
         return JSON.parse(f)
     end
 end
+
+# ==================== 绘图功能（包化） ====================
+using Dates
+using LinearAlgebra
+using Statistics
+using CairoMakie
+using Makie
+
+# 绘图基元：子模块 MAVEN_plot（其内部自带 constants / MarsCommon）
+include(joinpath(@__DIR__, "..", "MAVEN_data", "MAVEN_plot.jl"))
+using .MAVEN_plot
+
+# 概览绘图合成：TimeFormat / remove_0_point! / plot_module
+include(joinpath(@__DIR__, "plotting.jl"))
 
 end
