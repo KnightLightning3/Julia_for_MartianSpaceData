@@ -1,0 +1,22 @@
+# MAVEN/TW/MGS 数据根路径（决策 D2：三任务分别配置根目录）
+[paths]
+maven_data_root = "E:/MAVEN/"
+tw_data_root = "E:/Tianwen-1/"
+mgs_data_root = "E:/MGS/"
+
+[server]
+index = 0
+urls = [
+  "http://222.195.76.155:8000/MAVEN/",
+  "https://pds-ppi.igpp.ucla.edu/data/",
+  "https://lasp.colorado.edu/maven/sdc/public/data/sci/",
+]
+
+[download]
+mode = "python.request"
+threads = 5
+continue = true
+
+[window]
+start = "2014-10-01"
+end = "2025-06-01"

@@ -1,5 +1,34 @@
 # 更新日志
 
+## [2026-10-12] P1: 配置与路径单点化
+
+### 新增
+
+- **`config/settings.example.toml`**: TOML 配置模板（唯一写端格式），含 MAVEN/TW/MGS 根 + server/download/window。
+- **`config/config.py`**: `load_config()` — TOML 优先 → 旧 INI 只读回退 → DEFAULTS，dataclass 强类型返回。
+- **`config/paths.py`**: 路径解析单一出处 — `project_root/index_path/lists_dir/data_root/product_dir`，全部脚本位置推导、CWD 无关。
+- **`tools/migrate_config.py`**: INI→TOML 一次性迁移命令（dry-run 默认、`--apply`/`--force`、幂等、不搬数据）。
+- **`common/paths.jl`**: Julia 侧 `Paths` 模块（TOML 优先 + INI 回退），暴露三任务根路径与 `index_path`。
+- **`tests/test_p1.py`**: 6 个用例覆盖 TOML 读取、INI 兼容映射、迁移 dry-run/幂等、路径 CWD 无关、product_dir。
+
+### 修改
+
+- **`MAVEN_data/MAVEN_load.jl`**: `root_path` 改经 `Paths.maven_data_root()`（行为不变）。
+- **`.gitignore`**: 追加 `config/settings.toml`（本地配置不入库）。
+
+### 验证
+
+- Python AST: 27/27 OK（Flash 校验 + 独立复核一致）。
+- 测试: P0 6/6 + P1 6/6 PASS。
+- Julia paths.jl 冒烟: TOML 分支与 INI 回退均正确。
+- 迁移 dry-run 对用户真实 INI 正确识别 `Server_ind=3`、4 URL、`Aria2c` 模式。
+
+### 多模型协同
+
+- Architect (Qwen 3.8 MAX): 定义契约与规格。
+- Code (Qwen 3.8 MAX): 编写 Python config 层 + Julia paths.jl。
+- Debug (DeepSeek Flash via USTC): 全仓 AST 校验。
+
 ## [2026-10-12] P0: 阻断级问题修复与行为对齐
 
 ### 修复

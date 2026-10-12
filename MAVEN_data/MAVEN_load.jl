@@ -9,6 +9,8 @@ using CommonDataFormat
 module MAVEN_load
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+include(joinpath(@__DIR__, "..", "common", "paths.jl"))
+using .Paths
 using CommonDataFormat
 using TimesDates, Dates
 using DataFrames
@@ -28,7 +30,7 @@ open(dir * "/MAVEN_data_format.json", "r") do f
     global kp_dict = data["kp_dict"]
     global data_model = data["data_model"]
 end
-root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
+root_path = Paths.maven_data_root() # 所有文件的根目录（经 common/paths.jl 解析：TOML 优先、旧 INI 只读兼容）
 # -------------------------Read filelist parts-------------------------
 """
     show_load_models() -> Vector{String}
