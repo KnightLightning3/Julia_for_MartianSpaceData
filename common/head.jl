@@ -25,7 +25,7 @@ using JLD2
 using QuadGK
 using Base.Threads
 
-Package_path = "D:/CODE/Package_for_Julia/"
+Package_path = normpath(joinpath(@__DIR__, "..")) * "/"
 if !isdefined(Main, :MAVEN_load)
     include(Package_path*"MAVEN_data/MAVEN_load.jl");import .MAVEN_load;
     include(Package_path*"MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;

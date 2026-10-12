@@ -1,5 +1,33 @@
 # 更新日志
 
+## [2026-10-12] P4: Julia 包化与 loader 兼容
+
+### 新增
+
+- **`Project.toml`**: 正式 Julia package 清单（name=MarsData, uuid, deps: Dates/IniFile/JSON/TOML, compat julia=1.10）。
+- **`src/MarsData.jl`**: 轻量公共 API 入口，仅暴露路径解析（`project_root/maven_data_root/tw_data_root/mgs_data_root/index_path`）、产品注册表（`load_registry/data_model`）与索引读取（`load_index`），不加载任何科学数据 loader，因此可在无本地数据、无 Fortran DLL 的环境加载。
+
+### 修改
+
+- **`common/head.jl`**: 硬编码 `Package_path = "D:/CODE/Package_for_Julia/"` 改为 `normpath(joinpath(@__DIR__, "..")) * "/"`（由文件位置推导包根，去除绝对路径硬编码，对应报告发现 #5）。
+
+### 验证
+
+- `src/MarsData.jl` 冒烟通过（include 加载 + 路径/注册表/索引解析全部正确，`MARS_DATA_SMOKE_OK`）。
+- `common/head.jl` 经 `Meta.parseall` 语法解析通过。
+- 保留现有 `include` 入口：`MAVEN_load.jl` 等仍按原 include 方式加载，行为不变。
+
+### 说明（受环境限制未验证部分）
+
+- `Pkg.instantiate` 无法在本沙箱运行（Julia Pkg 的子进程管道被沙箱命名管道限制阻断，与 git push 同因）；`Project.toml` 的依赖 UUID 已按本机已装包逐一核实，需在沙箱外运行 `Pkg.instantiate` 确认。
+- `:time` 统一键规范化（报告 5.2-⑤）与 loader 输出逐键比对，需可再分发样本数据，留待后续；本阶段不强制。
+
+### 多模型协同
+
+- Architect (DeepSeek V4 Pro): 拆分增量、核实依赖 UUID。
+- Code (Qwen 3.8 MAX): 编写 Project.toml、src/MarsData.jl、head.jl 修复。
+- Debug (DeepSeek Flash): 辅助校验。
+
 ## [2026-10-12] P3: 派生产品和索引治理
 
 ### 新增
