@@ -362,17 +362,18 @@ if __name__ == "__main__":
         if key in json_list_data:
             print(f"\n=====正在处理数据类别: {key}，共 {len(json_list_data[key])} 个文件=====")
             mode_save_dir,_ = download_model(key)
+            mode_cdf_dir,_ = download_model(key + "_cdf")  # 注册表派生产品目录(MAG/l3/)，替代字符串手术
             count = 0
             for txt_file in json_list_data[key]:
                 count += 1
                 print(f"处理文件{os.path.basename(txt_file)} {count}/{len(json_list_data[key])}...")
                 txt_file_path = os.path.join(mode_save_dir, txt_file)
-                output_cdf_path = os.path.join(mode_save_dir[:-2]+"3", txt_file[:-4] + "_compressed.cdf")
-                new_file_path = os.path.join(mode_save_dir[:-2]+"3", txt_file[:-4] + ".cdf")
+                output_cdf_path = os.path.join(mode_cdf_dir, txt_file[:-4] + "_compressed.cdf")
+                new_file_path = os.path.join(mode_cdf_dir, txt_file[:-4] + ".cdf")
                 if os.path.exists(new_file_path):
                     continue
                 if not os.path.exists(os.path.dirname(new_file_path)):
                     os.makedirs(os.path.dirname(new_file_path))
                 convert_pds_to_cdf(txt_file_path, output_cdf_path)
-                #修改临时文件结尾
-                os.rename(output_cdf_path, new_file_path)
+                #原子替换临时文件结尾（不覆盖已有有效输出）
+                os.replace(output_cdf_path, new_file_path)

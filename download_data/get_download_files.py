@@ -4,8 +4,11 @@ import os
 import json
 import configparser
 import tempfile
+import datetime
 
 PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCHEMA_VERSION = 2
+_METADATA_KEYS = {"schema_version", "generated_at"}
 
 
 def load_config(config_path=None):
@@ -37,16 +40,36 @@ def write_index(save_dir, output_path=None):
             with open(os.path.join(list_dir, listname), 'r', encoding='utf-8') as f:
                 lines = [line.rstrip() for line in f]
             list_dict[model] = lines
+    index_dict = {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": datetime.datetime.now().isoformat(),
+    }
+    index_dict.update(list_dict)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(output_path) or ".", prefix=".filename_lists.", suffix=".tmp")
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as json_file:
-            json.dump(list_dict, json_file, indent=4)
+            json.dump(index_dict, json_file, indent=4)
         os.replace(tmp_path, output_path)
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
     return output_path
+
+
+def load_index(path=None):
+    """读取索引 JSON 并返回 (metadata, products)。
+
+    兼容索引 v2（顶层含 schema_version/generated_at 元数据）与旧版扁平格式；
+    products 始终为 {product_id: [相对路径...]} 的扁平字典，供旧版加载器消费。
+    """
+    if path is None:
+        path = default_index_path()
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    metadata = {k: data[k] for k in _METADATA_KEYS if k in data}
+    products = {k: v for k, v in data.items() if k not in _METADATA_KEYS}
+    return metadata, products
 
 
 def main():

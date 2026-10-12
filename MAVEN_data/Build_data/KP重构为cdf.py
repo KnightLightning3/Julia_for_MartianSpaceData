@@ -821,4 +821,4 @@ if __name__ == "__main__":
             if not os.path.exists(os.path.dirname(new_file_path)):
                 os.makedirs(os.path.dirname(new_file_path))
             convert_kp_to_cdf(mode_kp_dir+txt_file, output_cdf_path, gzip_level=4)
-            os.rename(output_cdf_path, new_file_path)
+            os.replace(output_cdf_path, new_file_path)

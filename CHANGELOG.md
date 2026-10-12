@@ -1,5 +1,34 @@
 # 更新日志
 
+## [2026-10-12] P3: 派生产品和索引治理
+
+### 新增
+
+- **索引 v2**（`download_data/get_download_files.py`）：`write_index` 写入 `schema_version=2` + `generated_at` 顶层元数据（扁平 + 元数据，向后兼容旧加载器）；新增 `load_index()` 读适配器，同时兼容 v2 与旧版扁平格式。
+- **`config/paths.py` 新增 `resolve_output_product(source_model, data_model)`**：按 `source_model + "_cdf"` 派生约定解析派生产品的注册信息，返回 `(output_product_id, output_product_dir, output_regex)`。
+- **`tests/test_p3.py`**：6 个用例覆盖索引 v2 写入/读取/旧版兼容、MAG/KP 派生解析、未知模型 KeyError。
+
+### 修改
+
+- **`MAVEN_data/Build_data/磁场重构为CDF文件.py`**：`__main__` 中 `mode_save_dir[:-2]+"3"` 字符串手术改为注册表查找 `download_model(key + "_cdf")`；`os.rename` → `os.replace`（原子替换，不覆盖已有有效输出）。
+- **`MAVEN_data/Build_data/KP重构为cdf.py`**：`os.rename` → `os.replace`（原子替换）。
+
+### 验证
+
+- 全仓 Python AST: 31/31 OK（Flash 交叉校验 + 独立复核一致）。
+- 回归: P0 6/6、P1 6/6、P2 utils 2/2、P2 cli 5/5、P3 6/6 全通过。
+- 派生输出路径经注册表解析、输出文件名可被对应产品正则发现（测试断言）。
+
+### 说明
+
+- 构建器依赖 `spacepy.pycdf`（NASA CDF 库），本机无法端到端运行 CDF 转换；本次仅改动纯路径/原子写逻辑并做 AST 级验证，运行时验证需在具备 spacepy + CDF 库的环境进行。
+
+### 多模型协同
+
+- Architect (DeepSeek V4 Pro): 拆分增量、细化规格。
+- Code (Qwen 3.8 MAX): 逐增量实现。
+- Debug (DeepSeek Flash): 全仓 AST 交叉校验。
+
 ## [2026-10-12] P2: Python 可组合入口
 
 ### 新增

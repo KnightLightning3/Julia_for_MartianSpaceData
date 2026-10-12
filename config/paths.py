@@ -71,3 +71,23 @@ def product_dir(product_id: str, data_root: str | Path, data_model: dict) -> Pat
     """
     sub = data_model[product_id][2]
     return Path(data_root) / sub
+
+
+def resolve_output_product(source_model, data_model):
+    """根据原始产品 id 解析其派生 CDF 产品的注册信息。
+
+    约定：派生 CDF 产品 id = source_model + "_cdf"（如 MAG_ss -> MAG_ss_cdf、KP -> KP_cdf）。
+    返回 (output_product_id, output_product_dir, output_regex) 三元组：
+    - output_product_id: 派生产品 id
+    - output_product_dir: 注册表中的相对产品子目录（data_model[...][2]，如 "MAG/l3/"）
+    - output_regex: 该派生产品的文件名正则（data_model[...][1]）
+    若 source_model + "_cdf" 不存在，则回退到 source_model 自身；若两者都不存在则抛 KeyError。
+    """
+    derived = source_model + "_cdf"
+    if derived in data_model:
+        entry = data_model[derived]
+        return derived, entry[2], entry[1]
+    if source_model in data_model:
+        entry = data_model[source_model]
+        return source_model, entry[2], entry[1]
+    raise KeyError(f"no output product registered for {source_model!r}")
