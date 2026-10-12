@@ -7,20 +7,6 @@ import re
 from collections import defaultdict
 
 
-# ==================================================
-# 1. 基础配置与路径动态解析（你提供的代码段）
-# ==================================================
-def get_list_from_ini(input_string):
-    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
-    if input_string == "Null":
-        return []
-    if input_string == "None":
-        return None
-    stripped_string = input_string.replace(" ", "")
-    items = stripped_string.split(",")
-    return items
-
-
 # 获取项目根目录
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -163,6 +149,18 @@ def remove_low_version_files(filename_lists_json_path, dry_run=True):
 # 3. 脚本执行入口
 # ==================================================
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="移除重复的低版本 MAVEN 文件（默认 dry-run，只报告不删除）。"
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="显式启用物理删除；不传则只打印对账清单（dry-run）",
+    )
+    args = parser.parse_args()
+
     # 定位存放已知已下载文件列表的 JSON
     recorded_json = os.path.join(
         project_path, "MAVEN_data", "filename_lists.json"
@@ -171,11 +169,6 @@ if __name__ == "__main__":
     print("🚀 MAVEN 自动化磁盘旧版本清理引擎启动...")
     print(f"当前项目根路径: {project_path}")
     print(f"当前数据存储主根目录(Save_dir): {save_dir}")
+    print("模式: " + ("物理删除(--apply)" if args.apply else "dry-run(仅报告)"))
 
-    # 【第一步：安全测试模式】
-    # 强烈建议先用 dry_run=True 跑一次，去控制台查看打印的“保留”与“移除”是否完全正确
-    # remove_low_version_files(recorded_json, dry_run=True)
-
-    # 【第二步：真刀真枪物理删除】
-    # 当你百分之百放心控制台的对账结果后，注释掉上面的测试行，解除下面这行的注释运行即可：
-    remove_low_version_files(recorded_json, dry_run=False)
+    remove_low_version_files(recorded_json, dry_run=not args.apply)

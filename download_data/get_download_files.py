@@ -3,6 +3,7 @@
 import os
 import json
 import configparser
+import tempfile
 
 PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -37,8 +38,14 @@ def write_index(save_dir, output_path=None):
                 lines = [line.rstrip() for line in f]
             list_dict[model] = lines
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(list_dict, json_file, indent=4)
+    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(output_path) or ".", prefix=".filename_lists.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as json_file:
+            json.dump(list_dict, json_file, indent=4)
+        os.replace(tmp_path, output_path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
     return output_path
 
 

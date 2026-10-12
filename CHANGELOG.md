@@ -1,5 +1,34 @@
 # 更新日志
 
+## [2026-10-12] P2: Python 可组合入口
+
+### 新增
+
+- **`config/utils.py`**: 共享纯函数模块，收敛 `get_list_from_ini` 与 `read_last_line_large_file` 的权威实现。
+- **`tools/scan_and_index.py`**: 独立 CLI（scan → manifest），无 `runpy`/`exit()` 进程副作用，`--models` 忽略未知产品。
+- **`tests/test_p2_utils.py`**: 覆盖 `get_list_from_ini`/`read_last_line_large_file` 边界（空串、无换行、空文件等）。
+- **`tests/test_p2_cli.py`**: 覆盖空目录、未知模型、正则无匹配、路径分隔符、最小模型扫描+索引、CLI 端到端。
+
+### 修改
+
+- **`download_data/get_download_files.py`**: `write_index` 改为原子写（同目录临时文件 + `os.replace`），避免半写索引。
+- **`download_data/check_download_file.py`**: 本地 `read_last_line_large_file` 改为从 `config.utils` 导入。
+- **`download_data/MAVEN_download.py` / `download_files.py`**: 本地 `get_list_from_ini` 改为从 `config.utils` 导入；`exit(0)` 改为 `sys.exit(1)`（修正"失败却返回成功码"）。
+- **`download_data/clean_files.py`**: 删除死代码 `get_list_from_ini`。
+- **`download_data/移除重复文件中的低版本文件.py`**: 删除死代码 `get_list_from_ini`；`__main__` 修复 dry-run 默认被旁路的问题（默认 dry-run，`--apply` 才物理删除）。
+
+### 验证
+
+- 全仓 Python AST: 31/31 OK（Flash 交叉校验 + 独立复核一致）。
+- 回归: P0 6/6、P1 6/6、P2 utils 2/2、P2 cli 5/5 全通过。
+- 无 `runpy` 调用、无 `exit(0)`（剩余 `sys.exit(1)` 均为 `__main__` 错误退出/test runner 合法用法）。
+
+### 多模型协同
+
+- Architect (DeepSeek V4 Pro): 拆分增量、细化规格。
+- Code (Qwen 3.8 MAX): 逐增量实现。
+- Debug (DeepSeek Flash): 全仓 AST 交叉校验。
+
 ## [2026-10-12] P1: 配置与路径单点化
 
 ### 新增

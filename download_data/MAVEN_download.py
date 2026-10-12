@@ -12,15 +12,13 @@ import configparser
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import math
-def get_list_from_ini(input_string):
-    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
-    if input_string == 'Null':
-        return []
-    if input_string == 'None':
-        return None
-    stripped_string = input_string.replace(' ', '')
-    items = stripped_string.split(',')
-    return items
+import sys
+
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from config.utils import get_list_from_ini  # noqa: E402
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
@@ -385,7 +383,7 @@ if __name__ == '__main__':
         logic = test_proxies()
         if(logic == False):
             print('\033[1;31m Connection Failed, Exit Program \033[0m')
-            exit(0)
+            sys.exit(1)
 
     models=[]
     if single_download:

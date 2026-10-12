@@ -3,15 +3,6 @@ import os
 from tqdm import tqdm
 from time import sleep
 import configparser
-def get_list_from_ini(input_string):
-    """将 INI 配置中的列表字符串解析为 Python 列表或空值。"""
-    if input_string == 'Null':
-        return []
-    if input_string == 'None':
-        return None
-    stripped_string = input_string.replace(' ', '')
-    items = stripped_string.split(',')
-    return items
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
