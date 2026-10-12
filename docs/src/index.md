@@ -20,6 +20,27 @@
 | [SWIA 电子修正](swia_electron.md) | 电子二次发射背景的假设与修正算法 |
 | [程序与函数索引](api.md) | 按目录浏览各程序职责与主要函数 |
 
+## 文档体系
+
+本仓库只有一处文档根目录 `docs/`（此前的 `doc/` 已并入），各类内容分工如下：
+
+| 位置 | 角色 | 维护方式 |
+| --- | --- | --- |
+| `docs/src/*.md` | **唯一权威文档源**（本页所在） | 手工编辑；页面互链用相对文件名 |
+| `docs/build/` | Documenter 构建产物（不入库） | `julia --project=docs docs/make.jl` |
+| `docs/wiki/` | GitLab Wiki 专属页（首页 `home.md`、侧边栏 `_sidebar.md`） | 手工编辑 |
+| `docs/references/` | 参考资料：MAVEN 仪器 SIS 手册 PDF、`MAVEN_potential.html` | 只增不改 |
+| `docs/reports/` | 重构诊断/审计/校验报告**历史快照** | 只读；保留当时的函数名与路径 |
+
+[GitLab Wiki](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home) 的正文由 `docs/src/*.md` 生成（跨页链接自动改写为 Wiki 页面名）；首页与侧边栏取自 `docs/wiki/`：
+
+```bash
+python tools/push_wiki.py --dry-run    # 生成到临时目录并自检，不推送
+python tools/push_wiki.py --push       # 生成、提交并推送
+```
+
+详见 `docs/README.md`。
+
 ## 快速开始
 
 ```julia
@@ -72,7 +93,7 @@ python -m martian_pipeline scan                 # 扫描本地文件并刷新索
 | `example/` | 绘图和数据分析示例 |
 | `src/`、`Project.toml` | Julia 包 `MarsData`：轻量公共 API + 包化绘图（`plot_module` 及 `MAVEN_plot` 基元） |
 | `pyproject.toml` | Python 运行依赖与可选依赖清单 |
-| `docs/` | 本 Documenter 文档源与构建产物 |
+| `docs/` | 文档唯一根目录：`src/`（权威源）、`build/`（构建产物）、`wiki/`（Wiki 首页与侧边栏）、`references/`（参考资料）、`reports/`（历史报告快照） |
 
 ## 数据说明
 

@@ -1,5 +1,38 @@
 # 更新日志
 
+## [2026-10-13] 文档目录合并：`doc/` 并入 `docs/`，Wiki 改为从文档源生成并推送
+
+### 结构变更
+
+- **删除 `doc/`，`docs/` 成为唯一文档根目录**，`docs/src/*.md` 确认为唯一权威文档源：
+  - `doc/MAVEN_instrument_sis/*.pdf` → `docs/references/MAVEN_instrument_sis/`（12 份仪器 SIS 手册）
+  - `doc/MAVEN_potential.html` → `docs/references/MAVEN_potential.html`
+  - `doc/refactoring_*.md` → `docs/reports/`（4 份报告，作为**历史快照内容不变**，仍保留当时的函数名与路径）
+  - `doc/wiki/home.md` → `docs/wiki/home.md`（重写为 Wiki 导航首页）
+- **删除 `doc/wiki/` 下 4 个陈旧副本**（`MAVEN_data_format.md`、`MAVEN数据读取.md`、`swia_electron_correlated.md`、`程序与函数Wiki.md`）：内容早已由 `docs/src/` 同名页面取代，且旧副本缺少 `docs/src/api.md` 的「MarsData 包 API」章节。
+- `docs/src/*.md` 中的仓库链接统一为 GitLab 规范形式 `…/-/blob/main/<path>`（`api.md` 42 处、`data_reading.md` 1 处）。
+
+### 新增
+
+- `tools/push_wiki.py`：把 `docs/src/*.md` 生成为 GitLab Wiki 页面并推送（`--dry-run` 预览并自检站内链接 / `--push` 发布）。Wiki 是**独立 Git 仓库** `…/Julia_for_MartianSpaceData.wiki.git`，脚本负责克隆或更新、写入、提交、推送，并自动把 `](xxx.md)` 形式的跨页链接改写为 Wiki 页面名。
+- `docs/wiki/_sidebar.md`：GitLab Wiki 自定义侧边栏。
+- `docs/README.md`：文档体系说明（目录分工、产出命令、Wiki 页面映射、维护约定）。
+- `README.md` / `README_EN.md`：新增「Wiki 推送步骤 / Publishing the Wiki」小节，写明 Wiki 是独立 Git 仓库、完整命令（`--dry-run` / `--push` / `--workdir` / `--prune` / `--remote`）、页面映射表与推送后验证方式。
+- Wiki 新增页面「项目执行流程」（源 `docs/src/pipeline.md`）。
+
+### 修复
+
+- `MAVEN_data/build_read_me.py` 原先把生成的模型表写回已废弃路径 `doc/wiki/MAVEN_data_format.md`，改为写 `docs/src/data_format.md`。
+- `docs/src/data_reading.md` 的 `include(path * "/MAVEN_load.jl")` 与旧 `doc/wiki` 副本的 `include("$path/MAVEN_load.jl")` 不一致，统一采用 `path * "/MAVEN_load.jl"`（与 `common/head.jl`、`models/Pickup_ion.jl` 的 `Package_path*"…"` 写法一致）。
+
+### 验证
+
+- `julia --project=docs docs/make.jl` 构建成功（输出 `DOCS_BUILD_OK`，6 个页面），已确认首页含新增的「文档体系」小节。
+- `python tools/push_wiki.py --dry-run`：生成 7 个 Wiki 文件，站内链接自检通过，`api.md` 的 3 处跨页链接正确改写。
+- `python tools/push_wiki.py --push`：推送成功，Wiki 仓库新增提交 `3a392f2`（7 个文件，+360 / −30）。
+- 逐页访问验证均返回 HTTP 200：`home`、`项目执行流程`、`程序与函数Wiki`、`MAVEN数据读取`、`MAVEN_data_format`、`swia_electron_correlated`、`_sidebar`。
+- 注：推送需走 SSH（`git@git.ustc.edu.cn:…wiki.git`）；HTTPS 推送依赖 Git Credential Manager 等交互式凭据。
+
 ## ⚠️ [2026-10-13] 破坏性变更（BREAKING）：MarsCommon 逐元素函数改为纯标量
 
 > **本节面向所有直接调用 `MarsCommon` 数学函数的使用者，请优先阅读。**

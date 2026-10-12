@@ -27,7 +27,7 @@
 [6] 读取与计算         Julia：MAVEN_load.load_MAVEN_data / models / 模型计算
         │
         ▼
-[7] 测试与文档         python tests/… 、julia --project=docs docs/make.jl
+[7] 测试与文档         python tests/… 、docs/make.jl、tools/push_wiki.py
 ```
 
 ---
@@ -220,11 +220,16 @@ python tests/test_p3.py          # 索引 v2、派生输出路径注册表解析
 python tests/test_package.py     # martian_pipeline 包与 CLI 端到端
 ```
 
-**文档构建**（Documenter）：
+**文档构建与发布**：
 
 ```bash
-julia --project=docs docs/make.jl      # 生成 HTML 到 docs/build/
+julia --project=docs docs/make.jl      # Documenter：生成 HTML 到 docs/build/
+python tools/push_wiki.py --dry-run    # GitLab Wiki：生成到临时目录并自检，不推送
+python tools/push_wiki.py --push       # GitLab Wiki：生成、提交并推送
 ```
+
+- Documenter 站点源为 `docs/src/*.md`，产物 `docs/build/` 不入库。
+- [GitLab Wiki](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home) 正文同样由 `docs/src/*.md` 生成，跨页链接自动改写为 Wiki 页面名；Wiki 首页与侧边栏取自 `docs/wiki/`。
 
 **语法检查**：
 

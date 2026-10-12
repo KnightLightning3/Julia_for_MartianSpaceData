@@ -96,7 +96,7 @@
 | `example/` | 绘图和数据分析示例 |
 | `src/`、`Project.toml` | Julia 包 `MarsData`：轻量公共 API + 包化绘图（`plot_module` 等） |
 | `pyproject.toml` | Python 运行依赖与可选依赖清单 |
-| `docs/` | [Documenter 文档](docs/src/index.md)：执行流程、数据读取/格式、程序函数索引 |
+| `docs/` | 唯一文档根目录：[文档源](docs/src/index.md)（Documenter 页面）+ [GitLab Wiki](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home)、[参考资料](docs/references)、[历史报告](docs/reports) |
 
 各程序文件职责及函数说明见 [程序与函数索引](docs/src/api.md)。
 
@@ -119,7 +119,9 @@ python tools/migrate_config.py --apply      # 配置：INI → TOML（dry-run �
 python -m martian_pipeline scan             # 扫描本地文件并刷新索引
 python -m martian_pipeline check            # 文件完整性检查（默认只报告）
 python -m martian_pipeline clean            # 清理未完成下载（默认 dry-run）
-julia --project=docs docs/make.jl           # 构建本 Wiki
+julia --project=docs docs/make.jl           # Documenter：构建 HTML 到 docs/build/
+python tools/push_wiki.py --dry-run         # GitLab Wiki：预览生成结果
+python tools/push_wiki.py --push            # GitLab Wiki：发布
 ```
 
 # 下载数据
@@ -312,15 +314,67 @@ MarsData.validate_registry()        # 注册表自检（路径、module 名、�
 
 按目录查看程序职责、主要入口和函数说明：[程序与函数索引](docs/src/api.md)。
 
-# 文档构建
+# 文档构建与发布
 
-本项目的 Wiki 使用 Julia 的 [Documenter](https://documenter.juliadocs.org/) 构建，源文件位于 `docs/src/`：
+文档只有一处根目录 `docs/`，`docs/src/*.md` 是唯一权威源：
 
-```bash
-julia --project=docs docs/make.jl      # 生成 HTML 到 docs/build/
+| 产出 | 命令 | 位置 |
+| --- | --- | --- |
+| Documenter HTML 站点 | `julia --project=docs docs/make.jl` | `docs/build/index.html`（不入库） |
+| GitLab Wiki | `python tools/push_wiki.py --push` | [Wiki 首页](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home) |
+
+Documenter 页面：首页、[项目执行流程](docs/src/pipeline.md)、[MAVEN 数据读取](docs/src/data_reading.md)、[MAVEN 数据格式](docs/src/data_format.md)、[SWIA 电子修正](docs/src/swia_electron.md)、[程序与函数索引](docs/src/api.md)。
+
+GitLab Wiki 是一个独立 Git 仓库（`…/Julia_for_MartianSpaceData.wiki.git`）：`tools/push_wiki.py` 从 `docs/src/*.md` 生成页面（跨页链接改写为 Wiki 页面名），首页与侧边栏取自 `docs/wiki/`；`--dry-run` 可先预览。目录分工、页面映射与维护约定见 [docs/README.md](docs/README.md)。
+
+## Wiki 推送步骤
+
+GitLab Wiki **不是可直接编辑的网页，而是一个独立的 Git 仓库**：
+
+```
+git@git.ustc.edu.cn:KnightLightning/Julia_for_MartianSpaceData.wiki.git
 ```
 
-文档页面：首页、[项目执行流程](docs/src/pipeline.md)、[MAVEN 数据读取](docs/src/data_reading.md)、[MAVEN 数据格式](docs/src/data_format.md)、[SWIA 电子修正](docs/src/swia_electron.md)、[程序与函数索引](docs/src/api.md)。
+页面正文统一由 `docs/src/*.md` 生成，所以**不要在 Wiki 网页界面直接改内容**（下次发布会覆盖）。完整流程：
+
+```bash
+# 0. 先改仓库里的文档源（唯一权威源）
+#    docs/src/*.md          —— 页面正文（执行流程 / 数据读取 / 数据格式 / SWIA 修正 / 程序与函数索引）
+#    docs/wiki/home.md      —— Wiki 首页
+#    docs/wiki/_sidebar.md  —— Wiki 侧边栏
+
+# 1. 预览：生成到临时目录并自检站内链接，不碰远端
+python tools/push_wiki.py --dry-run
+
+# 2. 发布：克隆/更新 wiki 仓库 -> 写入页面 -> 提交 -> 推送到 main
+python tools/push_wiki.py --push
+
+# 可选参数
+python tools/push_wiki.py --push -m "自定义提交信息"      # 自定义提交信息
+python tools/push_wiki.py --push --workdir D:/tmp/wiki   # 指定本地克隆目录（默认系统临时目录）
+python tools/push_wiki.py --push --prune                 # 顺带删除远端不在生成集中的页面
+```
+
+首次发布前需确保本机对该仓库有写权限（SSH key 或访问令牌），克隆地址见上。
+
+推送时的页面映射（源文件 → Wiki 页面名）：
+
+| 文档源 | Wiki 页面 |
+| --- | --- |
+| `docs/src/pipeline.md` | `项目执行流程` |
+| `docs/src/data_reading.md` | `MAVEN数据读取` |
+| `docs/src/data_format.md` | `MAVEN_data_format` |
+| `docs/src/swia_electron.md` | `swia_electron_correlated` |
+| `docs/src/api.md` | `程序与函数Wiki` |
+| `docs/wiki/home.md` | `home` |
+| `docs/wiki/_sidebar.md` | `_sidebar` |
+
+说明：
+
+- 脚本自动把 `](xxx.md)` 形式的跨页链接改写为 Wiki 页面名（GitLab 相对链接使用页面 slug），并在推送前做站内链接自检；自检失败会中止而不推送。
+- 默认远端走 **SSH**（与主仓库 remote 同源，无需交互式凭据）；改用 HTTPS 时加 `--remote https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData.wiki.git`，此时需要 Git Credential Manager 或访问令牌。
+- 新增/重命名页面时要同步三处：`docs/src/` 文件名、`docs/make.jl` 的 `pages`、`tools/push_wiki.py` 的 `PAGE_MAP`，以及其它页面里的相对链接。
+- 推送后逐页验证：打开 `https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/<页面名>` 应正常显示。
 
 # 其他
 

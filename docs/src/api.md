@@ -12,15 +12,15 @@
 
 | 路径 | 内容 |
 | --- | --- |
-| [`MAVEN_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/MAVEN_load.jl) | MAVEN 数据统一读取、仪器数据处理、绘图及本地数据构建脚本 |
-| [`MGS_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MGS_data/MGS_load.jl)、[`TW_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/TW_data/TW_load.jl) | MGS 磁场与天问一号数据、MINPA 仪器处理 |
-| [`download_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/MAVEN_download.py) | 数据下载、文件清单检查、压缩、清理和版本整理 |
-| [`models/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/models/Cold_Plasma_Dispersion_Relation.jl)、[`Magnetic_Model/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/Magnetic_Model/IGRF_calculate.jl) | 等离子体、粒子轨道、分布拟合、磁场及几何模型 |
-| [`common/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/common/head.jl)、[`support_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/support_data/support_data_load.jl) | 坐标/科学计算通用函数和外部太阳风支持数据读取 |
-| [`calculate/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/calculate/calculate_models.jl)、[`call_fortran_dll.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/call_fortran_dll.jl) | 组合物理计算和 Fortran 动态库接口 |
-| [`example/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) | MAVEN 事件概览图示例 |
-| [`MAVEN_data/Build_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/build_vsc.jl) | STATIC、NGIMS、KP 等数据预处理与重建脚本 |
-| [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/tools/robocopy.ps1)、[`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/requirement.jl) | 数据复制工具与 Julia 依赖名称清单 |
+| [`MAVEN_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_load.jl) | MAVEN 数据统一读取、仪器数据处理、绘图及本地数据构建脚本 |
+| [`MGS_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MGS_data/MGS_load.jl)、[`TW_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/TW_data/TW_load.jl) | MGS 磁场与天问一号数据、MINPA 仪器处理 |
+| [`download_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/MAVEN_download.py) | 数据下载、文件清单检查、压缩、清理和版本整理 |
+| [`models/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Cold_Plasma_Dispersion_Relation.jl)、[`Magnetic_Model/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/Magnetic_Model/IGRF_calculate.jl) | 等离子体、粒子轨道、分布拟合、磁场及几何模型 |
+| [`common/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/head.jl)、[`support_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/support_data/support_data_load.jl) | 坐标/科学计算通用函数和外部太阳风支持数据读取 |
+| [`calculate/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/calculate/calculate_models.jl)、[`call_fortran_dll.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/call_fortran_dll.jl) | 组合物理计算和 Fortran 动态库接口 |
+| [`example/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) | MAVEN 事件概览图示例 |
+| [`MAVEN_data/Build_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/build_vsc.jl) | STATIC、NGIMS、KP 等数据预处理与重建脚本 |
+| [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/tools/robocopy.ps1)、[`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/requirement.jl) | 数据复制工具与 Julia 依赖名称清单 |
 
 ## MarsData 包 API
 
@@ -171,15 +171,15 @@
 
 ### MAVEN 数据构建脚本
 
-- [`Build_data/KP重构为cdf.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/KP重构为cdf.py)：`get_list_from_ini` 解析配置列表；`download_model` 获取产品文件；`parse_kp_version`、`parse_kp_date` 解析版本和日期；`pick_and_clean_kp_files` 选择并清理重复产品；`build_kp_colspecs` 建立 KP 列定义；`convert_kp_to_cdf` 转换 KP 数据为 CDF。
-- [`Build_data/磁场重构为CDF文件.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/磁场重构为CDF文件.py)：`get_list_from_ini` 解析配置；`download_model` 获取文件；`parse_pds_header_and_data` 解析 PDS 文本头和数据；`convert_pds_to_cdf` 转换为 CDF，内部 `row_to_datetime` 解析逐行时间。
-- [`Build_data/build_vsc.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/build_vsc.jl)：`get_vsc` 使用 MAG 位置数据构造航天器速度；内部 `quadratic_fitted_derivative` 计算二次拟合曲线导数，`data2bi` 保存结果。
-- [`Build_data/STATIC_VD.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/STATIC_VD.jl)：`get_ion_vel` 结合航天器速度和离子数据计算速度、通量、密度；`data2bi` 写出二进制产品；顶层流程批量生成 STATIC 派生产品。
-- [`Build_data/STATIC_vfd_3d.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/STATIC_vfd_3d.jl)：`get_ion_vel` 由 c6 数据计算一维速度、通量和密度；`data2bi` 写出二进制产品。
-- [`Build_data/ngi整合.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/ngi整合.jl)：合并同一天的多份 NGIMS L3 文件。
-- [`Build_data/get_quats.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/get_quats.pro)：通过 SPEDAS 获取 MAVEN 仪器姿态四元数。
-- [`Build_data/sc_pot.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/sc_pot.pro)：配置 SPEDAS/CDF 数据环境并演示航天器电势数据读取。
-- [`build_read_me.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/build_read_me.py)：从数据格式 JSON 生成产品列表说明。
+- [`Build_data/KP重构为cdf.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/KP重构为cdf.py)：`get_list_from_ini` 解析配置列表；`download_model` 获取产品文件；`parse_kp_version`、`parse_kp_date` 解析版本和日期；`pick_and_clean_kp_files` 选择并清理重复产品；`build_kp_colspecs` 建立 KP 列定义；`convert_kp_to_cdf` 转换 KP 数据为 CDF。
+- [`Build_data/磁场重构为CDF文件.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/磁场重构为CDF文件.py)：`get_list_from_ini` 解析配置；`download_model` 获取文件；`parse_pds_header_and_data` 解析 PDS 文本头和数据；`convert_pds_to_cdf` 转换为 CDF，内部 `row_to_datetime` 解析逐行时间。
+- [`Build_data/build_vsc.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/build_vsc.jl)：`get_vsc` 使用 MAG 位置数据构造航天器速度；内部 `quadratic_fitted_derivative` 计算二次拟合曲线导数，`data2bi` 保存结果。
+- [`Build_data/STATIC_VD.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_VD.jl)：`get_ion_vel` 结合航天器速度和离子数据计算速度、通量、密度；`data2bi` 写出二进制产品；顶层流程批量生成 STATIC 派生产品。
+- [`Build_data/STATIC_vfd_3d.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_vfd_3d.jl)：`get_ion_vel` 由 c6 数据计算一维速度、通量和密度；`data2bi` 写出二进制产品。
+- [`Build_data/ngi整合.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/ngi整合.jl)：合并同一天的多份 NGIMS L3 文件。
+- [`Build_data/get_quats.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/get_quats.pro)：通过 SPEDAS 获取 MAVEN 仪器姿态四元数。
+- [`Build_data/sc_pot.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/sc_pot.pro)：配置 SPEDAS/CDF 数据环境并演示航天器电势数据读取。
+- [`build_read_me.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/build_read_me.py)：从数据格式 JSON 生成产品列表说明。
 
 ## MGS 与天问数据
 
@@ -334,24 +334,24 @@
 
 ### 其他 `download_data` 脚本
 
-- [`download_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/download_files.py)：`get_list_from_ini` 解析配置；`sleep_local` 显示等待；`test_proxies` 测试代理；`search_url` 检索服务器文件；`requests_download` 下载文件；`find_downloaded_file` 匹配本地文件；`print_download_statue` 输出状态统计；`add_urls` 写入待下载链接。
-- [`check_exist_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/check_exist_files.py)：`get_list_from_ini` 解析配置；`download_model` 读取产品配置；`search_downloaded_files` 检查指定目录中的文件。
-- [`clean_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/clean_files.py)：`get_list_from_ini` 解析配置；`clean_pydownload_files` 清理未完成下载文件。
-- [`compress_cdf.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/compress_cdf.py)：`check_if_compressed` 判断压缩状态；`compress_single_cdf` 压缩单个 CDF；`batch_compress_cdf_files` 批量处理目标目录。
-- [`移除重复文件中的低版本文件.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/移除重复文件中的低版本文件.py)：`get_list_from_ini` 解析配置；`download_model` 获取文件列表；`parse_file_info` 解析文件名产品/版本信息；`remove_low_version_files` 按版本识别重复项并支持 dry-run。
-- [`get_all_orbit.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/get_all_orbit.jl)：`get_data` 读取轨道数据；`time_by_orbits` 按轨道号筛选时间范围；`val_combine` 合并多组轨道数据。
-- [`get_download_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/get_download_files.py)：扫描数据目录并生成下载文件清单。
-- [`initialize_download_parameters.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/download_data/initialize_download_parameters.py)：首次生成 MAVEN 下载配置文件。
+- [`download_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/download_files.py)：`get_list_from_ini` 解析配置；`sleep_local` 显示等待；`test_proxies` 测试代理；`search_url` 检索服务器文件；`requests_download` 下载文件；`find_downloaded_file` 匹配本地文件；`print_download_statue` 输出状态统计；`add_urls` 写入待下载链接。
+- [`check_exist_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/check_exist_files.py)：`get_list_from_ini` 解析配置；`download_model` 读取产品配置；`search_downloaded_files` 检查指定目录中的文件。
+- [`clean_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/clean_files.py)：`get_list_from_ini` 解析配置；`clean_pydownload_files` 清理未完成下载文件。
+- [`compress_cdf.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/compress_cdf.py)：`check_if_compressed` 判断压缩状态；`compress_single_cdf` 压缩单个 CDF；`batch_compress_cdf_files` 批量处理目标目录。
+- [`移除重复文件中的低版本文件.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/移除重复文件中的低版本文件.py)：`get_list_from_ini` 解析配置；`download_model` 获取文件列表；`parse_file_info` 解析文件名产品/版本信息；`remove_low_version_files` 按版本识别重复项并支持 dry-run。
+- [`get_all_orbit.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/get_all_orbit.jl)：`get_data` 读取轨道数据；`time_by_orbits` 按轨道号筛选时间范围；`val_combine` 合并多组轨道数据。
+- [`get_download_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/get_download_files.py)：扫描数据目录并生成下载文件清单。
+- [`initialize_download_parameters.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/initialize_download_parameters.py)：首次生成 MAVEN 下载配置文件。
 
 ## 示例程序
 
-概览绘图流程已**包化进 `MarsData`**：`TimeFormat`（时长字符串）、`remove_0_point!`（非正绘图值置 NaN）、`plot_module`（多仪器时间序列面板）定义于 [`src/plotting.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/src/plotting.jl)，随 `using MarsData` 可用；绘图基元来自子模块 `MarsData.MAVEN_plot`。
+概览绘图流程已**包化进 `MarsData`**：`TimeFormat`（时长字符串）、`remove_0_point!`（非正绘图值置 NaN）、`plot_module`（多仪器时间序列面板）定义于 [`src/plotting.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/src/plotting.jl)，随 `using MarsData` 可用；绘图基元来自子模块 `MarsData.MAVEN_plot`。
 
-[`MAVEN_overview_cases.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) 与 [`MAVEN_overview_plot_sample.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl) 只保留数据准备部分：`mag2sphere` 转换磁场分量；`get_data` 读取所需产品（KP 用 `load_kp` + 坐标变换矩阵）；`get_B_model_ss` 计算模型磁场；随后调用 `MarsData.plot_module` 绘图。
+[`MAVEN_overview_cases.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) 与 [`MAVEN_overview_plot_sample.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl) 只保留数据准备部分：`mag2sphere` 转换磁场分量；`get_data` 读取所需产品（KP 用 `load_kp` + 坐标变换矩阵）；`get_B_model_ss` 计算模型磁场；随后调用 `MarsData.plot_module` 绘图。
 
 ## 其他无函数入口文件
 
-- [`models/constants.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/models/constants.jl)：模型共享的基本物理常量。
-- [`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/requirement.jl)：Julia 依赖包名称列表。
-- [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/tools/robocopy.ps1)：按规则在数据盘之间复制文件。
-- [`MAVEN_data/Build_data/STATIC_VD.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/STATIC_VD.jl)、[`STATIC_vfd_3d.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/STATIC_vfd_3d.jl)、[`ngi整合.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/ngi整合.jl)、[`get_quats.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/get_quats.pro)、[`sc_pot.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/sc_pot.pro)：由顶层流程完成 STATIC 产品构建、NGIMS 合并、姿态数据提取和电势数据读取，没有单独导出的 Julia/Python 函数 API。
+- [`models/constants.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/constants.jl)：模型共享的基本物理常量。
+- [`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/requirement.jl)：Julia 依赖包名称列表。
+- [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/tools/robocopy.ps1)：按规则在数据盘之间复制文件。
+- [`MAVEN_data/Build_data/STATIC_VD.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_VD.jl)、[`STATIC_vfd_3d.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_vfd_3d.jl)、[`ngi整合.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/ngi整合.jl)、[`get_quats.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/get_quats.pro)、[`sc_pot.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/sc_pot.pro)：由顶层流程完成 STATIC 产品构建、NGIMS 合并、姿态数据提取和电势数据读取，没有单独导出的 Julia/Python 函数 API。

@@ -85,7 +85,7 @@ This project provides tools for downloading, reading, processing, and visualizin
 | `example/` | Plotting and data-analysis examples |
 | `src/`, `Project.toml` | Julia package `MarsData`: lightweight public API + packaged plotting (`plot_module`, …) |
 | `pyproject.toml` | Python runtime and optional dependency manifest |
-| `docs/` | [Documenter documentation](docs/src/index.md): pipeline, reading/format, program index |
+| `docs/` | Single documentation root: [sources](docs/src/index.md) (Documenter pages) + [GitLab Wiki](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home), [references](docs/references), [historical reports](docs/reports) |
 
 See the [program and function index](docs/src/api.md) for file responsibilities and function descriptions.
 
@@ -108,7 +108,9 @@ python tools/migrate_config.py --apply      # config: INI -> TOML (dry-run by de
 python -m martian_pipeline scan             # scan local files and refresh the index
 python -m martian_pipeline check            # file integrity check (report-only by default)
 python -m martian_pipeline clean            # clean incomplete downloads (dry-run by default)
-julia --project=docs docs/make.jl           # build this Wiki
+julia --project=docs docs/make.jl           # Documenter: build HTML into docs/build/
+python tools/push_wiki.py --dry-run         # GitLab Wiki: preview generated pages
+python tools/push_wiki.py --push            # GitLab Wiki: publish
 ```
 
 # Downloading Data
@@ -264,15 +266,55 @@ MarsData.validate_registry()        # self-check (paths, module names, dependenc
 
 Browse program responsibilities, primary entry points, and function descriptions in the [program and function index](docs/src/api.md). The [SWIA electron correction notes](docs/src/swia_electron.md) are also available.
 
-# Documentation Build
+# Documentation Build and Publishing
 
-The project Wiki is built with Julia's [Documenter](https://documenter.juliadocs.org/); sources live in `docs/src/`:
+Documentation has a single root, `docs/`; `docs/src/*.md` is the single source of truth:
 
-```bash
-julia --project=docs docs/make.jl      # generate HTML into docs/build/
+| Output | Command | Location |
+| --- | --- | --- |
+| Documenter HTML site | `julia --project=docs docs/make.jl` | `docs/build/index.html` (not tracked) |
+| GitLab Wiki | `python tools/push_wiki.py --push` | [Wiki home](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home) |
+
+Documenter pages: home, [Project Execution Flow](docs/src/pipeline.md), [MAVEN Data Reading](docs/src/data_reading.md), [MAVEN Data Format](docs/src/data_format.md), [SWIA Electron Correction](docs/src/swia_electron.md), [Program and Function Index](docs/src/api.md).
+
+The GitLab Wiki is a separate Git repository (`…/Julia_for_MartianSpaceData.wiki.git`). `tools/push_wiki.py` generates its pages from `docs/src/*.md` (rewriting cross-page links to wiki page slugs); the home page and sidebar come from `docs/wiki/`. Use `--dry-run` to preview. See [docs/README.md](docs/README.md) for the layout, page mapping, and conventions.
+
+## Publishing the Wiki
+
+The GitLab Wiki is **not an editable web page but a separate Git repository**:
+
+```
+git@git.ustc.edu.cn:KnightLightning/Julia_for_MartianSpaceData.wiki.git
 ```
 
-Pages: home, [Project Execution Flow](docs/src/pipeline.md), [MAVEN Data Reading](docs/src/data_reading.md), [MAVEN Data Format](docs/src/data_format.md), [SWIA Electron Correction](docs/src/swia_electron.md), [Program and Function Index](docs/src/api.md).
+Page bodies are generated from `docs/src/*.md`, so **do not edit pages in the Wiki web UI** — the next publish overwrites them. Full workflow:
+
+```bash
+# 0. Edit the sources in this repository (single source of truth)
+#    docs/src/*.md          -> page bodies
+#    docs/wiki/home.md      -> wiki home page
+#    docs/wiki/_sidebar.md  -> wiki sidebar
+
+# 1. Preview: generate into a temp dir and self-check internal links
+python tools/push_wiki.py --dry-run
+
+# 2. Publish: clone/update the wiki repo -> write pages -> commit -> push to main
+python tools/push_wiki.py --push
+
+# Optional
+python tools/push_wiki.py --push -m "custom commit message"
+python tools/push_wiki.py --push --workdir D:/tmp/wiki   # local clone directory
+python tools/push_wiki.py --push --prune                 # also delete stale remote pages
+```
+
+Write access to that repository (SSH key or access token) is required.
+
+Notes:
+
+- The script rewrites `](xxx.md)` cross-page links to wiki page names (GitLab resolves relative links by page slug) and aborts without pushing if the internal-link self-check fails.
+- The default remote is **SSH** (same host as the main repo remote, no interactive credential). For HTTPS add `--remote https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData.wiki.git`, which requires Git Credential Manager or an access token.
+- When adding or renaming a page, update three places: the `docs/src/` filename, `pages` in `docs/make.jl`, and `PAGE_MAP` in `tools/push_wiki.py`, plus relative links in other pages.
+- Verify after publishing by opening `https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/<page>` for each page. The source-to-page mapping table is in [docs/README.md](docs/README.md).
 
 # Mars Magnetic Field Model
 
