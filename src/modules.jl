@@ -60,7 +60,7 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     :constants => _spec(:constants, "common/constants.jl", "共享物理常量"),
     :MarsCommon => _spec(
         :MarsCommon, "common/MarsCommon.jl", "通用坐标与科学计算函数";
-        allow = [:searchsortednearest, :e_energy2v, :ion_energy2v],
+        deps = [:constants], allow = [:searchsortednearest, :e_energy2v, :ion_energy2v],
     ),
     :Paths => _spec(:Paths, "common/paths.jl", "配置与路径解析（已随包预装）"; kind = :preloaded),
     :MAVEN_load => _spec(
