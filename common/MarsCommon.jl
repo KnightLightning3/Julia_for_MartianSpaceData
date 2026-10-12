@@ -2,6 +2,31 @@ module MarsCommon
 using ..constants
 using StaticArrays
 
+# ============================================================================
+# 标量约定（与 Julia 官方函数一致）
+#
+# 本模块中的“逐元素标量数学”函数**内部不做加点运算**，输入按标量处理：
+#   instrument_sphere_to_cartesian / instrument_cartesian_to_sphere / spherical_to_cartesian
+#   ion_energy2v / ion_speed_to_energy / e_energy2v
+#   electron_eflux_to_psd / ion_eflux_to_psd / ion_eflux_to_psd_approx
+#   doppler_shift
+#
+# 对数组请像使用 `sin`/`log` 一样在**调用处**加广播点：
+#     v    = MarsCommon.ion_energy2v.(energy_array, m_int)     # 批量
+#     xyz  = MarsCommon.instrument_sphere_to_cartesian.(1.0, theta, phi)
+#     v1   = MarsCommon.ion_energy2v(energy_scalar, m_int)      # 标量
+#
+# 反例：`ion_energy2v(energy_array, m_int)`（不加点）会报 `MethodError`，
+# 与 `sin([1,2,3])` 的行为一致。
+#
+# 这些函数的参数一律标注 `::Real`（与 `IGRF_calculate.pc2sphere` 等一致），
+# 使“传数组不加点”的误用**立即报错**，而不是静默返回无意义结果。
+#
+# 例外（本身就是**按数组/矩阵**设计的，保持原样）：
+#   position_altitude / position_local_time / position_latitude（输入 N×3 矩阵，返回长度 N 向量）
+#   rotate_vector（矩阵乘法）、eflux_to_df!（字典原地）、searchsortednearest(_range)（整条时间轴查找）
+# ============================================================================
+
 export instrument_sphere_to_cartesian,
     instrument_cartesian_to_sphere,
     spherical_to_cartesian,
@@ -21,12 +46,15 @@ export instrument_sphere_to_cartesian,
     searchsortednearest_range
 
 """
-    instrument_sphere_to_cartesian(r, theta, phi) -> SVector{3}
+    instrument_sphere_to_cartesian(r::Real, theta::Real, phi::Real) -> SVector{3}
 
 将**仪器坐标系**下的球坐标（半径、仰角、方位角）转换为笛卡尔分量 `(x, y, z)`。
 
 # 功能与算法概述
-按“仰角自 X-Y 平面起算”的标准球坐标展开，角度一律按**角度制**解释；返回 `SVector{3}`，支持广播且无堆分配。
+按“仰角自 X-Y 平面起算”的标准球坐标展开，角度一律按**角度制**解释；返回 `SVector{3}`。
+
+本函数是**标量函数**（内部不做逐元素运算），与 `sin`/`log` 等 Julia 官方函数一致：
+对数组请用广播 `instrument_sphere_to_cartesian.(r, theta, phi)`。
 
 # 参数说明
 - `r`: 径向距离（标量；单位由调用方约定，通常为 km 或 m）。
@@ -36,15 +64,15 @@ export instrument_sphere_to_cartesian,
 # 返回值
 - `SVector{3}`: 笛卡尔分量 `(x, y, z)`，元素类型由三个输入的公共类型提升决定。
 """
-function instrument_sphere_to_cartesian(r, theta, phi)
-    x = r .* cosd.(theta) .* cosd.(phi)
-    y = r .* cosd.(theta) .* sind.(phi)
-    z = r .* sind.(theta)
+function instrument_sphere_to_cartesian(r::Real, theta::Real, phi::Real)
+    x = r * cosd(theta) * cosd(phi)
+    y = r * cosd(theta) * sind(phi)
+    z = r * sind(theta)
     return SVector(x, y, z)
 end
 
 """
-    instrument_cartesian_to_sphere(x, y, z) -> SVector{3}
+    instrument_cartesian_to_sphere(x::Real, y::Real, z::Real) -> SVector{3}
 
 将笛卡尔分量 `(x, y, z)` 反算为**仪器坐标系**球坐标（半径、仰角、方位角），是
 `instrument_sphere_to_cartesian` 的逆变换。
@@ -59,16 +87,19 @@ end
 
 # 返回值
 - `SVector{3}`: `(r, theta, phi)`，其中 `theta`、`phi` 同为**角度制**。
+
+# 备注
+- **标量函数**：数组请用广播 `instrument_cartesian_to_sphere.(x, y, z)`。
 """
-function instrument_cartesian_to_sphere(x, y, z)
-    r = sqrt.(x .^ 2 .+ y .^ 2 .+ z .^ 2)
-    theta = 90.0 .- acosd.(clamp.(z ./ r, -1.0, 1.0))
-    phi = atand.(y, x)
+function instrument_cartesian_to_sphere(x::Real, y::Real, z::Real)
+    r = sqrt(x^2 + y^2 + z^2)
+    theta = 90.0 - acosd(clamp(z / r, -1.0, 1.0))
+    phi = atand(y, x)
     return SVector(r, theta, phi)
 end
 
 """
-    spherical_to_cartesian(r, theta, phi) -> SVector{3}
+    spherical_to_cartesian(r::Real, theta::Real, phi::Real) -> SVector{3}
 
 将**常规球坐标**（余纬自 +Z 轴起算）转换为笛卡尔分量 `(x, y, z)`。
 
@@ -84,13 +115,14 @@ end
 - `SVector{3}`: 笛卡尔分量 `(x, y, z)`。
 
 # 备注
+- **标量函数**：数组请用广播 `spherical_to_cartesian.(r, theta, phi)`。
 - 与 `instrument_sphere_to_cartesian` 的区别仅在 `theta` 的起算轴不同（+Z 轴 vs X-Y 平面），
   因此两者仅当 `theta_instrument = 90° − theta_spherical` 时才等价。
 """
-function spherical_to_cartesian(r, theta, phi)
-    x = r .* sind.(theta) .* cosd.(phi)
-    y = r .* sind.(theta) .* sind.(phi)
-    z = r .* cosd.(theta)
+function spherical_to_cartesian(r::Real, theta::Real, phi::Real)
+    x = r * sind(theta) * cosd(phi)
+    y = r * sind(theta) * sind(phi)
+    z = r * cosd(theta)
     return SVector(x, y, z)
 end
 
@@ -172,7 +204,7 @@ function position_latitude(position)
 end
 
 """
-    ion_energy2v(energy, mass_amu) -> Float64 / AbstractArray
+    ion_energy2v(energy::Real, mass_amu::Real) -> Float64
 
 将离子动能（自**静质量起算**）换算为**相对论速度**，单位 m/s。
 
@@ -180,25 +212,26 @@ end
 采用**相对论**能量–速度关系 `γ = E/(mc²) + 1`、`β = √(1 − 1/γ²)`，而非低能的 `√(2E/m)` 近似。
 
 # 参数说明
-- `energy`: 离子动能（单位 **eV**），标量或数组。
+- `energy`: 离子动能（单位 **eV**），**标量**。
 - `mass_amu`: 离子质量数（单位 **AMU**），标量。
 
 # 返回值
-- 相对论速度（**m/s**），形状与 `energy` 一致（标量输入返回标量）。
+- 相对论速度（**m/s**），标量。
 
 # 备注
+- **标量函数**：批量计算请用广播 `ion_energy2v.(energy_array, mass_amu)`，与 `sin`/`log` 的用法一致。
 - 非相对论极限下该式退化为 `v ≈ √(2E/m)`，与 `sqrt(2*e*E/(mp*m))` 的经典写法在低能时一致，
   但在高能区该实现更精确。
 """
-function ion_energy2v(energy, mass_amu)
+function ion_energy2v(energy::Real, mass_amu::Real)
     rest_energy_kev = constants.KEV_PER_AMU * mass_amu
-    gamma = energy .* 1e-3 ./ rest_energy_kev .+ 1.0
-    beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
-    return beta .* constants.c
+    gamma = energy * 1e-3 / rest_energy_kev + 1.0
+    beta = sqrt(1.0 - 1.0 / gamma^2)
+    return beta * constants.c
 end
 
 """
-    ion_speed_to_energy(speed, mass_amu) -> Float64 / AbstractArray
+    ion_speed_to_energy(speed::Real, mass_amu::Real) -> Float64
 
 将离子**相对论速度**反算为动能，单位 eV。是 `ion_energy2v` 的逆运算。
 
@@ -206,24 +239,25 @@ end
 由 `β = v/c` 得 `γ = 1/√(1 − β²)`，再按 `E = (γ − 1)mc²` 反算动能。
 
 # 参数说明
-- `speed`: 离子速度（**m/s**），标量或数组。
+- `speed`: 离子速度（**m/s**），**标量**。
 - `mass_amu`: 离子质量数（**AMU**），标量。
 
 # 返回值
-- 离子动能（**eV**），形状与 `speed` 一致。
+- 离子动能（**eV**），标量。
 
 # 备注
+- **标量函数**：批量计算请用广播 `ion_speed_to_energy.(speed_array, mass_amu)`。
 - 若 `speed ≥ c`，`1 − β²` 将为非正数从而产生 `NaN`/`Inf`，调用方需保证输入为物理速度。
 """
-function ion_speed_to_energy(speed, mass_amu)
+function ion_speed_to_energy(speed::Real, mass_amu::Real)
     rest_energy_kev = constants.KEV_PER_AMU * mass_amu
-    beta = speed ./ constants.c
-    gamma = 1.0 ./ sqrt.(1.0 .- beta .^ 2)
-    return (gamma .- 1.0) .* rest_energy_kev .* 1e3
+    beta = speed / constants.c
+    gamma = 1.0 / sqrt(1.0 - beta^2)
+    return (gamma - 1.0) * rest_energy_kev * 1e3
 end
 
 """
-    e_energy2v(energy) -> Float64 / AbstractArray
+    e_energy2v(energy::Real) -> Float64
 
 将电子动能（自**静质量起算**）换算为**相对论速度**，单位 m/s。
 
@@ -231,19 +265,22 @@ end
 以电子静能 511 keV 为基准的相对论能量–速度转换，电子质量固定为 `constants.me`。
 
 # 参数说明
-- `energy`: 电子动能（单位 **eV**），标量或数组。
+- `energy`: 电子动能（单位 **eV**），**标量**。
 
 # 返回值
-- 相对论电子速度（**m/s**），形状与 `energy` 一致。
+- 相对论电子速度（**m/s**），标量。
+
+# 备注
+- **标量函数**：批量计算请用广播 `e_energy2v.(energy_array)`。
 """
-function e_energy2v(energy)
-    gamma = energy .* 1e-3 ./ constants.E0_electron_keV .+ 1.0
-    beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
-    return beta .* constants.c
+function e_energy2v(energy::Real)
+    gamma = energy * 1e-3 / constants.E0_electron_keV + 1.0
+    beta = sqrt(1.0 - 1.0 / gamma^2)
+    return beta * constants.c
 end
 
 """
-    electron_eflux_to_psd(energy, eflux) -> Float64 / AbstractArray
+    electron_eflux_to_psd(energy::Real, eflux::Real) -> Float64
 
 将**电子能通量（energy flux）**转换为**相空间密度（Phase Space Density, PSD）**。
 
@@ -251,24 +288,25 @@ end
 基于相对论动量 `p = γmₑβc` 的能通量→相空间密度换算，含 `cm⁻²→m⁻²` 与 `eV→J` 的单位修正。
 
 # 参数说明
-- `energy`: 电子能量（**eV**），标量或数组。
-- `eflux`: 电子能通量，与 `energy` 形状兼容。
+- `energy`: 电子能量（**eV**），**标量**。
+- `eflux`: 电子能通量，**标量**。
 
 # 返回值
-- 相空间密度（单位 `s³·m⁻⁶` 量级，取决于输入的单位约定），形状与输入一致。
+- 相空间密度（单位 `s³·m⁻⁶` 量级，取决于输入的单位约定），标量。
 
 # 备注
+- **标量函数**：批量计算请用广播 `electron_eflux_to_psd.(energy, eflux)`。
 - 该函数是 `ion_eflux_to_psd` 的电子版；离子版本额外需要质量参数。
 """
-function electron_eflux_to_psd(energy, eflux)
-    gamma = energy .* 1e-3 ./ constants.E0_electron_keV .+ 1.0
-    beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
-    momentum = gamma .* constants.me .* beta .* constants.c
-    return (gamma .* constants.me) .^ 3 .* eflux ./ energy .* 1e4 ./ constants.eV ./ momentum .^ 2
+function electron_eflux_to_psd(energy::Real, eflux::Real)
+    gamma = energy * 1e-3 / constants.E0_electron_keV + 1.0
+    beta = sqrt(1.0 - 1.0 / gamma^2)
+    momentum = gamma * constants.me * beta * constants.c
+    return (gamma * constants.me)^3 * eflux / energy * 1e4 / constants.eV / momentum^2
 end
 
 """
-    ion_eflux_to_psd(energy, eflux, mass_amu) -> Float64 / AbstractArray
+    ion_eflux_to_psd(energy::Real, eflux::Real, mass_amu::Real) -> Float64
 
 将**离子能通量**转换为**相空间密度（PSD）**，使用精确的相对论动量公式。
 
@@ -276,27 +314,28 @@ end
 基于相对论动量 `p = γmv` 的能通量→相空间密度换算，离子静能由“电子静能 × 质量比”给出。
 
 # 参数说明
-- `energy`: 离子能量（**eV**），标量或数组。
-- `eflux`: 离子能通量，与 `energy` 形状兼容。
+- `energy`: 离子能量（**eV**），**标量**。
+- `eflux`: 离子能通量，**标量**。
 - `mass_amu`: 离子质量数（**AMU**），标量。
 
 # 返回值
-- 相空间密度，形状与输入一致。
+- 相空间密度，标量。
 
 # 备注
+- **标量函数**：批量计算请用广播 `ion_eflux_to_psd.(energy, eflux, mass_amu)`。
 - 与 `ion_eflux_to_psd_approx` 相比，本函数显式使用相对论动量 `p = γmv`，在高能区更准确。
 """
-function ion_eflux_to_psd(energy, eflux, mass_amu)
+function ion_eflux_to_psd(energy::Real, eflux::Real, mass_amu::Real)
     mass = mass_amu * constants.mp
     rest_energy_kev = constants.E0_electron_keV * mass_amu * constants.AMU_TO_PROTON_MASS_RATIO
-    gamma = energy .* 1e-3 ./ rest_energy_kev .+ 1.0
-    beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
-    momentum = gamma .* mass .* beta .* constants.c
-    return (gamma .* mass) .^ 3 .* eflux ./ energy .* 1e4 ./ constants.eV ./ momentum .^ 2
+    gamma = energy * 1e-3 / rest_energy_kev + 1.0
+    beta = sqrt(1.0 - 1.0 / gamma^2)
+    momentum = gamma * mass * beta * constants.c
+    return (gamma * mass)^3 * eflux / energy * 1e4 / constants.eV / momentum^2
 end
 
 """
-    ion_eflux_to_psd_approx(energy, eflux, mass_to_charge) -> Float64 / AbstractArray
+    ion_eflux_to_psd_approx(energy::Real, eflux::Real, mass_to_charge::Real) -> Float64 / AbstractArray
 
 使用**速度幂次近似式**将离子能通量换算为相空间密度（PSD），与仪器（SWIA/STATIC）常用的
 简化写法保持一致。
@@ -305,22 +344,23 @@ end
 仪器端常用的简化公式 `PSD ≈ 2·eflux·1e4 / v⁴`，用速度四次方代替完整相对论动量项。
 
 # 参数说明
-- `energy`: 离子能量（**eV**），标量或数组。
-- `eflux`: 离子能通量，与 `energy` 形状兼容。
+- `energy`: 离子能量（**eV**），**标量**。
+- `eflux`: 离子能通量，**标量**。
 - `mass_to_charge`: 质荷比参数（STATIC 中的 `m_int`，同时用于质量数与电荷数）。
 
 # 返回值
-- 相空间密度（近似值），形状与输入一致。
+- 相空间密度（近似值），标量。
 
 # 备注
+- **标量函数**：批量计算请用广播 `ion_eflux_to_psd_approx.(energy, eflux, mass_to_charge)`。
 - 该近似在非相对论极限下与 `ion_eflux_to_psd` 一致，但在高能区会低估 PSD。
 """
-function ion_eflux_to_psd_approx(energy, eflux, mass_to_charge)
+function ion_eflux_to_psd_approx(energy::Real, eflux::Real, mass_to_charge::Real)
     rest_energy_kev = constants.E0_electron_keV * mass_to_charge * constants.AMU_TO_PROTON_MASS_RATIO
-    gamma = energy .* 1e-3 ./ rest_energy_kev .+ 1.0
-    beta = sqrt.(1.0 .- 1.0 ./ gamma .^ 2)
-    speed = beta .* constants.c
-    return 2 .* eflux .* 1e4 ./ speed .^ 4
+    gamma = energy * 1e-3 / rest_energy_kev + 1.0
+    beta = sqrt(1.0 - 1.0 / gamma^2)
+    speed = beta * constants.c
+    return 2 * eflux * 1e4 / speed^4
 end
 
 """
@@ -349,7 +389,7 @@ function eflux_to_df!(data)
 end
 
 """
-    doppler_shift(frequency, spacecraft_speed, wave_number, angle) -> Float64 / AbstractArray
+    doppler_shift(frequency::Real, spacecraft_speed::Real, wave_number::Real, angle::Real) -> Float64
 
 计算考虑**航天器运动**后的等离子体波频率（多普勒修正），返回**角频率**。
 
@@ -363,14 +403,15 @@ end
 - `angle`: 波矢 `k` 与航天器速度方向之间的夹角（**弧度**）。
 
 # 返回值
-- 修正后的角频率 `ω_obs`（rad/s），形状由广播规则决定。
+- 修正后的角频率 `ω_obs`（rad/s），标量。
 
 # 备注
+- **标量函数**：批量计算请用广播，例如 `doppler_shift.(f, v, k, α)`。
 - 返回的是**角频率**而非普通频率，若需 `f_obs` 请再除以 `2π`。
 """
-function doppler_shift(frequency, spacecraft_speed, wave_number, angle)
-    observed_angular_frequency = frequency .* 2 .* π
-    return observed_angular_frequency .- wave_number .* spacecraft_speed .* cos.(angle)
+function doppler_shift(frequency::Real, spacecraft_speed::Real, wave_number::Real, angle::Real)
+    observed_angular_frequency = frequency * 2 * π
+    return observed_angular_frequency - wave_number * spacecraft_speed * cos(angle)
 end
 
 """

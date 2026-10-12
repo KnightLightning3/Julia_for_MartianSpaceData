@@ -31,6 +31,25 @@
 >
 > 迁移步骤与影响范围见 [更新日志中的破坏性变更条目](CHANGELOG.md)（位于文件顶部）。
 
+> ### ⚠️ `MarsCommon` 逐元素函数改为**纯标量**：数组请在调用处加 `.`
+>
+> 以下 10 个函数内部不再做广播运算、参数统一 `::Real`，与 `sin`/`log` 等 Julia 官方函数对齐：
+>
+> `ion_energy2v`、`ion_speed_to_energy`、`e_energy2v`、`electron_eflux_to_psd`、
+> `ion_eflux_to_psd`、`ion_eflux_to_psd_approx`、`doppler_shift`、
+> `instrument_sphere_to_cartesian`、`instrument_cartesian_to_sphere`、`spherical_to_cartesian`
+>
+> ```diff
+> - v = MarsCommon.ion_energy2v(energy_array, 16)
+> + v = MarsCommon.ion_energy2v.(energy_array, 16)      # 加一个点
+>
+>   v = MarsCommon.ion_energy2v(energy_scalar, 16)      # 标量调用不变
+> ```
+>
+> 传数组不加点会**立即报 `MethodError`**（不再静默返回无意义结果）。数值与改动前逐位一致。
+> `position_altitude` / `position_local_time` / `position_latitude` / `rotate_vector` /
+> `eflux_to_df!` / `searchsortednearest(_range)` **不受影响**（本就按数组/矩阵设计）。
+
 # 索引
 
 - [破坏性变更（必读）](#破坏性变更必读)

@@ -1,5 +1,63 @@
 # 更新日志
 
+## ⚠️ [2026-10-13] 破坏性变更（BREAKING）：MarsCommon 逐元素函数改为纯标量
+
+> **本节面向所有直接调用 `MarsCommon` 数学函数的使用者，请优先阅读。**
+
+### 变更内容
+
+`MarsCommon` 中 10 个「逐元素标量数学」函数**内部不再做加点（广播）运算**，
+参数统一标注 `::Real`，与 `sin` / `log` 等 Julia 官方函数对齐 ——
+**对数组请在调用处加广播点**：
+
+```
+instrument_sphere_to_cartesian / instrument_cartesian_to_sphere / spherical_to_cartesian
+ion_energy2v / ion_speed_to_energy / e_energy2v
+electron_eflux_to_psd / ion_eflux_to_psd / ion_eflux_to_psd_approx
+doppler_shift
+```
+
+### 会报什么错
+
+```julia
+MarsCommon.ion_energy2v(energy_array, 16)     # 之前可用，现在报错
+# MethodError: no method matching ion_energy2v(::Vector{Float64}, ::Int64)
+```
+
+### 迁移步骤
+
+```diff
+- v   = MarsCommon.ion_energy2v(energy_array, 16)
++ v   = MarsCommon.ion_energy2v.(energy_array, 16)          # 加一个点
+
+- v0  = MarsCommon.e_energy2v.(energy_array)
+-     # 上面这种已经是正确写法，无需改动
+
+- xyz = MarsCommon.instrument_sphere_to_cartesian(1.0, theta_array, phi_array)
++ xyz = MarsCommon.instrument_sphere_to_cartesian.(1.0, theta_array, phi_array)
+
+  v   = MarsCommon.ion_energy2v(energy_scalar, 16)          # 标量调用完全不变
+```
+
+### 为什么这样改
+
+- **与 Julia 惯例一致**：`sin` / `log` 等对数组同样需要加点；本仓库
+  `MAVEN_load.Bpc2sphere`、`IGRF_calculate.pc2sphere` / `sphere2pc` / `Bsphere2pc` / `Bpc2sphere`
+  本来就是纯标量实现，`MarsCommon` 这批函数是异类。
+- **仓库内零行为变化**：已核查全部调用点 —— 批量调用**本来就已经加了点**，标量调用不加点，
+  与改动后完全兼容，因此仓库内无一处需要修改。
+- **数值完全一致**：新旧实现逐位对拍（能量/速度/PSD 多组输入），最大相对差 `0.0`。
+- **误用立即报错**：`::Real` 标注使「传数组不加点」直接抛 `MethodError`，杜绝静默返回
+  无意义结果（此前 `instrument_sphere_to_cartesian([1.0,2.0], 30.0, 45.0)` 会静默成功）。
+
+### 未受影响（本身就是按数组/矩阵设计，保持原样）
+
+`position_altitude`、`position_local_time`、`position_latitude`（入 `N×3` 矩阵、出长度 N 向量）、
+`rotate_vector`（矩阵乘法）、`eflux_to_df!`（字典原地修改）、
+`searchsortednearest` / `searchsortednearest_range`（整条时间轴的二分查找）。
+
+---
+
 ## ⚠️ [2026-10-13] 破坏性变更（BREAKING）：`data_get_from_date` → `load_MAVEN_data`
 
 > **本节面向所有下游使用者，请优先阅读。**

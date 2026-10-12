@@ -25,6 +25,27 @@
 >
 > Migration steps and scope: see the [breaking-change entry in the changelog](CHANGELOG.md) (top of the file).
 
+> ### ⚠️ `MarsCommon` element-wise functions are now **pure scalar**: add `.` at the call site for arrays
+>
+> These 10 functions no longer broadcast internally and now take `::Real`, aligning with Julia's
+> `sin`/`log` convention:
+>
+> `ion_energy2v`, `ion_speed_to_energy`, `e_energy2v`, `electron_eflux_to_psd`,
+> `ion_eflux_to_psd`, `ion_eflux_to_psd_approx`, `doppler_shift`,
+> `instrument_sphere_to_cartesian`, `instrument_cartesian_to_sphere`, `spherical_to_cartesian`
+>
+> ```diff
+> - v = MarsCommon.ion_energy2v(energy_array, 16)
+> + v = MarsCommon.ion_energy2v.(energy_array, 16)      # add the dot
+>
+>   v = MarsCommon.ion_energy2v(energy_scalar, 16)      # scalar calls unchanged
+> ```
+>
+> Passing an array without the dot now fails immediately with `MethodError` (no more silently
+> meaningless results). Numerics are bit-for-bit identical to before.
+> `position_altitude` / `position_local_time` / `position_latitude` / `rotate_vector` /
+> `eflux_to_df!` / `searchsortednearest(_range)` are **unaffected** (array/matrix by design).
+
 # Table of Contents
 - [Breaking Changes (Read First)](#breaking-changes-read-first)
 - [Introduction](#introduction)
