@@ -4,37 +4,53 @@ using FortranFiles
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 using JLD2
-"""由 STATIC c6 离子数据计算一维速度、通量和密度。"""
+using Rotations
+
+"""把 n×3 的 SC(仪器)坐标系磁场逐行用 `:quat_mso`（n×4）旋转到 MSO 坐标系。"""
+@inline function rotate_mag_to_mso(quat_mso, magf)
+    local ntime = size(magf, 1)
+    local T = promote_type(eltype(quat_mso), eltype(magf), Float32)
+    local magf_mso = Matrix{T}(undef, ntime, 3)
+    @inbounds for i in 1:ntime
+        magf_mso[i, 1:3] = QuatRotation(@view quat_mso[i, :]) * @view magf[i, :]
+    end
+    return magf_mso
+end
+
+"""由 STATIC c6 离子数据计算一维速度、通量和密度（磁场经 `:quat_mso` 旋转到 MSO 坐标系后输出）。"""
 @inline function get_ion_vel(ion_data)
 
     ion_data_f = MAVEN_STATIC.STA_count3df(ion_data)
-    mass_range = Dict(
-        :H => [0,1.55],
-        :He => [1.55,2.7],
-        :O => [14,20],
-        :O2 => [24,40],
-        :CO2 => [40,60],
+    mass_range = (
+        H = (0,1.55),
+        He = (1.55,2.7),
+        O = (14,20),
+        O2 = (24,40),
+        CO2 = (40,60),
     )
     energy_range = [0,1e8]
-    O_v,O_f,O_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:O],m_int = 16)
-    O2_v,O2_f,O2_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:O2],m_int = 32)
-    H_v,H_f,H_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:H],m_int = 1)
-    He_v,He_f,He_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:He],m_int = 4)
-    CO2_v,CO2_f,CO2_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:CO2],m_int = 44)
+    O_v,O_f,O_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.O,m_int = 16)
+    O2_v,O2_f,O2_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.O2,m_int = 32)
+    H_v,H_f,H_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.H,m_int = 1)
+    He_v,He_f,He_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.He,m_int = 4)
+    CO2_v,CO2_f,CO2_n = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.CO2,m_int = 44)
 
     energy_range = [0,30]
-    O_v_cold,O_f_cold,O_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:O],m_int = 16)
-    O2_v_cold,O2_f_cold,O2_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:O2],m_int = 32)
-    H_v_cold,H_f_cold,H_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:H],m_int = 1)
-    He_v_cold,He_f_cold,He_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:He],m_int = 4)
-    CO2_v_cold,CO2_f_cold,CO2_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:CO2],m_int = 44)
+    O_v_cold,O_f_cold,O_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.O,m_int = 16)
+    O2_v_cold,O2_f_cold,O2_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.O2,m_int = 32)
+    H_v_cold,H_f_cold,H_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.H,m_int = 1)
+    He_v_cold,He_f_cold,He_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.He,m_int = 4)
+    CO2_v_cold,CO2_f_cold,CO2_n_cold = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.CO2,m_int = 44)
 
     energy_range = [30,1e8]
-    O_v_heat,O_f_heat,O_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:O],m_int = 16)
-    O2_v_heat,O2_f_heat,O2_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:O2],m_int = 32)
-    H_v_heat,H_f_heat,H_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:H],m_int = 1)
-    He_v_heat,He_f_heat,He_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:He],m_int = 4)
-    CO2_v_heat,CO2_f_heat,CO2_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range[:CO2],m_int = 44)
+    O_v_heat,O_f_heat,O_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.O,m_int = 16)
+    O2_v_heat,O2_f_heat,O2_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.O2,m_int = 32)
+    H_v_heat,H_f_heat,H_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.H,m_int = 1)
+    He_v_heat,He_f_heat,He_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.He,m_int = 4)
+    CO2_v_heat,CO2_f_heat,CO2_n_heat = MAVEN_STATIC.sta_v_1d(ion_data_f ;energy_range=energy_range,mass_range=mass_range.CO2,m_int = 44)
+
+    # 磁场由 SC(仪器)坐标系逐行旋转到 MSO 坐标系（使用 :quat_mso）
+    local b_mso = rotate_mag_to_mso(ion_data[:quat_mso], ion_data[:magf])
 
     return (
         time_unix = ion_data[:time_unix],
@@ -54,7 +70,7 @@ using JLD2
         O2_f = hcat(O2_f,O2_f_cold,O2_f_heat),
         CO2_f = hcat(CO2_f,CO2_f_cold,CO2_f_heat),
         pos = ion_data[:pos_sc_mso],
-        b = ion_data[:magf],
+        b = b_mso,
         quality_flag = ion_data[:quality_flag],
         mode = ion_data[:mode],
         mass_range = mass_range,
@@ -78,7 +94,7 @@ using JLD2
     #     O2_f = O2_f,O2_f_cold = O2_f_cold,O2_f_heat = O2_f_heat,
     #     CO2_f = CO2_f,Co2_f_cold = CO2_f_cold,CO2_f_heat = CO2_f_heat,
     #     pos = ion_data[:pos_sc_mso],
-    #     b = ion_data[:magf],
+    #     b = b_mso,
     #     quality_flag = ion_data[:quality_flag],
     #     mode = ion_data[:mode],
     #     mass_range = mass_range,
@@ -119,7 +135,7 @@ end
     # b_mso = convert(Array{Float32,2},datas_dict.b)
     # quality_flag = convert(Vector{Int16},datas_dict.quality_flag)
     # mode = convert(Vector{Int16},datas_dict.mode)
-    # mass_range = FString(64,"H=$(datas_dict.mass_range[:H]),He=$(datas_dict.mass_range[:He]),O=$(datas_dict.mass_range[:O]),O2=$(datas_dict.mass_range[:O2]),CO2=$(datas_dict.mass_range[:CO2])")
+    # mass_range = FString(64,"H=$(datas_dict.mass_range.H),He=$(datas_dict.mass_range[:He]),O=$(datas_dict.mass_range[:O]),O2=$(datas_dict.mass_range[:O2]),CO2=$(datas_dict.mass_range[:CO2])")
 
     # f = FortranFile(filename,"w")
     # write(f, Ntime)

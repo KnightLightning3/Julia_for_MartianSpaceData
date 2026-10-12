@@ -11,12 +11,12 @@ using JLD2
 include("../MAVEN_load.jl");import .MAVEN_load;
 include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
 
-"""结合航天器速度和 STATIC 离子数据计算速度、通量与密度。"""
+"""结合航天器速度和 STATIC 离子数据计算速度、通量与密度（速度、通量与磁场均经 `:quat_mso` 旋转到 MSO 坐标系）。"""
 @inline function get_ion_vel(vsc_data,ion_data;energy_range = [0,1e6])
     # local sta_epoch = ion_data[:epoch]
     local time_unix = ion_data[:time_unix]
     local position = ion_data[:pos_sc_mso]
-    local mag = ion_data[:magf]
+    local mag = ion_data[:magf]        # SC(仪器)坐标系磁场；循环内用 :quat_mso 旋转到 MSO
     local mode = ion_data[:mode]
     local quality_flag = ion_data[:quality_flag]
 
@@ -37,6 +37,7 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
     local O2_f = fill(NaN32,ntime,3)
     local CO2_f = fill(NaN32,ntime,3)
     local vsc_quality = fill(true,ntime)
+    local mag_mso = fill(NaN32,ntime,3)  # 旋转到 MSO 坐标系后的磁场（写入文件的 ":mag_mso" 字段）
 
     local time_vsc = vsc_data[:time_unix]
     local vsc = vsc_data[:vsc]
@@ -54,6 +55,7 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         end
         local dat_slip = MAVEN_STATIC.static_slip(ion_data, time_ind)
         local rotation_Q = QuatRotation(dat_slip[:quat_mso]);
+        mag_mso[time_ind, 1:3] = rotation_Q * mag[time_ind, :]  # 磁场由 SC(仪器)坐标系旋转到 MSO 坐标系
 
         local dat_slip = MAVEN_STATIC.STA_count2df(dat_slip)
         local vel, flux, den
@@ -98,7 +100,7 @@ include("../MAVEN_STATIC.jl");import .MAVEN_STATIC;
         O2_f = O2_f,
         CO2_f = CO2_f,
         pos = position,
-        b = mag,
+        b = mag_mso,
         mode = mode,
         quality_flag = quality_flag,
         vsc_quality = vsc_quality,
