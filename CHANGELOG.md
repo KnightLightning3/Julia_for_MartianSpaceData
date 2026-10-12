@@ -1,5 +1,33 @@
 # 更新日志
 
+## [2026-10-12] 补完未完成项（Pkg 验证 + 维护脚本 + CLI 子命令）
+
+### 验证（此前被沙箱阻断，现已通过）
+
+- **git push**: 全部提交已推送至 `ustc/main`（`a09511a..ba32ac2`）。
+- **Julia `Pkg.instantiate`**: 修正 `Project.toml` 中 TOML stdlib UUID（`fa267bd1...` → `fa267f1f-6049-4f14-aa54-33bafae1ed76`），生成 `Manifest.toml`，`MarsData` 预编译成功，`using MarsData` 验证通过。
+
+### 修改
+
+- **`download_data/compress_cdf.py`**: 修复 `raise e` 之后的不可达清理（先清理临时文件再抛出，避免留下半成品）。
+- **`download_data/clean_files.py`**: `clean_pydownload_files` 增加 `dry_run=True` 默认，`__main__` 改 argparse `--apply`（删除类操作安全化）。
+- **`example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl`**: 修复 `!isfile` JLD2 缓存判断反转（改为 `isfile`）。
+- **`.gitignore`**: `.DS_store` 修正为 `.DS_Store`。
+- **`martian_pipeline/cli.py` + `check.py`**: 新增 `check`（默认 report 只报告）与 `clean`（默认 dry-run）子命令。
+
+### 验证
+
+- `python -m martian_pipeline --help` 列出 scan/manifest/migrate/check/clean。
+- `check` 端到端报告损坏 CDF 而不删除；`clean` dry-run 不删除。
+- 全仓 Python AST: 40/40 OK。
+
+### 仍未完成（受依赖限制，列出供后续）
+
+- 索引嵌套 `products` 契约（当前为扁平 + 元数据，人工批注视 `product_path/pattern` 为可选）。
+- Julia `:time` 统一键 + MGS/TW shim（需可分发样本数据做 loader 输出比对）。
+- 完整 `Project.toml`（需装齐 `LsqFit` 等全部直接依赖后取代 `requirement.jl`）。
+- `download_files.py` NAIF 下载器 `Server_ind=1` 残留、`KP_vars.json` 移除、`eval(Meta.parse)` 显式注册、中文文件名 ASCII 化。
+
 ## [2026-10-12] martian_pipeline 包化
 
 ### 新增
