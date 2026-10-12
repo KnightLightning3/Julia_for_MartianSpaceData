@@ -16,7 +16,9 @@ export instrument_sphere_to_cartesian,
     ion_eflux_to_psd,
     ion_eflux_to_psd_approx,
     eflux_to_df!,
-    doppler_shift
+    doppler_shift,
+    searchsortednearest,
+    searchsortednearest_range
 
 """
     instrument_sphere_to_cartesian(r, theta, phi) -> SVector{3}
@@ -369,6 +371,61 @@ end
 function doppler_shift(frequency, spacecraft_speed, wave_number, angle)
     observed_angular_frequency = frequency .* 2 .* π
     return observed_angular_frequency .- wave_number .* spacecraft_speed .* cos.(angle)
+end
+
+"""
+    searchsortednearest(x, x0) -> Int
+
+在**已排序的时序数据轴** `x` 中查找与目标时刻 `x0` 最接近的元素下标。
+
+# 适用范围（重要）
+- **本函数只能用于时序数据查找**：要求输入 `x` 是**单调递增（已按时间排序）**的时间轴。
+- 在空间数据处理中，所有被读取的数据除非特别说明，其时间轴都是排序后的时序数据；
+  因此对时间轴的最近邻查找一律使用本函数（二分查找），**不要**使用 `findmin(abs.(x .- x0))`（线性扫描）。
+- **严禁**对未排序数组、能量轴、色标 levels 等非时序数据调用本函数。
+
+# 功能与算法概述
+用二分查找（`searchsortedfirst`，`O(log N)`）定位第一个 `>= x0` 的下标，再与其左邻比较距离取更近者；两端越界直接短路返回。
+
+# 参数说明
+- `x`: 单调递增的时间数组（`Vector{DateTime}`、`Vector{Float64}` 等可比较类型，**必须已排序**）。
+- `x0`: 目标时刻，类型需与 `x` 的元素可比较。
+
+# 返回值
+- `Int`: `x` 中最接近 `x0` 的元素下标（1-based）。
+
+# 性能
+- 时间复杂度 `O(log N)`，优于 `findmin(abs.(x .- x0))` 的 `O(N)` 且不产生临时数组。
+
+# 备注
+- 当 `x0` 恰位于两个元素正中时，返回**较大**的下标。
+- 输入 `x` 必须已排序，否则结果无意义。
+"""
+function searchsortednearest(x, x0)
+    N = length(x)
+    if x0 <= x[1]
+        return 1
+    elseif x0 >= x[N]
+        return N
+    end
+    idx_upper = searchsortedfirst(x, x0)
+    idx_lower = idx_upper - 1
+    if abs(x[idx_upper] - x0) <= abs(x[idx_lower] - x0)
+        return idx_upper
+    else
+        return idx_lower
+    end
+end
+
+"""
+    searchsortednearest_range(x, time_range) -> UnitRange{Int}
+
+把时间区间转换成时间轴 `x` 上的连续索引范围（内部用 `searchsortednearest` 二分定位两端）。
+
+同 `searchsortednearest`，**仅适用于已排序的时序数据轴**。
+"""
+function searchsortednearest_range(x, time_range)
+    return searchsortednearest(x, time_range[1]):searchsortednearest(x, time_range[2])
 end
 
 end

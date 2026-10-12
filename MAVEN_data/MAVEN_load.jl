@@ -1431,7 +1431,7 @@ function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],
     #计算磁场方向
     tb_i = zeros(Int64,npts)
     for i in 1:npts
-        tb_i[i] = findmin(x->abs(x - te[i]),tb)[2]
+        tb_i[i] = MarsCommon.searchsortednearest(tb, te[i])
     end
     norm_b = b[tb_i,:] ./ reshape(b_total[tb_i],:,1)
     norm_p = pb[tb_i,:] ./ sqrt.(sum(pb[tb_i,:].^2,dims=2))

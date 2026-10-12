@@ -337,10 +337,10 @@ B_ss_filtered = MAVEN_data["MAG_ss1s_cdf"][:B_filtered]
 P_ss = MAVEN_data["MAG_ss1s_cdf"][:position]
 Mars_distance = MAVEN_data["KP_l3"][:vars][:var_213][1]
 
-time_range_d1 = find_time_range(d1_data[:epoch],time_range)
-time_range_b = find_time_range(time_B_ss,time_range.+[-Minute(1),Minute(1)])
-time_range_swi = find_time_range(swi3d_data[:epoch],time_range.+[-Minute(1),Minute(1)])
-time_range_mom =find_time_range(swi_mom_data[:epoch],time_range)
+time_range_d1 = searchsortednearest_range(d1_data[:epoch],time_range)
+time_range_b = searchsortednearest_range(time_B_ss,time_range.+[-Minute(1),Minute(1)])
+time_range_swi = searchsortednearest_range(swi3d_data[:epoch],time_range.+[-Minute(1),Minute(1)])
+time_range_mom =searchsortednearest_range(swi_mom_data[:epoch],time_range)
 x_range_unix = datetime2unix.(time_range)
 xtimes, x_i = MAVEN_plot.time_ticks(time_range;step=Minute(10), format="HH:MM")
 
@@ -397,8 +397,8 @@ points_data_df = DataFrame(  # 数据集
 @inbounds @showprogress for (itime,time_index) in enumerate(time_range_i)
     local local_result = get_3d_slip_data_from_ins(data1, time_index; mode = instrument_mode, m_int = m_int, mass_range = mass_range) # 返回局地的数据结果
     local time0_unix = time_data1_unix[time_index]
-    local it_mom = time_range_mom[find_time(time_mom_unix[time_range_mom],time0_unix)]
-    local it_ss = time_range_b[find_time(time_ss_unix[time_range_b],time0_unix)]
+    local it_mom = time_range_mom[searchsortednearest(time_mom_unix[time_range_mom],time0_unix)]
+    local it_ss = time_range_b[searchsortednearest(time_ss_unix[time_range_b],time0_unix)]
     local V_mso = swi_mom_data[:velocity_mso][it_mom,:]
     local N0 = swi_mom_data[:density][it_mom,:]
     # local B_mso = B_ss[it_ss,:]

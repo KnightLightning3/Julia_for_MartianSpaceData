@@ -108,7 +108,7 @@ end
     @inbounds for i in 1:num
         Bx1, By1, Bz1 = IGRF_calculate.IGRF_pc(sc_trace[i, 1], sc_trace[i, 2], sc_trace[i, 3])
         Bm[i, :] = [Bx1, By1, Bz1]
-        ind = findmin(x -> abs(x - B_times[i]), kp_dict[:time])[2]
+        ind = MAVEN_load.MarsCommon.searchsortednearest(kp_dict[:time], B_times[i])
         rot = kp_dict[:pc2ss_Matrix][ind, :, :]
         Bm_ss[i, :] = rot * ([Bx1, By1, Bz1] .+ B_compress)
         pos_ss[i, :] = rot * sc_trace[i, :]

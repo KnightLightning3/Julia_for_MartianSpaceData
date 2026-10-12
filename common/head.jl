@@ -79,53 +79,10 @@ label_data = (
     x_mse = rich("X",subscript("MSE")," (",rich("R",font = :italic),subscript("M"),")"),
     z_mse = rich("Z",subscript("MSE")," (",rich("R",font = :italic),subscript("M"),")"),
 )
-"""
-    find_time(x, x0) -> Int
-
-在**单调递增**的时间数组 `x` 中查找与目标值 `x0` 最接近的元素索引。
-
-# 功能与算法概述
-对已排序序列用二分查找（`searchsortedfirst`，`O(log N)`）定位候选下标，再与其左邻元素比较距离取更近者；两端越界直接短路返回。
-
-# 参数说明
-- `x`: 单调递增的时间数组（`Vector{DateTime}`、`Vector{Float64}` 等可比较类型）。
-- `x0`: 查找目标值，类型需与 `x` 的元素可比较。
-
-# 返回值
-- `Int`: `x` 中最接近 `x0` 的元素下标（1-based）。
-
-# 性能
-- 时间复杂度 `O(log N)`，优于 `findmin(abs.(x .- x0))` 的 `O(N)` 且不产生临时数组。
-
-# 备注
-- 当 `x0` 恰位于两个元素正中时，返回**较大**的下标（`idx_upper`）。
-- 输入 `x` 必须已排序；未排序时不保证结果正确。
-"""
-function find_time(x, x0)
-    local N = length(x)
-    # 1. 边界情况处理：如果 x0 小于等于第一个元素
-    if x0 <= x[1]
-        return 1
-    # 2. 边界情况处理：如果 x0 大于等于最后一个元素
-    elseif x0 >= x[N]
-        return N
-    end
-    # 3. 使用二分查找找到第一个大于或等于 x0 的元素的索引
-    #    此操作的时间复杂度为 O(log N)
-    local idx_upper = searchsortedfirst(x, x0)
-    
-    # idx_upper 现在是 x[idx_upper] >= x0 的最小索引
-    # 因此，我们只需要比较 x[idx_upper] 和 x[idx_upper - 1] 即可
-    
-    local idx_lower = idx_upper - 1
-    
-    # 4. 比较哪个点更接近 x0
-    if abs(x[idx_upper] - x0) <= abs(x[idx_lower] - x0)
-        return idx_upper
-    else
-        return idx_lower
-    end
-end
+# 时间轴最近邻二分查找（O(log N)）——由 common/MarsCommon.jl 提供，此处透传供脚本层直接调用。
+# 仅适用于已排序的时序数据（空间数据时间轴默认有序），详见 MarsCommon.searchsortednearest。
+const searchsortednearest = MAVEN_load.MarsCommon.searchsortednearest
+const searchsortednearest_range = MAVEN_load.MarsCommon.searchsortednearest_range
 """
     safe_log_mean(x) -> Float64
 
@@ -318,30 +275,6 @@ end;
 function find_range(x,xr)
     ind = (x .>= xr[1]) .& (x .<= xr[2])
     return ind
-end
-
-"""
-    find_time_range(x, time_range) -> UnitRange{Int}
-
-把时间**区间**转换成时间数组 `x` 上的连续索引范围。
-
-# 功能与算法概述
-分别对区间两端调用 `find_time` 定位最接近的索引，再拼成可直接用于切片（如 `x[range]`）的 `UnitRange`。
-
-# 参数说明
-- `x`: 单调递增的时间数组（`DateTime`、`Float64` 等）。
-- `time_range`: 长度为 2 的区间 `(起始时刻, 结束时刻)`。
-
-# 返回值
-- `UnitRange{Int}`: 覆盖该时间区间的索引范围（含两端）。
-
-# 注意事项
-- 若 `time_range[1]` 对应的索引大于 `time_range[2]` 对应的索引，返回**空范围**。
-- 依赖 `x` 已排序，否则结果无意义。
-"""
-function find_time_range(x,time_range)
-    xi = find_time(x,time_range[1]):find_time(x,time_range[2])
-    return xi
 end
 
 """

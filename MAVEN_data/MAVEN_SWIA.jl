@@ -3,6 +3,7 @@
 # 默认能量单位: EV. 默认粒子质量单位:AMU
 module MAVEN_SWIA
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 using TimesDates, Dates
 using Statistics
 using Rotations
@@ -98,13 +99,14 @@ function get_3dc!(dat;quat_data = nothing)#projects/maven/swia/mvn_swia_get_3dc.
     local dat[:quat_mso] = fill(one(QuatRotation),ntime)
     local dat[:quat_quality] = fill(true,ntime)
     @inbounds for i in 1:ntime
-        local ii = findmin(abs.(time_quat .- time_dat[i]))
-        if ii[1] > 4
-            # @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(round(ii[1]))秒，请检查:quat_quality项"
+        local idx = MarsCommon.searchsortednearest(time_quat, time_dat[i])
+        local dt = abs(time_quat[idx] - time_dat[i])
+        if dt > 4
+            # @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(round(dt))秒，请检查:quat_quality项"
             dat[:quat_quality][i]=false
             # continue
         end
-        dat[:quat_mso][i] = quat_data[:quat][ii[2]]
+        dat[:quat_mso][i] = quat_data[:quat][idx]
     end
     return dat
     # [:filename, :theta_coarse, :theta_atten_coarse, :g_phi_atten_coarse, :g_theta_atten_coarse, :g_phi_coarse, :energy_coarse, :time_unix, :time_met, :diff_en_fluxes, :atten_state, :g_theta_coarse, :counts, :phi_coarse, :data_load_flag, :dindex, :num_accum, :grouping, :epoch]
@@ -205,13 +207,14 @@ function get_3df!(dat;quat_data = nothing) #projects/maven/swia/mvn_swia_get_3df
     local dat[:quat_mso] = fill(one(QuatRotation),ntime)
     local dat[:quat_quality] = fill(true,ntime)
     @inbounds for i in 1:ntime
-        local ii = findmin(abs.(time_quat .- time_dat[i]))
-        if ii[1] > 4
-            # @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(round(ii[1]))秒，请检查:quat_quality项"
+        local idx = MarsCommon.searchsortednearest(time_quat, time_dat[i])
+        local dt = abs(time_quat[idx] - time_dat[i])
+        if dt > 4
+            # @warn "存在时间偏差过大的quat值, t = $(dat[:epoch][i]), dt = $(round(dt))秒，请检查:quat_quality项"
             dat[:quat_quality][i] = false
             # continue
         end
-        dat[:quat_mso][i] = quat_data[:quat][ii[2]]
+        dat[:quat_mso][i] = quat_data[:quat][idx]
     end
     return dat
     # [:filename, :theta_coarse, :theta_atten_coarse, :g_phi_atten_coarse, :g_theta_atten_coarse, :g_phi_coarse, :energy_coarse, :time_unix, :time_met, :diff_en_fluxes, :atten_state, :g_theta_coarse, :counts, :phi_coarse, :data_load_flag, :dindex, :num_accum, :grouping, :epoch]
