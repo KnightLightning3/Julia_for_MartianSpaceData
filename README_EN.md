@@ -13,6 +13,7 @@
 - [Custom Data Description](#custom-data-description)
 - [MAVEN Data Tips](#maven-data-tips)
 - [Plotting](#plotting)
+- [Module Loading](#module-loading)
 - [Program and Function Index](#program-and-function-index)
 - [Documentation Build](#documentation-build)
 - [ToDo List](#todo-list)
@@ -161,7 +162,7 @@ Reading guide: [MAVEN Data Reading](docs/src/data_reading.md)
 Plotting is now **packaged into `MarsData`** — no need to `include MAVEN_plot.jl` manually:
 
 ```julia
-using MarsData          # plotting primitives + the overview composition plot_module
+using MarsData          # provides plot_module / TimeFormat / remove_0_point!
 using CairoMakie        # Figure / Axis / save
 
 fig = Figure(; size=(2500, 2500))
@@ -169,11 +170,35 @@ fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dat
 save("overview.png", fig)
 ```
 
-- **Implementation**: `src/plotting.jl` holds the overview composition (`plot_module` / `TimeFormat` / `remove_0_point!`); the primitives live in `MAVEN_data/MAVEN_plot.jl`, loaded as the submodule `MarsData.MAVEN_plot` and available with `using MarsData`.
-- **Primitive API**: `time2x`, `time_ticks`, `x_ticks`, `sta_heatmap`, `STA_2d_slip`, `SWEA_PAD_heatmap`, `WaveSpectra_heatmap`, `Orbit`, `PAD_slice`, `PAD_slice_polar`, `PAD_slice_velocity`.
+- **Implementation**: `src/plotting.jl` provides the overview composition (`plot_module` / `TimeFormat` / `remove_0_point!`), which `using MarsData` exports directly; the primitives live in `MAVEN_data/MAVEN_plot.jl`, loaded as the submodule `MarsData.MAVEN_plot`.
+- **Accessing the primitives**: `using MarsData` does **not** make the primitives bare names — use `using MarsData.MAVEN_plot`, or qualify them as `MarsData.MAVEN_plot.time2x`. Primitives: `time2x`, `time_ticks`, `x_ticks`, `sta_heatmap`, `STA_2d_slip`, `SWEA_PAD_heatmap`, `WaveSpectra_heatmap`, `Orbit`, `PAD_slice`, `PAD_slice_polar`, `PAD_slice_velocity`.
 - **Examples**: `example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl` (single interval) and `MAVEN_overview_cases.jl` (batch over 2-hour windows; output directory via `MAVEN_OVERVIEW_OUTDIR`).
 
-## Program and Function Index
+# Module Loading
+
+Heavy modules (`MAVEN_load`, `MAVEN_STATIC`, `MAVEN_SWIA`, `MAVEN_SWEA`, `IGRF_calculate`, `Cold_Plasma_Dispersion_Relation`, …) are **still include-based**, but a packaged loader is available: one call is equivalent to `include(the file)`.
+
+```julia
+using MarsData
+
+MarsData.load_module(:MAVEN_load)        # ≡ include("MAVEN_data/MAVEN_load.jl") into MarsData
+MarsData.MAVEN_load.data_get_from_date(date, model_index=["MAG_ss1s_cdf"])
+
+MarsData.@load MAVEN_STATIC IGRF_calculate   # load and bind in the caller's scope
+MAVEN_STATIC.static_c6_mass_mean(sta)
+
+MarsData.available_modules()        # what can be loaded
+MarsData.loaded_modules()           # what has been loaded
+MarsData.module_info(:MAVEN_load)   # path / deps / whitelist / state
+MarsData.validate_registry()        # self-check (paths, module names, dependency cycles)
+```
+
+- **Whitelist convention**: `@load` always uses per-name imports (`using .Mod: whitelist…`) and **never** a whole-module `using`. So whether a name becomes bare is decided solely by `ModuleSpec.allow` in the registry, independent of the module's own `export` (Julia's per-name import works for non-exported names too).
+- **Current state**: all 18 `allow` entries are **deliberately empty**, so `@load MAVEN_load` only binds the module name and introduces no bare names (write `MAVEN_load.xxx`); bare names unlock as you fill in the whitelist.
+- **Idempotent**: each module is included only once per process; repeated calls return the **same object**; `:preloaded` entries (`Paths`, `MAVEN_plot`) return the in-package instance.
+- **Carrier mechanism**: modules are actually evaluated in a runtime *carrier* module (`MarsData._carrier()`) and then bound into `MarsData` as a `const` alias. Reason: Julia enforces strict dependency checks for `using` inside **package** modules — including `MAVEN_load.jl` directly into `MarsData` fails with `Package MarsData does not have CommonDataFormat in its dependencies`. A runtime carrier has no pkgid, so its `using` resolves through the `LOAD_PATH` fallback (same as `Main`), which means **none** of CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit need to be declared in this package. Side effect: `parentmodule(MarsData.MAVEN_load)` is the carrier, not `MarsData`.
+
+# Program and Function Index
 
 Browse program responsibilities, primary entry points, and function descriptions in the [program and function index](docs/src/api.md). The [SWIA electron correction notes](docs/src/swia_electron.md) are also available.
 

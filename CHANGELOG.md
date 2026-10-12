@@ -1,5 +1,39 @@
 # 更新日志
 
+## [2026-10-12] 模块装载管理器（阶段 A）：load_module / @load + 白名单 + 载体机制
+
+### 新增
+
+- **`src/modules.jl`**
+  - `ModuleSpec` 与注册表 `MODULE_REGISTRY`（18 条）：constants、MarsCommon、Paths、MAVEN_load、MAVEN_STATIC、MAVEN_SWIA、MAVEN_SWEA、MAVEN_plot、IGRF_calculate、Cold_Plasma_Dispersion_Relation、Maxwellian_Distribution、Single_Particle_Orbit、calculate_models、MGS_load、TW_load、TW_MINPA、SP_load、Call_fortran_dll；每条含 `deps`（语义前置）与 `allow` 白名单（**全部刻意留空**）。
+  - `load_module(name; into=MarsData, force=false, verbose=false)`：等价于 `include(对应文件)`；`name=:all` 按依赖拓扑序装载；同进程幂等。
+  - `@load Name1 Name2 …`：在调用者作用域装载并绑定（展开为 `const`，仅限顶层）。
+  - 查询与自检：`available_modules` / `loaded_modules` / `module_path` / `module_info` / `validate_registry`。
+  - `ModuleLoadError`：包装装载失败并保留原始异常为 `cause`。
+- **`test/runtests.jl`**：Julia 测试 67 项。
+
+### 设计要点（均已实测）
+
+- **白名单是唯一闸门**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。实测确认 Julia 的逐名引入对**未 export** 的名字同样有效（未 export 可裸名 / 已 export 但不在白名单则不可裸名），因此「能否裸名调用」完全由注册表 `allow` 决定。当前 18 条 `allow` 留空 ⇒ 只绑定模块名、零裸名。
+- **载体机制**：实测发现 Julia 对**包模块**内的 `using` 做严格依赖校验——把 `MAVEN_load.jl` 直接 include 进 `MarsData` 会因 `using CommonDataFormat` 等不在本包 `[deps]` 而失败（`Package MarsData does not have CommonDataFormat in its dependencies`）；而运行时 `Module(:X)` 载体没有 pkgid，其 `using` 走 `LOAD_PATH` 回退（与 `Main` 一致）。故模块在载体中求值后，再以 `const` 别名绑定进 `MarsData`，**无需**新增 CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit 等 8 个重依赖。
+- 副作用：`parentmodule(MarsData.MAVEN_load)` 是载体而非 `MarsData`；全进程共享同一模块实例（不重复编译）。
+
+### 修改
+
+- **`Project.toml`**：新增 `[extras] Test` 与 `[targets] test`。
+- **`README.md` / `README_EN.md`**：新增「模块装载 / Module Loading」章节；并**修正上一轮的错误说法**——`using MarsData` 并不会把绘图基元（`time2x`、`sta_heatmap` 等）变成裸名，只有 `plot_module`/`TimeFormat`/`remove_0_point!` 被导出。
+- **`docs/src/api.md`**：新增「MarsData 包 API」章节（轻量 API / 绘图 API / 模块装载管理器，含白名单与载体机制说明）。
+
+### 本次未做（按约定归阶段 B/C）
+
+- 未改动任何模块的 `export` 行，未改示例、`MAVEN_data/Build_data/`、`download_data/`。
+
+### 验证
+
+- `julia --project=. test/runtests.jl` → **67/67 通过**（覆盖：注册表自检、查询、未知模块报错与相近建议、幂等、`:preloaded`、空白名单零裸名、非空白名单可裸名、`into` 隔离、`@load` 顶层绑定、`:all` 拓扑序、MAVEN_load 重模块冒烟）。
+- 端到端回归：`example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl`（仍走 include 路径）正常出图。
+- `julia --project=docs docs/make.jl` 文档重建成功。
+
 ## [2026-10-12] 绘图功能包化：MarsData 提供 plot_module 与绘图基元
 
 ### 新增

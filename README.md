@@ -25,6 +25,7 @@
   - [单粒子轨道追踪](#单粒子轨道追踪)
 - [MAVEN数据说明](#maven数据说明)
 - [绘图](#绘图)
+- [模块装载](#模块装载)
 - [程序与函数索引](#程序与函数索引)
 - [文档构建](#文档构建)
 - [其他](#其他)
@@ -187,7 +188,7 @@ import .IGRF_calculate
 绘图功能已**包化进 `MarsData`**，无需再手动 `include MAVEN_plot.jl`：
 
 ```julia
-using MarsData          # 绘图基元 + 概览合成 plot_module（一并可用）
+using MarsData          # 提供 plot_module / TimeFormat / remove_0_point!
 using CairoMakie        # Figure / Axis / save 等图形对象
 
 fig = Figure(; size=(2500, 2500))
@@ -195,9 +196,33 @@ fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dat
 save("overview.png", fig)
 ```
 
-- **包内实现**：`src/plotting.jl`（概览合成 `plot_module` / `TimeFormat` / `remove_0_point!`）；绘图基元位于 `MAVEN_data/MAVEN_plot.jl`，作为子模块 `MarsData.MAVEN_plot` 载入并随 `using MarsData` 一同可用。
-- **基元 API**：`time2x`、`time_ticks`、`x_ticks`、`sta_heatmap`、`STA_2d_slip`、`SWEA_PAD_heatmap`、`WaveSpectra_heatmap`、`Orbit`、`PAD_slice`、`PAD_slice_polar`、`PAD_slice_velocity`。
+- **包内实现**：`src/plotting.jl` 提供概览合成 `plot_module` / `TimeFormat` / `remove_0_point!`，这三个由 `using MarsData` 直接导出；绘图基元位于 `MAVEN_data/MAVEN_plot.jl`，作为子模块载入为 `MarsData.MAVEN_plot`。
+- **基元访问方式**：`using MarsData` **不会**把绘图基元变成裸名，需写 `using MarsData.MAVEN_plot`，或调用时带前缀（如 `MarsData.MAVEN_plot.time2x`）。基元清单：`time2x`、`time_ticks`、`x_ticks`、`sta_heatmap`、`STA_2d_slip`、`SWEA_PAD_heatmap`、`WaveSpectra_heatmap`、`Orbit`、`PAD_slice`、`PAD_slice_polar`、`PAD_slice_velocity`。
 - **完整示例**：`example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl`（单日概览）、`MAVEN_overview_cases.jl`（批量，按 2 小时窗口切分，输出目录可用环境变量 `MAVEN_OVERVIEW_OUTDIR` 覆盖）。
+
+# 模块装载
+
+重模块（`MAVEN_load`、`MAVEN_STATIC`、`MAVEN_SWIA`、`MAVEN_SWEA`、`IGRF_calculate`、`Cold_Plasma_Dispersion_Relation` 等）**仍以 include 为主**，但已提供包化的装载入口，一次调用等价于 `include(对应文件)`：
+
+```julia
+using MarsData
+
+MarsData.load_module(:MAVEN_load)        # ≡ include("MAVEN_data/MAVEN_load.jl")，落点 MarsData
+MarsData.MAVEN_load.data_get_from_date(date, model_index=["MAG_ss1s_cdf"])
+
+MarsData.@load MAVEN_STATIC IGRF_calculate   # 在调用者作用域装载并绑定模块名
+MAVEN_STATIC.static_c6_mass_mean(sta)         # 直接可用
+
+MarsData.available_modules()   # 可装载清单
+MarsData.loaded_modules()      # 已装载清单
+MarsData.module_info(:MAVEN_load)   # 路径 / 依赖 / 白名单 / 状态
+MarsData.validate_registry()        # 注册表自检（路径、module 名、依赖环）
+```
+
+- **白名单约定**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。因此「能否裸名调用」完全由注册表 `ModuleSpec.allow` 决定，与模块自身 `export` 无关（Julia 的逐名引入对未 export 的名字同样有效）。
+- **当前状态**：全部 18 条 `allow` **刻意留空**，即 `@load MAVEN_load` 只绑定模块名，不引入任何裸名（需写 `MAVEN_load.xxx`）；白名单待逐模块填写后，裸名才会放开。
+- **幂等**：同一进程内每个模块只 include 一次，重复调用返回**同一对象**；`:preloaded`（`Paths`、`MAVEN_plot`）直接返回包内实例。
+- **载体机制**：模块实际在运行时载体模块（`MarsData._carrier()`）中求值，再以 `const` 别名绑定进 `MarsData`。原因是 Julia 对**包模块**内的 `using` 做严格依赖校验——直接把 `MAVEN_load.jl` include 进 `MarsData` 会因 `using CommonDataFormat` 等不在本包 `[deps]` 中而报 `Package MarsData does not have CommonDataFormat in its dependencies`；运行时载体无 pkgid，其 `using` 走 `LOAD_PATH` 回退（与 `Main` 一致），因此**无需**把 CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit 等重依赖声明进本包。副作用：`parentmodule(MarsData.MAVEN_load)` 是载体而非 `MarsData`。
 
 # 其他模型
 

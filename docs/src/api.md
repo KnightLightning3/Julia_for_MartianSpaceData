@@ -22,6 +22,48 @@
 | [`MAVEN_data/Build_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/MAVEN_data/Build_data/build_vsc.jl) | STATIC、NGIMS、KP 等数据预处理与重建脚本 |
 | [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/tools/robocopy.ps1)、[`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/blob/main/requirement.jl) | 数据复制工具与 Julia 依赖名称清单 |
 
+## MarsData 包 API
+
+`src/MarsData.jl` 提供三层能力，均可通过 `using MarsData` 使用。
+
+### 轻量公共 API（路径 / 注册表 / 索引）
+
+| 函数 | 说明 |
+| --- | --- |
+| `project_root()` | 仓库根目录 |
+| `maven_data_root()`、`tw_data_root()`、`mgs_data_root()` | 各数据根目录 |
+| `index_path()` | 索引文件路径 |
+| `data_model()` | 产品注册表（`MAVEN_data/MAVEN_data_format.json` 的 `data_model`） |
+| `load_index()` | 读取索引（兼容 v2 与旧扁平格式） |
+
+### 绘图 API
+
+| 函数 | 说明 |
+| --- | --- |
+| `plot_module(fig, x_range, data_dict; time_step)` | 多仪器时间序列概览图合成，返回 `fig, t0, xtimes` |
+| `TimeFormat(t1, t2)` | 把时长格式化为 `HH:MM:SS.mmm` |
+| `remove_0_point!(y)` | 非正绘图值原地置 `NaN` |
+
+绘图基元（`time2x`、`time_ticks`、`x_ticks`、`sta_heatmap`、`STA_2d_slip`、`SWEA_PAD_heatmap`、`WaveSpectra_heatmap`、`Orbit`、`PAD_slice`、`PAD_slice_polar`、`PAD_slice_velocity`）位于子模块 `MarsData.MAVEN_plot`（源文件 `MAVEN_data/MAVEN_plot.jl`），需 `using MarsData.MAVEN_plot` 或加前缀访问。
+
+### 模块装载管理器（`src/modules.jl`）
+
+重模块**仍以 include 为主**，但提供包化装载入口，一次调用等价于 `include(对应文件)`。
+
+| API | 说明 |
+| --- | --- |
+| `load_module(name; into=MarsData, force=false, verbose=false)` | 装载模块并返回 `Module`；`name=:all` 时按依赖拓扑序装载全部 |
+| `@load Name1 Name2 …` | 在调用者作用域装载并绑定（展开为 `const` 赋值，仅限顶层使用） |
+| `available_modules()` | 可装载模块清单 |
+| `loaded_modules()` | 已装载模块清单 |
+| `module_path(name)` | 该模块的绝对路径 |
+| `module_info(name)` | 路径 / 依赖 / 白名单 / 装载状态 |
+| `validate_registry()` | 注册表自检（路径存在、`module` 名一致、依赖无环） |
+
+**白名单机制**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。因此"能否裸名调用"完全由注册表 `ModuleSpec.allow` 决定，与模块自身 `export` 无关（Julia 的逐名引入对未 export 的名字同样有效）。当前 18 条 `allow` **刻意留空**，即只绑定模块名、不引入任何裸名。
+
+**载体机制**：模块实际在运行时载体模块（`MarsData._carrier()`）中求值，再以 `const` 别名绑定进目标命名空间。原因是 Julia 对**包模块**内的 `using` 做严格依赖校验——直接把 `MAVEN_load.jl` include 进 `MarsData` 会因 `using CommonDataFormat` 等不在本包 `[deps]` 中而失败；而运行时载体没有 pkgid，其 `using` 走 `LOAD_PATH` 回退，因此无需把 CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit 等重依赖声明进本包。副作用：`parentmodule(MarsData.MAVEN_load)` 是载体而非 `MarsData`；全进程共享同一模块实例（不重复编译）。
+
 ## MAVEN 数据读取与处理
 
 ### `MAVEN_data/MAVEN_load.jl`
