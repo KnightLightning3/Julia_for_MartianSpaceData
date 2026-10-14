@@ -1,0 +1,494 @@
+{
+  "name": "julia-architecture-refactor",
+  "id": "julia-architecture-refactor",
+  "description": "立即按 .agent/new_plan.md 开始恢复旧工作与架构规划。含队长最多8 Agent，队长/总架构师不编码，两名Pro分工审查，汇报驱动不轮询，架构交付后等待人工审查再实施。",
+  "captainSessionId": "session-b1a0c701-8dd4-48a0-a468-dcdd0e5883e7",
+  "createdAt": 1791961900166,
+  "members": [
+    {
+      "id": "dd3c5ffe-1977-48d5-8690-08f94b3953b3",
+      "name": "chief-architect",
+      "role": "总架构师；不编码、不创建子Agent",
+      "provider": "zenmux",
+      "model": "anthropic/claude-opus-5.5",
+      "joinedAt": 1791961900166,
+      "status": "removed"
+    },
+    {
+      "id": "eaf47857-5925-4de0-afc9-44eb8a13ab7d",
+      "name": "pro-architecture",
+      "role": "高级架构专家；模块边界/依赖/API/扩展性",
+      "provider": "deepseek-official",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1791961900166,
+      "status": "removed"
+    },
+    {
+      "id": "696664cd-31f3-4150-bcbf-a7d0a29458bd",
+      "name": "pro-science",
+      "role": "科研计算专家；科学语义/数据契约/行为兼容性",
+      "provider": "deepseek-official",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1791961900166,
+      "status": "removed"
+    },
+    {
+      "id": "e6314aca-ce3d-47a1-9ba1-251b933587f1",
+      "name": "flash-recovery",
+      "role": "官方Flash；旧工作继承与状态恢复",
+      "provider": "deepseek-official",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1791961900166,
+      "status": "removed"
+    },
+    {
+      "id": "4641a2cb-f96e-438e-aa3b-964ed9bf5651",
+      "name": "flash-ustc",
+      "role": "中科大Flash；非关键路径补充工作",
+      "provider": "ustc",
+      "model": "deepseek-v4-flash-ascend",
+      "joinedAt": 1791961900166,
+      "status": "removed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "profileSeedId": "recovery",
+      "subject": "继承旧记录并恢复当前真实状态",
+      "description": "先读取 .agent/new_plan.md 全文及适用指令，再发现并阅读旧P5/P6日志、规划和修改记录，继承有效结论后定向核实当前代码和git状态，禁止从零重复扫描。只修改 .agent/current_state_recovery.md，交付已完成/未完成、可继承结论、差异、已有验证框架和真实命令、关键路径证据及两专家分工建议。所有成员不得创建子Agent（含队长总数上限8），不查询其他成员进度，完成或阻塞主动汇报。不得改项目代码/测试/配置/new_plan.md。响应作为实际路由连通性证据，不自行换模型。",
+      "status": "completed",
+      "assignee": "flash-recovery",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791962108339,
+      "attemptId": "8ae54848-5fa7-471c-9b20-87e898f01306",
+      "reassigning": false,
+      "output": "Phase A 恢复完成，交付 .agent/current_state_recovery.md（唯一写入）。核心结论：(1) HEAD=94da314 仍停在 P6 之前，上一轮 P6 + TASK-024/025 共 19 文件 +2493/−221 全部未提交，属最高风险单点；(2) 计划 48 个 TASK 中已完成 TASK-001…025（008 因真实数据不可得按既有口径不阻塞，013/021/025 验证不完整），TASK-026…043 未开始，044–048 条件未触发；(3) 实测 `julia --project=. test/runtests.jl` = 141 passed/1 broken/0 failed，exit 0，19.6s（真实可跑，可作为续做门禁）；(4) 关键差异：工作区 Project.toml [deps] 16→45、Manifest +1743 行（mtime 10-14 11:29，无日志），与 .agent/06 自称“依赖清单不动”红线冲突，需人工裁定；06 漏记 TASK-024/025；TASK-002 声称“无残留”但有孤儿 docstring（TW_load.jl:111-129、MGS_load.jl:96-113）；(5) 已有验证框架仅覆盖装载层 + 合成 golden 基线 + 少量科学函数，new_plan §8/§9 要求的 AST 框架与函数调用表尚不存在，Phase B 必须先补；(6) 给出两名 Pro 的互斥分工（架构：AR 条目重估/迁移顺序/扩展规范；科研：数据键契约、C6-C13 疑点验证方案、P6 等价性证据强度分级）。全程未创建子 Agent、未查询他人进度、未改项目代码/测试/配置/new_plan.md。",
+      "changedPaths": [
+        ".agent/current_state_recovery.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "全文读取 .agent/new_plan.md 并确认适用指令（范围、红线、8 Agent 上限、汇报驱动、人工审查后实施）",
+          "status": "passed",
+          "evidence": "读取 817 行全文；§2/§8/§9/§15.8/§15.9/§17/§19 已引用到报告 §1、§6、§7、§8"
+        },
+        {
+          "criterion": "发现并阅读旧 P5/P6 日志、规划与修改记录，不从零重扫",
+          "status": "passed",
+          "evidence": ".agent/00–06（P0–P6）+ 07/08/09 占位 + docs/reports 4 份历史报告；报告 §1 给出继承有效性判定；核实方式为定向符号 grep 与定点读取（§2.2）"
+        },
+        {
+          "criterion": "继承有效结论后定向核实当前代码与 git 状态",
+          "status": "passed",
+          "evidence": "git log/status/diff；逐 TASK 特征符号核实出 §3 完成度表；反向核实 S8–S11 未开始的证据列于 §2.2"
+        },
+        {
+          "criterion": "只修改 .agent/current_state_recovery.md，不改项目代码/测试/配置/new_plan.md",
+          "status": "passed",
+          "evidence": "唯一写入为该文件；tmp/recovery_runtests.log 为捕获测试输出的临时文件，收尾已删除（tmp 内仅剩上一轮遗留的 instantiate_benchmark.jl）"
+        },
+        {
+          "criterion": "交付含已完成/未完成、可继承结论、差异、已有验证框架与真实命令、关键路径证据、两名专家分工建议",
+          "status": "passed",
+          "evidence": "报告 §3（完成度总表 48 TASK）、§4（可继承结论 7 条）、§5（差异 D-1…D-8）、§6（验证框架+真实命令+能力缺口）、§2.2（关键路径证据表）、§8（架构/科研双 Pro 互斥分工）"
+        },
+        {
+          "criterion": "不创建子 Agent、不查询其他成员进度、不自行更换模型，并在完成时主动汇报",
+          "status": "passed",
+          "evidence": "全程无 subagent/workflow 调用；未读取任何成员邮箱；未变更模型；完成后单条 agent_teams_send_message 报队长（本响应即官方 Flash 路由连通性证据）"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "julia --project=. test/runtests.jl",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "Test Summary: MarsData 模块装载管理器 | 141 Pass 1 Broken 142 Total 19.6s；0 fail/0 error；1 broken 为 @test_broken isempty(result.warnings)（注册表 18 条冗余 include 警告，预期）"
+        },
+        {
+          "command": "git log --date=iso --pretty=format:\"%h %ad %s\" -18 ; git status --porcelain ; git diff --shortstat",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "HEAD=94da314(origin/main)；19 个 M 文件；19 files changed, 2493 insertions(+), 221 deletions(-)；未跟踪 .agent/ .agent-teams/ benchmark/ common/data_keys.jl tmp/"
+        },
+        {
+          "command": "git show HEAD:MAVEN_data/MAVEN_load.jl | Select-String 'LOADER_FUNCS|filename_list' ; git show HEAD:models/Cold_Plasma_Dispersion_Relation.jl | Select-String 'PlasmaState'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "HEAD 版本含旧 calculate_mag 与模块级 filename_list、无 PlasmaState（命中 0）→ 证明 HEAD 位于 P6 之前"
+        },
+        {
+          "command": "ops_grep 定向核实 TASK-003/004/005/006/007/012/013/015/016/018/019/020/021/022/023/024/025 特征符号 + S8–S11 反向核实符号",
+          "status": "passed",
+          "evidence": "证据位置见报告 §2.2；S8–S11 关键符号（MarsCommon.Bpc2sphere/bowshock、FunctionCoordinate、MarsUtils、pickup_ion_analysis、panel_*!/_get_kp、bcompress kwarg、allow 全量）均未命中 → 判定未开始"
+        },
+        {
+          "command": "julia --version ; python --version ; python -m pytest --version ; Test-Path E:\\MAVEN,E:\\MGS,E:\\Tianwen-1,config\\settings.toml,MAVEN_data\\filename_lists.json",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "julia 1.10.5；Python 3.15.0 但 No module named pytest；三处数据盘与 settings.toml、filename_lists.json 均为 False"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "profileSeedId": "supplement",
+      "subject": "慢渠道补充旧成果索引和非关键路径候选任务",
+      "description": "读取 .agent/new_plan.md 和适用指令；只盘点旧文档/日志，不重复恢复实例的代码扫描。只修改 .agent/ustc_supplement.md，输出旧成果索引、待核实事项和后续低耦合代码/自动化候选任务，非关键路径。不改具体代码/测试/配置/其他文档，不创建子Agent、不轮询成员；完成/阻塞主动汇报。",
+      "status": "completed",
+      "assignee": "flash-recovery",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791966711588,
+      "reassigning": false,
+      "attemptId": "c5d98db9-0cbb-4903-9082-1b4a8ecd46b4",
+      "output": "慢渠道补充交付完成：.agent/ustc_supplement.md（18658 B，创建前实测不存在）。内容：(1) §0 渠道状态声明——原文登记首尝试 ustc/deepseek-v4-flash-ascend 失败证据 `pi-ai stream idle timeout after 300000ms (TIMEOUT)`，仅声明其证明连续 5 分钟无可消费流数据，上游排队/网络/上下文原因未证实，未虚构上下文日志；明确本次为 Official 接续交付、不宣称中科大完成。(2) §1 旧成果索引：文档级（00–09 + docs/reports 4 份，含规模/要点/行锚点，如 00 §4.2 R1–R8、01 §2.1 十九模块表、02 §13 债务路线图、03 §3.2 ARCH-001…017 与附录 A 数据键契约、04 §1.3/§2 基准方案、05 §1.1 五类测试与 §4.2 逐任务绿灯表、06 常数出处对照表）+ 资产级（约束/问题/方案/任务/验证口径/契约/基线/历史方法）+ 进度刻度引用 t1。(3) §2 待核实事项 V-1…V-14（每条含来源、为何待核实、建议核实者、是否阻塞、关联 MIG/HD）。(4) §3 非关键路径候选任务 SUP-01…SUP-12：A 组 4 条与 target_architecture_final §13 指定的慢渠道职责（MIG-043/052、MIG-050/053 草稿）一一对应，B 组 8 条为只读扫描/清单类（基准缺口、文档债、死代码、白名单素材、golden 覆盖、证据链索引、慢渠道切片协议、行号锚点映射），均标注输入/产出 Owned/依赖/验证/非关键路径理由，并列出明确不列入项与分片执行顺序。未重扫代码（代码事实引用 current_state_recovery.md）；未创建子 Agent、未轮询成员；git 受控文件状态与 t1 基线完全一致（19 文件 +2493/−221）。",
+      "changedPaths": [
+        ".agent/ustc_supplement.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "先检查并阅读 .agent/ustc_supplement.md 是否已存在，保留已有内容",
+          "status": "passed",
+          "evidence": "写入前 Test-Path 实测 NOT EXISTS；文件创建后为全新内容，未覆盖任何既有内容（并在文首记录该事实）"
+        },
+        {
+          "criterion": "基于 t1 已读旧文档形成索引/候选任务，不重扫代码",
+          "status": "passed",
+          "evidence": "仅定向读取 .agent/00–06 的关键章节（§4.2/§2.1-2.3/§13/§3.2/附录A/§1.3-1.4/§2/§1/§4.2）与 target_architecture_final.md §7.1/§9/§10/§13；未做代码级扫描，代码事实一律引用 current_state_recovery.md"
+        },
+        {
+          "criterion": "文档明确记录首尝试 ustc/deepseek-v4-flash-ascend 的失败证据，不虚构原因",
+          "status": "passed",
+          "evidence": "§0 渠道状态声明：原文登记 `pi-ai stream idle timeout after 300000ms (TIMEOUT)`，仅声明其证明连续 5 分钟无可消费流数据；明确上游排队/网络/上下文原因未证实；声明本次为 Official 接续交付、不宣称中科大完成"
+        },
+        {
+          "criterion": "交付旧成果索引",
+          "status": "passed",
+          "evidence": "§1.1 文档级索引（00–09 + docs/reports 4 份，含规模、要点、行锚点）；§1.2 资产级索引（约束/问题/方案/任务/验证口径/契约/基线/方法）；§1.3 进度刻度引用 t1"
+        },
+        {
+          "criterion": "交付待核实事项",
+          "status": "passed",
+          "evidence": "§2 共 14 条 V-1…V-14，逐条含来源、为何待核实、建议核实者、是否阻塞、关联 MIG/HD"
+        },
+        {
+          "criterion": "交付后续低耦合代码/自动化候选任务，且明确非关键路径",
+          "status": "passed",
+          "evidence": "§3 共 12 条 SUP-01…SUP-12（A 组 4 条与 target_architecture_final §13 指定职责一一对应；B 组 8 条素材/清单类），每条含输入/产出 Owned 路径/依赖/验证/非关键路径理由；§3.3 列明不列入项；§3.4 给出分片顺序"
+        },
+        {
+          "criterion": "只修改 .agent/ustc_supplement.md，不改代码/测试/配置/其他文档",
+          "status": "passed",
+          "evidence": "git status --porcelain 与 git diff --shortstat 与 t1 基线完全一致（19 文件、+2493/−221，无新增修改）；仅新增 .agent/ustc_supplement.md（18658 B）"
+        },
+        {
+          "criterion": "不创建子 Agent、不轮询成员，完成主动汇报",
+          "status": "passed",
+          "evidence": "全程无 subagent/workflow 调用；未读取团队邮箱或成员状态；完成后单条 agent_teams_send_message 报队长"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "Test-Path .agent/ustc_supplement.md",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "NOT EXISTS（写入前确认无既有内容可保留，无覆盖风险）"
+        },
+        {
+          "command": "Get-Item .agent/ustc_supplement.md",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "ustc_supplement.md 18658 bytes（交付物已生成）"
+        },
+        {
+          "command": "git status --porcelain ; git diff --shortstat",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "19 个 M 文件、19 files changed, 2493 insertions(+), 221 deletions(-)：与 t1 基线逐项一致，未改动任何受控文件；未跟踪新增仍为 .agent-teams/ .agent/ benchmark/ common/data_keys.jl tmp/"
+        },
+        {
+          "command": "ops_inspect_local_file / ops_grep 定向只读读取（.agent/00–06、target_architecture_final.md）",
+          "status": "passed",
+          "evidence": "仅读取文档章节，未执行写入型命令；未重跑测试、未生成 golden、未跑 benchmark"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "profileSeedId": "architecture-analysis",
+      "subject": "分析模块边界、依赖与功能归属",
+      "description": "读取 new_plan.md、current_state_recovery.md和适用指令，继承旧结论，定向复核功能→能力→模块、依赖、API/namespace与扩展性，不重复科学语义全量分析。只修改 .agent/architecture_expert_analysis.md，记录证据、备选架构、迁移风险与待裁决项。不改代码/测试/配置，不创建子Agent、不轮询成员，完成/阻塞主动汇报。",
+      "status": "completed",
+      "assignee": "pro-architecture",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791962622126,
+      "attemptId": "0bfdc3eb-caa1-451d-aa99-c1259d079f14",
+      "reassigning": false,
+      "output": "交付 .agent/architecture_expert_analysis.md（唯一写入）。核心结论：(1) D-1（依赖16→45，Project.toml:7-51）是本轮唯一需人工裁定的架构事件，动摇 L0「轻量可加载+载体 LOAD_PATH 回退」地基；本文件只分析收敛/保留/部分保留三种架构影响，未回滚、未提交、未视为批准，建议「收敛（回滚16项）」以保住目标架构。(2) AR-1…30 逐条重估：已消除8项、部分消除/缓解10项、仍成立11项、需重写1项（AR-24 因 D-1 前提反转）；附当前代码位置。(3) 续做顺序必须插入「Phase B：AST+Call Table 最小可用版」门禁（new_plan §8/§9 要求，当前不存在），置于 S7 尾之后、S8 去重之前；S8 门禁 TASK-027 仍需先做；TASK-026 仅作旧计划续点不自动实施；TASK-044…048 函数级性能优化一律过滤。(4) L0/L1/L2 分层除 D-1 外仍成立；给出 public API/namespace/allow 白名单三层协同规则。(5) 产出「未来功能添加规范」草案（进哪层/何时建 Module/白名单维护/Project.toml 依赖边界规则，直接回应 D-1）。(6) 3 个备选架构（轻量包+载体 / 全包化 / 双包拆分）。(7) 高冲突文件串行划分 + 5 个待裁决项（P-1…P-5）。全程未改代码/测试/配置、未创建子 Agent、未轮询。"
+    },
+    {
+      "id": "t4",
+      "profileSeedId": "science-analysis",
+      "subject": "分析科研语义、数据契约与兼容性",
+      "description": "读取 new_plan.md、current_state_recovery.md和适用指令，继承旧工作、定向复核MAVEN/MGS/TW数据流、单位/坐标约定、结构契约、API科研使用习惯、NaN/Inf/missing和数值比较，不重复架构全量扫描。只修改 .agent/science_expert_analysis.md，记录证据、应保留行为、科学风险、验证需求和须用户裁决项。不改代码/测试/配置，不创建子Agent、不轮询成员，完成/阻塞主动汇报。",
+      "status": "completed",
+      "assignee": "pro-science",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791962734410,
+      "attemptId": "cc9b801b-c806-4353-9718-4965d31a48b9",
+      "reassigning": false,
+      "output": "交付 .agent/science_expert_analysis.md（唯一写入）。核心结论：(1) DataKeys 是部分契约，缺高频键 :mass（跨模块语义不一致：SWIA=mp_eV_per_km_s2 常量 vs STATIC/MINPA=AMU）、:df_mass_mass、角度网格键；MGS 返回 Dict{String,Any}+位置列表\"Vars\"，与 MAVEN/TW 具名 Symbol 键不一致，TW 同时产 :time/:epoch。(2) 语义红线：角度约定跨仪器不一致（SWIA 度/STATIC 存度转弧度/MINPA 弧度）；输出为 SPEDAS 单位而非\"IS 单位\"；默认磁力线 :euler；get_mag_line_s 双键回退；static_slip 视图共享内存；两套 PSD 并存；全仓无 missing 统一用 NaN/flag。(3) C6/C7/C10/C11/C12/C13 六项在仓库内均无法闭环，全部须使用者裁决，已给每项 SPEDAS/IDL 出处+方法+容差。(4) 证据强度分级：仅 TASK-024=A 级、019/020/021=B 级，003/004/018/022/023/025 无自动化测试。(5) 最小验证：TASK-025 完全可合成（最优先），009/010/011/013 无数据可验，021 :adaptive 受 DLL 符号缺失阻塞。(6) 额外科学风险：KEV_PER_AMU 实为质子质量、STA_count2eflux m_int 与 SWEA n1d energy_range 为无操作参数、sta_v_4d 双实现无等价证明等。未改代码/测试/配置，未创建子 Agent、未轮询。"
+    },
+    {
+      "id": "t5",
+      "profileSeedId": "draft",
+      "subject": "设计目标架构、迁移DAG和功能添加规范",
+      "description": "精确调用Claude Opus 5.5，不静默替换。读new_plan.md、恢复和两专家报告及适用指令，中科大报告若存在可参考但不等待。只修改 .agent/target_architecture_draft.md：目标层次/模块/依赖/API/namespace、杂项models规范、Feature Addition Convention、MIG-ID迁移单元（真实原目标路径、API影响、互斥写范围、DAG及验证要求）、先建立AST/Call Table的验证策略、含队长最多8Agent施工建议。只设计文档，不编写代码或测试，不创建子Agent、不轮询成员；交付/阻塞主动汇报。",
+      "status": "completed",
+      "assignee": "chief-architect",
+      "dependencies": [
+        "t3",
+        "t4"
+      ],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791963735393,
+      "attemptId": "d3817b96-ed47-423b-b670-a1d71a5464c8",
+      "reassigning": false,
+      "output": "交付 .agent/target_architecture_draft.md（唯一写入，草案，不授权实施）。要点：(1) 7 能力层 L0 Core/L1 Foundation(+L1n Native)/L2 Data/L3 Instrument/L4 Domain Model/L5 Visualization/L6 Analysis + 旁路 X Extras，允许依赖矩阵+compat 转发边规则，由 AST 机器校验；装载机制红线不动。(2) D-1 保持开放，给 A收敛/B接纳/C净化三支后果，FA-7 两套文本；任何 MIG 不触 Project.toml。(3) 新模块仅 FunctionCoordinate（包化）与 MarsEnvironment（新，收 bowshock/magnetopause/bowshock_zero/get_bowshock_normal/mars_sun_dist_phys/escape_energy 4 处副本）；calculate_models 解体为门面；head.jl 按能力拆散为兼容 shim（偏离 03 MarsUtils，待 H-3）；权威归属表 §4 含不合并清单（两套 PSD、SPO SI cyclotron、load_quat、MINPA_sphere2xyz、sta_v_4d/_new）。(4) Extras 规范：models/CATALOG.toml、调用手段、晋升/冻结规则；Magnetic_Model 逻辑归 L4，物理迁移可选（H-6）。(5) Feature Addition Convention FA-1…FA-8（9 问归属判定、双依赖处理、新建/拆分/子层条件、三步清单）。(6) MIG-000…052 分四波：B 验证门禁(AST/CallTable/行为基线含 TASK-025/004/018/022/003 与 sta_v_4d 等价证据/TASK-027 审计)→GATE-B/HA-1→波1 只增建权威→波2 逐文件转发→GATE-2/HA-2→波3 脚本层→波4 API/契约/清理；每 MIG 写真实原/目标路径、Owned 互斥写范围、API 影响、依赖、验证；附 DAG 与文件锁表；缺证据禁止合并/替换；pure_move=exact，放宽容差需 Pro-science 批准。(7) 8 Agent 施工建议（新增 pro-code-official-1、flash-code-official-1）。(8) 审批点 HA-0/1/2/F 与待决 H-1…H-14（含 C6-C13 使用者裁决）。科学红线（:mass/角度/字典键）作为历史契约保留。未改代码/配置，未建子 Agent，未轮询。"
+    },
+    {
+      "id": "t6",
+      "profileSeedId": "architecture-review",
+      "subject": "独立审查草案的架构边界和扩展性",
+      "description": "独立审查 .agent/target_architecture_draft.md 的边界、依赖、API、扩展性与迁移可执行性，以证据给出必改项/建议。只修改 .agent/architecture_draft_review.md，不改代码/测试/配置，不创建子Agent、不轮询成员；主动汇报。",
+      "status": "completed",
+      "assignee": "pro-architecture",
+      "dependencies": [
+        "t5"
+      ],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791964218014,
+      "attemptId": "3011cf5d-7403-48bb-9cdb-b1639e52ce09",
+      "reassigning": false,
+      "output": "交付 .agent/architecture_draft_review.md（唯一写入）。总体评价：草案骨架成立可执行（七能力层+依赖矩阵+compat边+AST门禁+四波DAG，与 new_plan §7/8/9、t3、t4 一致）。给出 6 个必改项：(M1 blocker) 权威归属的实例一致性与预装闭包内转发目标解析未定义——§2.3 让 MarsEnvironment 随 MAVEN_plot 自包含进预装闭包，但 §3.1/MIG-014 又注册为普通载体模块（双实例=AR-1 复现），且 src/plotting.jl(MIG-028) 与 MAVEN_plot(MIG-021) 转发到载体 MarsCommon/MarsEnvironment 会在 `using MarsData` 时 UndefVarError；(M2 high) FunctionCoordinate(L1).bowshock_zero 转发到 MarsEnvironment(L4) 违反 §2.2 矩阵的 L1→L4 禁令；(M3 high) MarsEnvironment deps 漏 MarsCommon（get_bowshock_normal 依赖 solve_func）；(M4 high) 波2 全部 compat 转发的目标模块装载解析未定义；(M5 medium) DAG 与波次表 MIG-040/041/042 归属不一致；(M6 medium) head.jl shim 保留原 using 列表与消隐式依赖目标冲突。另 8 条建议(S1-S8) 与对 H-3/H-4/H-5/H-13 的架构意见（同意 H-3 拆散、倾向 H-4 并入 MarsCommon、同意 H-5 门面但须补 deps、同意 H-13 不发 depwarn）。全程未改代码/测试/配置、未创建子 Agent、未轮询。"
+    },
+    {
+      "id": "t7",
+      "profileSeedId": "science-review",
+      "subject": "独立审查草案的科学语义和验证保障",
+      "description": "独立审查 .agent/target_architecture_draft.md 的科学语义、数据契约、API科研习惯、行为一致性与数值验证；列出必须用户裁决项。只修改 .agent/science_draft_review.md，不改代码/测试/配置，不创建子Agent、不轮询成员；主动汇报。",
+      "status": "completed",
+      "assignee": "pro-science",
+      "dependencies": [
+        "t5"
+      ],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791964046745,
+      "attemptId": "92a312f0-eab8-4eed-a88c-271df5dd046a",
+      "reassigning": false,
+      "output": "交付 .agent/science_draft_review.md（唯一写入）。审查结论：草案科学语义与验证保障基本正确、可作施工底稿，无推翻级 blocker，但须并入 8 项修正后方可进 GATE-B。高优先 F-1：cyclotron 三实现参数化不同（MAVEN_load 用 kg 质量+显式速度 v、默认电子不随离子切换；calculate_models 用 AMU 质量数+电荷数+能量 eV），\"转发\"非纯别名，MIG-005/020 审计须定稿\"保留独立命名或显式换算包装\"，禁止裸 alias。中优先 F-2：sta_v_4d 经 STA_count2df 就地副作用且自足、sta_v_4d_new 无副作用但要求 :df 预先存在，等价门必须写前置条件否则误判；F-3：color_mapping 迁入 MAVEN_plot 与内部嵌套同名（MAVEN_plot.jl:297,537）存在遮蔽/递归风险；F-5：NaN 判等须位置敏感并报告 NaN 位置/数量差，science_sensitive 不得靠可配置 NaN 相等掩盖 NaN 引入。低优先 F-4（:mass 双常量同值=:mass 复现歧义）、F-6（缺科学验证 backlog 长期交付物）、F-7（sta_v_4d println 副作用）、F-8（AST oracle 副本数统一）。确认：科学红线清单、不合并清单、容差政策、门禁先行、行为基线表、合成≠科学正确边界均正确承接 t4。新增 5 项用户裁决 U-1…U-5（对 H-10/11/12 的细化）。未改代码/测试/配置，未创建子 Agent、未轮询。"
+    },
+    {
+      "id": "t8",
+      "profileSeedId": "final",
+      "subject": "综合审定并交付人工架构审查包",
+      "description": "综合两份独立审查，只修改 .agent/target_architecture_final.md，包含目标架构、Migration Plan、Feature Addition Convention、验证策略、审查问题处置表、待人工决策项、互斥并行与含队长最多8Agent施工建议。不写/迁移/修复代码或测试，不创建子Agent、不轮询成员。交付队长供用户审查；不得提前启动代码施工。科学审查 t7 的 F-1…F-8 必须逐项处置：cyclotron 参数体系不同禁止裸 alias，保留独立命名或明确换算方案待审批；sta_v_4d 两实现的等价比较须明确已有 :df 前置条件，并单独保留/测试就地写入及输出副作用；color_mapping 同名消歧；NaN 按位置/数量检查且禁止掩盖新增NaN；质量键避免不同名同值伪类型安全；列科学验证backlog负责人/触发条件；AST oracle副本数一致。合并 H 与 U 待决项去重，缺证据不得标记为通过。架构审查 t6 同样逐项处置，最终保留人工审批门禁。",
+      "status": "completed",
+      "assignee": "chief-architect",
+      "dependencies": [
+        "t6",
+        "t7"
+      ],
+      "attempt": 1,
+      "createdAt": 1791961900166,
+      "updatedAt": 1791965120237,
+      "attemptId": "702a2e79-d0ae-41f2-9b8c-bd0326b2a123",
+      "reassigning": false,
+      "output": "交付 .agent/target_architecture_final.md（唯一写入；人工审查包，不授权施工）。M1：定义权威文件/规范实例/嵌套副本与 I-1…I-5，推荐策略 P（MarsCommon[+选E时MarsEnvironment] 注册改 :preloaded 并绑定 MAVEN_plot 内既有实例；装载机制代码零改动、零新依赖、D-1 三支均成立，PL-1/PL-2 约束预装成员），附否决分支与 V-I1…5/V-F1…3/V-R 断言用例（HD-05 人工）。M2：L1→L4 无例外，FC.bowshock_zero 删除不转发由 L6 绑定。M3/M4：完整 deps 表；转发仅 nested/eager_dep，禁惰性 load，compat_edges 加 resolve/adds_deps 与 AST 规则。M5：单表波次与 DAG 对齐+文件锁补全。M6：shim SH-1…6+V-S1…5。H-4 以 C/E 双方案完整闭合交人工。F-1 禁裸 alias、HD-07 三选项；F-2/F-7 B-STA 五用例（已含:df 前置、就地写入/println 副作用单列）；F-3 color_mapping_lut；F-4 禁同值无前缀常量；F-5 positional NaN、新增 NaN 必失败；F-6 §9 backlog 含负责人/触发条件；F-8 精确计数 oracle。H/U 合并为 HD-01…15；S1…S8 采纳。§11 全部标“已修订·待独立复核”，§12 列 RR-A/RR-S 必复核点。8 Agent 施工建议。"
+    },
+    {
+      "id": "t9",
+      "subject": "独立复核最终修订版的架构问题闭合情况",
+      "description": "读取 .agent/target_architecture_final.md、自己的草案审查与适用指令，依据最终版 §12 RR-A 对 M1…M6/S1…S8 逐项独立复核，重点规范实例、预装闭包可见性、注册kind/deps、L1→L4、解析规则、DAG与shim。区分方案层面问题已闭合、仍需修订和待用户批准/实施后测试，不拿未运行断言作为通过证据。仅修改 .agent/architecture_final_recheck.md，不改最终方案/代码/测试/配置，不创建子Agent、不轮询成员；完成/阻塞主动汇报。若必须修订，给精确位置和修复要求。",
+      "status": "completed",
+      "assignee": "pro-architecture",
+      "dependencies": [
+        "t8"
+      ],
+      "attempt": 1,
+      "createdAt": 1791965194353,
+      "updatedAt": 1791965702171,
+      "kind": "work",
+      "attemptId": "88f15018-8596-4a5c-bb1f-a59334f52112",
+      "reassigning": false,
+      "output": "交付 .agent/architecture_final_recheck.md（唯一写入）。复核结论：M1…M6 全部在方案层面闭合，S1…S8 全部采纳，未发现阻塞级遗留，最终版可作为 HA-0 架构底稿。三类状态明确区分：①方案层已闭合；②待用户批准 HD-01…15（关键：HD-05 策略P、HD-04 C/E、HD-15 eager_dep）；③待实施后测试 V-I1…5/V-F1…3/V-R/V-S/B-*/§4.1 oracle 复测/MIG-020 开销——全部未运行，不作为通过证据。机械验证（定向复核代码，未运行测试）：策略P确为零改动装载机制（modules.jl:347-353 preloaded 分支 + :361-363 deps 递归 + MarsData 一行 const 别名 + 注册表 kind）；eager_dep 不成环（SWEA/STATIC 均不依赖 MAVEN_load）；src/MarsData.jl 别名行插入位置可行；现有 runtests 仅 :constants 有 !isdefined 隔离断言、无 :MarsCommon 同类断言，静态推演不阻断策略P；PL-1 在 D-1 分支A成立（MarsCommon 迁入后仅需 StaticArrays/Statistics/LinearAlgebra/Dates，均在 HEAD 16 项内）。另给 4 条非阻塞修订建议（R-1 eager_dep「文件顶层」应改为「模块体顶层」、R-2 §3.1/§3.3 时态标注、R-3 nested 直接 include 保证需限定子模式、R-4 SH-3 守卫目标 Main/@__MODULE__ 需明确），各附精确位置与修复措辞，不阻断 HA-0。全程未改最终方案/代码/测试/配置、未创建子 Agent、未轮询。"
+    },
+    {
+      "id": "t10",
+      "subject": "独立复核最终修订版的科研语义与验证修正",
+      "description": "读取 .agent/target_architecture_final.md、自己的草案审查与适用指令，按最终版 §12 RR-S 对 F-1…F-8 逐项复核：cyclotron不同参数体系禁止裸alias，sta_v_4d前置条件及副作用独立用例、命名冲突、质量键、NaN位置/数量、科学backlog、AST oracle计数。区分文档设计闭合、仍需修订与待人工裁决/实施验证，不用合成回归代替科学正确性。仅修改 .agent/science_final_recheck.md，不改最终方案/代码/测试/配置，不创建子Agent、不轮询成员；完成/阻塞主动汇报。若需修订，给精确位置和要求。",
+      "status": "completed",
+      "assignee": "pro-science",
+      "dependencies": [
+        "t8"
+      ],
+      "attempt": 1,
+      "createdAt": 1791965415003,
+      "updatedAt": 1791965669113,
+      "kind": "work",
+      "attemptId": "67d0fb84-9312-43d7-8f39-3540181eb727",
+      "reassigning": false,
+      "output": "交付 .agent/science_final_recheck.md（唯一写入）。复核结论：最终修订版对 F-1…F-8 全部八项已在文档设计层面闭合，可连同 RR-A 提交 HA-0；RR-S 七点经源码核实全部确认（cyclotron 浮点序判断正确、B-STA 前置/副作用正确、NaN positional 字段齐全、HD-10 正确、backlog 完整、§4.1 oracle 计数准确、bowshock 等价门禁正确）。1 项低严重度仍需修订 R-1：草案对 escape_energy「planet≠Mars 时 v 未定义旧行为保留并记录」的显式注记在最终版 §4.2/§9 丢失（源码已核实 calculate_models.jl:90-94 确有此潜在 bug、docstring 自述），要求 §4.2 escape_energy 行补注 + 可选 §9 增 SB-ESC；1 项可选增强 R-2：TimeFormat 两版 Dates.format 字面量应在 MIG-005 逐字采集。明确区分：待人工裁决=HD-04/07/08/09/10/11；待实施验证=B-CYC/B-STA/B-DUP/V-I/V-F/MIG-005/oracle 复测；科学正确性边界未被破坏（合成回归≠科学正确，C6-C13+真实数据/DLL 全开放/阻塞）。未改最终方案/代码/测试/配置，未创建子 Agent、未轮询。"
+    },
+    {
+      "id": "t11",
+      "subject": "并入最终独立复核的有限文档修正",
+      "description": "读取 .agent/architecture_final_recheck.md 和 .agent/science_final_recheck.md，并对 .agent/target_architecture_final.md 做有限文档修订（唯一写范围）。必补科学 R-1：§4.2 escape_energy 原行为 planet≠Mars 时 v 未定义，明确保留并记录，不修bug；可列SB-ESC backlog。并入架构 R-1…R-4 的精确澄清（模块体顶层、现状/拟改时态、nested子模式、SH-3守卫目标）；科学可选R-2 TimeFormat 字面量逐字采集纳入审计。不得改架构核心、HD裁决或扩范围；若发现需要实质变更则先报告，不自行修改。附复核意见处置表，严格区分文档复核通过、人工待决、尚未运行的实施测试。仅改最终Markdown，不改源码/测试/配置，不创建子Agent、不轮询成员，完成主动汇报改动位置。",
+      "status": "completed",
+      "assignee": "chief-architect",
+      "dependencies": [
+        "t9",
+        "t10"
+      ],
+      "attempt": 2,
+      "createdAt": 1791965782348,
+      "updatedAt": 1791966419432,
+      "kind": "work",
+      "reassigning": false,
+      "attemptId": "cfa30293-dc82-4bb1-b41a-f64e23b5553f",
+      "output": "仅修改 .agent/target_architecture_final.md（有限文档澄清，未改架构核心/HD/MIG结构/范围）。并入：架构R-1 §3.4 eager_dep 守卫改“模块体顶层”并注明原因；R-2 §3.1-5 现状/拟改时态+§3.3 PL-1 标“拟改状态”；R-3 §3.4 遗留路径拆 nested:self_include / nested:dep_parent（IGRF/SPO/TW_MINPA 仅经 load_module），resolve 字段与 V-F3 同步；R-4 §7.4 SH-3 守卫检查 @__MODULE__、V-S1 覆盖 Main+空Module。科学R-1 §4.2 escape_energy 行补注原行为保留不修+B-DUP throws 用例+§9 SB-ESC；R-2 §4.4末与 MIG-005 行纳入两版 TimeFormat 逐字采集。新增 §11.1 复核处置表与三类状态（①文档复核通过 ②HD-01…15 全部人工待决 ③V-*/B-*/MIG-005/oracle 等实施测试全部未运行），更新文件头修订记录、§0.1、§11 标题说明、§12 进展、§14。未发现需实质变更项。"
+    },
+    {
+      "id": "t12",
+      "subject": "规划完成后 Git 归档规划与审查文档，保留既有代码原样",
+      "description": "用户已要求完成规划后进行git归档，供后续工作。等待t11/t2完成后，读取最终方案、两份复核与中科大补充及适用指令。仅归档 .agent/ 下规划/日志/审查 Markdown（先发现、检查路径和内容，确认不含凭据/临时输出）；不包含 .agent-teams/运行状态、tmp/、源码、Project/Manifest、benchmark或任何数据文件。只可新增 .agent/planning_archive_handoff.md，说明完成规划但HA-0未批准/未授权施工，关键HD待决、未执行测试、原19文件既有修改仍未提交、后续验证门禁和归档范围。git status和cached diff先确认无他人暂存；若存在他人暂存，不擅自提交或unstage，报告阻塞。使用显式路径 git add，检查cached文件清单和diff后仅提交规划Markdown，提交信息明确为规划归档非代码迁移，不推送、不reset/clean/stash、不改变分支。完成后报告commit hash、归档文件清单、git show --stat证据与剩余工作区状态，确认既有19个源码/依赖修改原样保留。不得创建子Agent或轮询成员。",
+      "status": "completed",
+      "assignee": "flash-recovery",
+      "dependencies": [
+        "t11",
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1791966426447,
+      "updatedAt": 1791966803685,
+      "kind": "work",
+      "attemptId": "0f3a1282-7a7e-4298-ae6e-ede243619296",
+      "reassigning": false,
+      "output": "t12 规划文档 Git 归档完成（commit 3f68187e16d3e9434980c2b1b9b87958449535c9，未推送）。归档清单：.agent/ 下 22 个 Markdown（00–09 文档链 + new_plan.md + t1 current_state_recovery / t3 architecture_expert_analysis / t4 science_expert_analysis / t5 target_architecture_draft / t6 architecture_draft_review / t7 science_draft_review / t8+t11 target_architecture_final / t9 architecture_final_recheck / t10 science_final_recheck / t2 ustc_supplement / t12 planning_archive_handoff），22 files changed, 7565 insertions(+)。归档前两轮凭据/密钥扫描 NO HITS、.agent 非 md 文件 0 个；提交前 git diff --cached 为空（无他人暂存）。未包含 .agent-teams/、tmp/、benchmark/、源码、测试、配置、Project.toml/Manifest.toml、数据文件；未 push/reset/clean/stash，未改分支（main...origin/main [ahead 1]）。提交后工作区仍为原 19 个已修改文件、+2493/−221（与 t1/t2 基线逐项一致，原样保留未提交），未跟踪项为 .agent-teams/、benchmark/、common/data_keys.jl、tmp/。新增 .agent/planning_archive_handoff.md 记录：HA-0 未批准且未授权施工、HD-01…15 全部待人工裁决（HA-0 须裁 HD-01/03/04/05/06，HD-02 建议同时）、V-*/B-*/MIG-005/oracle 等实施测试全部未运行（仅 t1 装载层 141 passed/1 broken 为实测且不代表重构后行为）、原 19 文件既有修改仍未提交（R-1/HD-02）、后续门禁（HA-0→波B AST+CallTable+基线冻结→GATE-B/HA-1→GATE-2/HA-2→HA-F）与归档范围/排除项。",
+      "changedPaths": [
+        ".agent/planning_archive_handoff.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "读取最终方案、两份复核与中科大补充及适用指令",
+          "status": "passed",
+          "evidence": "读取 target_architecture_final.md（头/§0.1-0.2/§7.1/§9/§10/§11.1/§12/§13/§14）、architecture_final_recheck.md、science_final_recheck.md 的结论与三类状态节、ustc_supplement.md（t2 自写）与 new_plan.md（前轮已全文读）"
+        },
+        {
+          "criterion": "先发现路径并检查内容，确认归档 Markdown 不含凭据/临时输出",
+          "status": "passed",
+          "evidence": "ops_glob 清点 .agent/ 下 21 个文件（非 md 数=0）；两轮大小写不敏感扫描（api_key/token/password/secret/credential/Bearer/sk-*/ghp_/AKIA/PRIVATE KEY/URL 内嵌账号/jwt/凭据/密码/密钥）→ NO HITS；仅 1 处 `%TEMP%` 为描述性提及（旧 AST 脚本位置），非临时产物"
+        },
+        {
+          "criterion": "仅归档 .agent/ 下规划/日志/审查 Markdown",
+          "status": "passed",
+          "evidence": "git diff --cached --name-only 共 22 条，全部匹配 ^\\.agent/ 且以 .md 结尾（脚本硬校验：outside=NONE，non-md=NONE）；cached shortstat = 22 files changed, 7565 insertions(+)"
+        },
+        {
+          "criterion": "不包含 .agent-teams/、tmp/、源码、Project/Manifest、benchmark、数据文件",
+          "status": "passed",
+          "evidence": "暂存清单无任何非 .agent/*.md 路径；.agent-teams/、benchmark/、tmp/、common/data_keys.jl 提交后仍为未跟踪（??）状态；Project.toml/Manifest.toml 等 19 文件仍为未暂存修改"
+        },
+        {
+          "criterion": "新增 .agent/planning_archive_handoff.md 并说明 HA-0 未批准/未授权施工、关键 HD 待决、未执行测试、19 文件未提交、后续验证门禁与归档范围",
+          "status": "passed",
+          "evidence": "该文件 121 行，含 §1 归档性质与当前阶段（HA-0 未批准/未授权施工）、§2 HD-01…15 待决与审批点表、§3 尚未执行的验证清单、§4 后续验证门禁（HA-0/Phase B/GATE-B/GATE-2/HA-F/每 MIG）、§5 归档范围包含与不包含、§6 既有 19 文件状态、§7 下一步、§8 合规声明"
+        },
+        {
+          "criterion": "提交前确认无他人暂存；若有则报告阻塞而不擅自提交或 unstage",
+          "status": "passed",
+          "evidence": "提交前 `git diff --cached --stat` 为空、`git diff --cached --name-only` 计数 0 → 无他人暂存，无阻塞"
+        },
+        {
+          "criterion": "显式路径 git add、检查 cached 清单与 diff 后仅提交规划 Markdown，提交信息明确，不推送、不 reset/clean/stash、不改分支",
+          "status": "passed",
+          "evidence": "`git add -- <22 个显式路径>`；提交前已核对 name-status/outside/non-md；提交 3f68187（多段 -m 明确为“规划归档，非代码迁移；未推送、未改分支”）；未调用 push/reset/clean/stash/checkout；`git status -sb` = `## main...origin/main [ahead 1]` 证明未推送、分支未变"
+        },
+        {
+          "criterion": "报告 commit hash、归档文件清单、git show --stat 证据与剩余工作区状态，确认既有 19 个修改原样保留",
+          "status": "passed",
+          "evidence": "commit 3f68187e16d3e9434980c2b1b9b87958449535c9；git show --stat 列出 22 个 .agent/*.md 与行数（共 7565 insertions）；提交后 git status --porcelain 仍为同样的 19 个 M 文件 + 4 个未跟踪项，git diff --shortstat = 19 files changed, 2493 insertions(+), 221 deletions(-)（与 t1/t2 基线逐项一致）"
+        },
+        {
+          "criterion": "不创建子 Agent、不轮询成员",
+          "status": "passed",
+          "evidence": "全程无 subagent/workflow 调用；未读取团队邮箱/成员状态，仅读取本任务的文档与 git 状态"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "git diff --cached --stat ; git diff --cached --name-only",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "提交前为空（0 条暂存）→ 确认无他人暂存，无阻塞"
+        },
+        {
+          "command": "git add -- <.agent 下 22 个显式 Markdown 路径>",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "staged 22 条，全部 A（新增）；git diff --cached --shortstat = 22 files changed, 7565 insertions(+)"
+        },
+        {
+          "command": "git diff --cached --name-status ; (git diff --cached --name-only | Where-Object { $_ -notmatch '^\\.agent/' }) ; (… -notmatch '\\.md$' )",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "22 条 A 记录；outside=NONE；non-md=NONE → 暂存范围严格限定在 .agent/*.md"
+        },
+        {
+          "command": "git commit -m '规划归档：归档 .agent/ 规划/日志/审查 Markdown（22 份）' -m <范围与边界/状态/既有修改/性质共 5 段>",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "[main 3f68187] 22 files changed, 7565 insertions(+)；create mode 100644 逐条列出 .agent/*.md"
+        },
+        {
+          "command": "git show --stat --oneline HEAD",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "3f68187 规划归档：归档 .agent/ 规划/日志/审查 Markdown（22 份）；22 个文件行数统计（00…09、new_plan、恢复/分析/草案/审查/复核/补充/交接说明），无 .jl/配置/数据文件"
+        },
+        {
+          "command": "git status --porcelain ; git diff --shortstat ; git status -sb",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "提交后：19 个 M 文件（MAVEN_*/MGS_*/TW_*/Magnetic_Model/src/common/models/support_data/call_fortran_dll/Project.toml/Manifest.toml/test）+ 未跟踪 .agent-teams/ benchmark/ common/data_keys.jl tmp/；shortstat = 19 files changed, 2493 insertions(+), 221 deletions(-)；分支 main...origin/main [ahead 1]（未推送）"
+        },
+        {
+          "command": "Select-String -Path .agent\\*.md -Pattern <凭据/密钥/临时路径模式> -CaseSensitive:$false",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "两轮扫描：凭据类 NO HITS；仅 current_state_recovery.md:240 的描述性 `%TEMP%` 命中（说明旧 AST 脚本已不可复现），非临时输出内容"
+        }
+      ]
+    }
+  ],
+  "taskSeq": 12
+}

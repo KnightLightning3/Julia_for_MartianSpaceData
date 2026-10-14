@@ -43,7 +43,7 @@ using CommonDataFormat
 
 # 注意事项
 - 能道间隔 `dE` 用相邻能道的半间距近似（首尾单侧）。
-- 常量 `tiny = 1.0-31` 为笔误（疑应为 `1e-31`），但 `ff` 截断使其暂不影响结果。
+- 已删除死变量 `tiny = 1.0-31`（TASK-018）；`ff` 截断逻辑保留，数值结果不变。
 """
 function n1d(dat;energy_range=[0,1e8],sc_pot=0) #projects/maven/swea/mvn_swe_n1d.pro
 
@@ -51,8 +51,7 @@ function n1d(dat;energy_range=[0,1e8],sc_pot=0) #projects/maven/swea/mvn_swe_n1d
     c1 = (mass/(2*π))^1.5
     c2 = (2e5/(mass*mass))
     c3 = 4.0*π*1e-5*sqrt(mass/2.0)  # assume isotropic electron distribution
-    tiny = 1.0-31
-    
+
     E = dat[:energy]
     dE = zeros(64)
     dE[1] = abs(E[2]-E[1])/2.0 

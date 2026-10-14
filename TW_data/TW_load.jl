@@ -4,7 +4,9 @@
 module TW_load
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
-root_path = "E:/Tianwen-1/"
+include(joinpath(@__DIR__, "..", "common", "paths.jl"))
+using .Paths
+root_path = Paths.tw_data_root()  # 所有文件的根目录（经 common/paths.jl 解析：TOML 优先、默认 E:/Tianwen-1/）
 using Dates
 
 # function load_mag(file::String);#弃用，以dlm方法为准
@@ -125,17 +127,6 @@ end
 - 函数体中直接引用了**未定义**的全局变量 `data`（缺少初始化），直接调用会报 `UndefVarError`。
 - `MarsCommon` 需已在调用环境中引入。
 """
-function calculate_mag(position;models=["alt"])
-    results = Dict{Symbol,Any}(
-        :alt => MarsCommon.position_altitude,
-        :local_time => MarsCommon.position_local_time,
-        :latitude => MarsCommon.position_latitude,
-    )
-    for model in models
-        data[model] = results[model](position)
-    end
-end
-
 """
     get_spc2mso_rot_matrix_via_2c(dat) -> (Vector{DateTime}, Array{Float64,3})
 
@@ -192,7 +183,8 @@ end
 - `Vector{String}`: 所有磁场数据文件的完整路径。
 
 # 注意事项
-- `root_path` 当前硬编码为 Windows 路径（`E:/Tianwen-1/`），需根据运行环境修改。
+- `root_path` 经 `common/paths.jl` 解析（`Paths.tw_data_root()`，默认 `E:/Tianwen-1/`，可在
+  `config/settings.toml` 的 `paths.tw_data_root` 覆盖）。
 - 清单文件不存在时会报 `SystemError`。
 """
 function read_list()

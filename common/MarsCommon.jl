@@ -1,5 +1,6 @@
 module MarsCommon
-using ..constants
+include(joinpath(@__DIR__, "constants.jl"))
+using .constants
 using StaticArrays
 
 # ============================================================================
@@ -378,8 +379,10 @@ end
 # 返回值
 - `Dict{Symbol, Any}`: 已注入 `:df` 键的同一字典对象（原地修改）。
 
-# 注意事项
+# 注意事项（AR-9 就地修改约定）
 - 函数带 `!`，会**修改入参**；如需保留原始数据请先 `deepcopy`。
+- 写入的 `:df` 是数据字典的新键（若原本不存在），写新键不会污染上游数组；
+  若调用方字典中已存在 `:df`，则原地覆盖其值。
 """
 function eflux_to_df!(data)
     energy = reshape(data[:energy], 1, 1, 1, length(data[:energy]))

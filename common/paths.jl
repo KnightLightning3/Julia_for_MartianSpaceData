@@ -52,4 +52,22 @@ mgs_data_root() = _ROOTS[3]
 project_root() = PROJECT_ROOT
 index_path() = joinpath(PROJECT_ROOT, "MAVEN_data", "filename_lists.json")
 
+"""Fortran DLL 定位目录（ARCH-005，只读可选键）。
+
+解析顺序：`config/settings.toml` 的可选键 `paths.fortran_dll_dir` → 仓库根目录。
+该函数只返回目录，不检查具体 DLL 文件是否存在；具体查找由 `call_fortran_dll.jl` 完成。
+"""
+function fortran_dll_dir()
+    if isfile(TOML_PATH)
+        d = TOML.parsefile(TOML_PATH)
+        if haskey(d, "paths") && d["paths"] isa Dict
+            p = d["paths"]
+            if haskey(p, "fortran_dll_dir")
+                return String(p["fortran_dll_dir"])
+            end
+        end
+    end
+    return PROJECT_ROOT
+end
+
 end

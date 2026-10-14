@@ -1,0 +1,257 @@
+{
+  "name": "martian-julia-refactor-p3",
+  "id": "martian-julia-refactor-p3",
+  "description": "从「架构审查完成」状态继续 Julia 卫星数据处理重构（PHASE 3–9）。01_PROJECT_MAP.md 与 02_ARCHITECTURE_REVIEW.md 为已完成的正式输入：任何阶段不得重新扫描仓库、不得重新生成项目地图、不得覆盖这两个文件。固定分工：DeepSeek V4 Pro = Scientific Architect / Performance Architect（产出 03/04，不做大规模改码）；GLM-5 = Senior Coding Agent / Refactoring Engineer（主要复杂实施）；Qwen 3.8 Flash = Implementation Engineer / Bulk Coding Agent（边界清晰的批量任务）；DeepSeek V4 Flash = Worker / Test / Benchmark / Documentation Agent；PHASE 9 由独立的 DeepSeek V4 Pro 成员做最终评审。阶段间通过 .agent/ Markdown 传递状态。",
+  "captainSessionId": "session-b8cde637-9461-4f99-82e9-36c4acc2f0ce",
+  "createdAt": 1791866431518,
+  "members": [
+    {
+      "id": "1cec6db4-5926-4f7a-add1-1e095902f9d9",
+      "name": "deepseek-pro",
+      "role": "Scientific Architect / Performance Architect",
+      "provider": "deepseek-official",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "max",
+      "joinedAt": 1791866431518,
+      "status": "idle"
+    },
+    {
+      "id": "de00380e-627b-43db-97d6-0b5e6b6793bb",
+      "name": "glm-5",
+      "role": "Senior Coding Agent / Refactoring Engineer",
+      "provider": "qwen-token-plan-cn",
+      "model": "glm-5",
+      "joinedAt": 1791866431518,
+      "status": "removed"
+    },
+    {
+      "id": "",
+      "name": "qwen-flash",
+      "role": "Implementation Engineer / Bulk Coding Agent",
+      "provider": "qwen-token-plan-cn",
+      "model": "qwen3.8-flash",
+      "joinedAt": 1791866431518,
+      "status": "removed"
+    },
+    {
+      "id": "485a3f6f-661b-411a-8535-a28909820586",
+      "name": "ds-flash",
+      "role": "Worker / Test / Benchmark / Documentation Agent",
+      "provider": "qwen-token-plan-cn",
+      "model": "deepseek-v4-flash-0731",
+      "joinedAt": 1791866431518,
+      "status": "removed"
+    },
+    {
+      "id": "",
+      "name": "deepseek-final",
+      "role": "Final Architecture and Scientific Reviewer",
+      "provider": "deepseek-official",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "max",
+      "joinedAt": 1791866431518,
+      "status": "removed"
+    },
+    {
+      "id": "4a513641-7baa-457c-bbd0-a15ea783baaa",
+      "name": "kimi-k27-code",
+      "role": "Senior Coding Agent / Refactoring Engineer",
+      "provider": "qwen-token-plan-cn",
+      "model": "kimi-k2.7-code",
+      "joinedAt": 1791869242993,
+      "status": "removed"
+    },
+    {
+      "id": "",
+      "name": "ds-worker",
+      "role": "Worker / Test / Benchmark / Documentation Agent",
+      "provider": "deepseek-official",
+      "model": "deepseek-flash",
+      "reasoningEffort": "high",
+      "joinedAt": 1791869871192,
+      "status": "idle"
+    },
+    {
+      "id": "ed061fcb-6c0c-4dd1-9176-1c15af3d1937",
+      "name": "kimi-k27",
+      "role": "Senior Coding Agent / Refactoring Engineer",
+      "provider": "qwen-token-plan-cn",
+      "model": "kimi-k2.7-code",
+      "joinedAt": 1791869871210,
+      "status": "removed"
+    },
+    {
+      "id": "57cfc24c-56da-484e-991c-2b8cb3d66f75",
+      "name": "ds-coder",
+      "role": "Senior Coding Agent / Refactoring Engineer",
+      "provider": "deepseek-official",
+      "model": "deepseek-v4-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1791870136374,
+      "status": "removed"
+    },
+    {
+      "id": "",
+      "name": "ustc-docs",
+      "role": "Documentation Worker",
+      "provider": "ustc",
+      "model": "deepseek-v4-flash-ascend",
+      "joinedAt": 1791912423972,
+      "status": "idle"
+    },
+    {
+      "id": "31c0d113-9e98-45f9-a33b-053a344bcfff",
+      "name": "kimi-coder",
+      "role": "Senior Coding Agent / Refactoring Engineer",
+      "provider": "kimi-coding",
+      "model": "kimi-k2.7-code",
+      "joinedAt": 1791912487970,
+      "status": "idle"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "profileSeedId": "phase-3-plan",
+      "subject": "PHASE 3 — Architecture Planning（产出 03_ARCHITECTURE_PLAN.md）",
+      "description": "只读任务（相对源码）。输入：.agent/01_PROJECT_MAP.md 与 .agent/02_ARCHITECTURE_REVIEW.md（二者为已完成的正式输入：禁止重新扫描仓库、禁止重新生成或覆盖它们），以及按需定点读取的相关源码（禁止重新全仓扫描）。产出并覆盖 .agent/03_ARCHITECTURE_PLAN.md。\n\n必须区分并成文以下 14 项：\n1) Current Architecture（当前架构）\n2) 当前架构存在的问题（引用 02 的 AR-n 编号）\n3) Target Architecture（目标架构）\n4) 为什么目标架构更合理（按优先级论证：科学正确性 > 可维护性 > 性能 > 可测试性 > 模块职责 > 依赖方向 > 数据流清晰度）\n5) 模块边界如何变化\n6) 数据流如何变化\n7) API 如何变化\n8) 哪些代码需要迁移\n9) 哪些代码不应该修改（含 Python 侧与载体机制等红线）\n10) 迁移顺序\n11) 风险\n12) 测试要求\n13) Benchmark 要求\n14) 文档影响\n\n每个架构变更必须有唯一 ID（ARCH-001、ARCH-002、…）。禁止为『架构漂亮』做无实际收益的大规模重构。重大科学算法若需调整，必须在本文件明确方案，不得留给实现阶段自行决定。本阶段不修改源码，仅在 .agent/ 下写入 03_ARCHITECTURE_PLAN.md。",
+      "status": "completed",
+      "assignee": "deepseek-pro",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791866985339,
+      "attemptId": "460913ce-6bf7-4fb8-893d-74c879960fd7",
+      "reassigning": false,
+      "output": "PHASE 3 完成：.agent/03_ARCHITECTURE_PLAN.md（624 行）已覆盖占位符。14 项要求全部成文：Current/Target 架构、问题清单（引用 AR-1..AR-30 与 01 文档 A/B/C/D 编号）、按「科学正确性>可维护性>性能>可测试性>模块职责>依赖方向>数据流清晰度」的论证、模块边界/数据流/API 变化表、迁移清单、红线（Python 侧、载体机制、JSON/DLL/gh_gao、R1–R7 全部覆盖）、迁移顺序（S0–S11 带绿灯门禁）、风险、测试与 Benchmark 要求、文档影响。共 17 个架构变更 ID（ARCH-001…017），每项含定稿方案/涉及文件/验证。重大科学决策 §15 逐项定稿（C1 默认 Euler 不换、加 method kwarg；C2/C3/C4/C5 为确定性 bug 修复并附验证协议；C6/C7/C10/C11/C12/C13/C16 记录不改值；C8 纯状态搬运）。附录 A 数据键契约表 v1。只读合规：定点读取 17 个源码文件（未全仓扫描），git status 仅 .agent/ 与 .agent-teams/ 未跟踪，无任何源码改动。"
+    },
+    {
+      "id": "t2",
+      "profileSeedId": "phase-4-optimization",
+      "subject": "PHASE 4 — Optimization Planning（产出 04_OPTIMIZATION_PLAN.md）",
+      "description": "只读任务（相对源码）。输入：.agent/01_PROJECT_MAP.md、.agent/02_ARCHITECTURE_REVIEW.md、.agent/03_ARCHITECTURE_PLAN.md（三者均为正式输入，禁止覆盖 01/02），及按需定点读取的源码。产出并覆盖 .agent/04_OPTIMIZATION_PLAN.md：将 03 的架构方案（ARCH-xxx）转换为可执行的 Coding Task。\n\n每个 Task 必须包含：Task ID（TASK-001、TASK-002、…）、对应 ARCH ID、Objective、修改文件、修改函数、当前行为、目标行为、依赖任务、风险、预期收益、是否涉及科学计算、是否涉及数值结果、测试要求、Benchmark 要求、文档要求。\n\n任务必须尽可能独立实施、独立测试，并按依赖顺序排列（供 PHASE 6 依次执行）。硬约束不变：性能优化必须标注 benchmark 要求；重要修改必须标注测试要求；科学计算修改必须标注科学结果验证要求；重大科学算法必须在此处或 03 中明确定义，实现 Agent 只能照做。本阶段不修改源码，仅在 .agent/ 下写入 04_OPTIMIZATION_PLAN.md。",
+      "status": "completed",
+      "assignee": "deepseek-pro",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791867411971,
+      "attemptId": "8ea327eb-c31b-45fa-adb6-599dfb235f3f",
+      "reassigning": false,
+      "output": "PHASE 4 完成：.agent/04_OPTIMIZATION_PLAN.md（1006 行）已覆盖占位符。将 03 的 17 个 ARCH 分解为 48 个可执行 Coding Task（TASK-001…048，顺序编号、依赖排序），每个任务含全部 15 个必需字段（Task ID/ARCH ID/Objective/修改文件/修改函数/当前行为/目标行为/依赖任务/风险/预期收益/涉及科学计算/涉及数值结果/测试要求/Benchmark 要求/文档要求），并附建议执行人（GLM-5/Qwen/V4 Flash，仅供参考）。关键内容：(1) §2 Benchmark 方案——benchmark/ 独立环境 + 8 项基准脚本 + 6 类 golden 快照（S0a 合成类任何改动前生成、S0b 真实数据类在 A1 修复后生成，均早于任何科学改动，作 R4『改动前』基准）；(2) 任务按 03 的 S0–S11 步骤分组并带绿灯门禁，CONDITIONAL 性能任务（TASK-044…048）全部带证据门（如 sta_v_4d 等价 rel≤1e-9 才能收编，不等价则保留双版本并上报）；(3) 新确认的定点事实已固化进任务条款：Single_Particle_Orbit.cyclotron_radius 为 SI 输入与 calculate_models（nT/eV）签名不同→不转发保留（TASK-027/031）；RK4/自适应追踪器签名与 Euler kwarg 兼容（TASK-021 可行）；两份 TimeFormat 同签名不同格式（TASK-034 kwarg 合并）；bowshock 三副本 NaN 类型差异（NaN32/NaN64/0.0）→ isnan 感知等价测试（TASK-029）；(4) R1–R7 逐条映射检查表；(5) 对 03 的一处细化已注明：TASK-024 set_particles 保留写 Ref 副作用并返回 PlasmaState（兼容旧脚本，目标不变）。只读合规：定点读取 10 个源码文件 + 2 次 grep，git status 仅 .agent/ 与 .agent-teams/ 未跟踪，无任何源码改动。"
+    },
+    {
+      "id": "t3",
+      "profileSeedId": "phase-5-test",
+      "subject": "PHASE 5 — Test Strategy（产出 05_TEST_STRATEGY.md）",
+      "description": "只读任务。输入：.agent/03_ARCHITECTURE_PLAN.md、.agent/04_OPTIMIZATION_PLAN.md 与当前测试代码（test/、tests/ 等，按需定点读取，禁止重新全仓扫描）。产出并覆盖 .agent/05_TEST_STRATEGY.md：为 04 的每个 TASK 制定测试策略，必须区分五类：\n1) Unit Test\n2) Integration Test\n3) Regression Test\n4) Scientific / Numerical Validation\n5) Performance Benchmark\n\n对于涉及科学计算的修改，不能只靠普通 Unit Test 判断正确，必须尽可能验证：数值结果、单位、数量级、边界条件、新旧实现结果一致性、可接受误差范围。对于性能优化：必须记录 benchmark 基线、方法与环境、重复次数、前后对比与可接受波动阈值等判定标准。\n本阶段不修改源码，仅在 .agent/ 下写入 05_TEST_STRATEGY.md。",
+      "status": "completed",
+      "assignee": "ds-flash",
+      "dependencies": [
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791867620271,
+      "attemptId": "f41e9c48-9e91-4de2-aeed-8cdd41ba0677",
+      "reassigning": false,
+      "output": "PHASE 5 完成：.agent/05_TEST_STRATEGY.md（552 行）已覆盖占位符。为 04 的全部 48 个 Coding Task（TASK-001…048）逐一制定测试策略，区分五类（Unit/Integration/Regression/Scientific/Performance Benchmark）。关键内容：(1) §1 定义五类测试强制口径与类别映射规则——科学类涉及数值的改动强制 S 类验证（含数值结果/单位/数量级/边界条件/新旧一致性/可接受误差范围 6 要素），性能类强制 B 类（含基线/方法/环境/重复次数/前后成对对比/波动阈值≤110%上限）；(2) 科学验证逐任务细化：C4 n1d 手算 dE·E^(-3/2) 解析值、C5 v_3d coarse(3D)/fine(4D)双输入密度恒正、C2 球↔笛卡尔 rel≤1e-12、C8 PlasmaState 网格 rel≤1e-12+并行隔离、C3 键修复值不变、bowshock NaN32/NaN64 用 isnan 感知等价、C10 逐位证明不改值；(3) 性能门固化：sta_v_4d 等价 rel≤1e-9 才可收编（不等价保留双版本上报）、plot_module 不得慢于基线110%、TASK-045/046 带证据门阈(>10%, bench 显著)、TASK-048 ccall 缓冲复用逐位一致+R5 仅评估；(4) §2 通用黄金快照（baseline_*.json 六类）+ 八项基准统一口径（记录 samples/evals/VERSION/SHA-256）；(5) §4 综合验收门——每任务绿灯汇总表 + 全量 test/runtests.jl/golden_snapshot/benchmark 命令门 + fresh clone 环境门；(6) 03 十大风险逐一映射到测试缓解。只读合规：定点读取 test/runtests.jl 及 03/04 全文，未全仓扫描，git 无源码改动，仅 .agent/ 下覆盖本文件。",
+      "changedPaths": [
+        ".agent/05_TEST_STRATEGY.md"
+      ]
+    },
+    {
+      "id": "t4",
+      "profileSeedId": "phase-6-impl",
+      "subject": "PHASE 6 — Implementation（GLM-5 主实施，记录到 06_IMPLEMENTATION_LOG.md）",
+      "description": "实施阶段（唯一允许修改源码的阶段）。依赖 05_TEST_STRATEGY.md；执行依据为 04 的 TASK 列表（一次一个 TASK 或合理 TASK Group）。你是主要复杂实施 Agent：负责大型重构、高耦合模块修改、API/数据结构迁移、复杂函数与性能优化、核心测试实现；修改后主动运行相关测试并根据结果修复实现；保持代码行为与科学计算语义。边界清晰、机械性的批量任务（批量改调用点、简单单测补充、docstring 更新等）可由 captain 分派给 qwen-flash（Bulk Coding Agent），你负责复杂/核心部分。\n\n每次修改必须追加/更新 .agent/06_IMPLEMENTATION_LOG.md，记录：修改内容、涉及文件、API 变化、测试、benchmark、文档影响、已知问题。\n\n硬性约束：\n1) 不得擅自改变 03 中确定的核心架构方向；若发现方案存在严重问题或无法直接实施，记录到实施日志并请求重新评估，而不是自行扩大修改范围；\n2) 不得自行重新设计核心科学算法——只能实现 03/04 中已明确的方案；\n3) 任何性能优化必须运行 benchmark 并记录前后对比；重要代码修改必须补测试；科学计算修改必须做科学结果验证；\n4) 不进行无价值的风格性大规模重构；\n5) 不得修改 Python 侧（download_data/、martian_pipeline/、config/、tools/、tests/ 等）；\n6) 不删除任何 .agent/ 下的 Markdown。\n实现完成后，在任务 output 中列出 changedPaths（本次修改的文件路径）。",
+      "status": "failed",
+      "dependencies": [
+        "t3"
+      ],
+      "attempt": 12,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791916072436,
+      "reassigning": false,
+      "assignee": "kimi-coder",
+      "attemptId": "a26448aa-bd3d-45f8-8e4c-f2af32432db5",
+      "output": "429 {\"error\":{\"message\":\"Your credit balance is running low for account <org-91b5bb71725c47d09e9e24b41480ad9c>, please recharge immediately to avoid service disruption\",\"type\":\"exceeded_current_quota_error\"}} (code RATE_LIMIT)",
+      "changedPaths": [
+        "Magnetic_Model/IGRF_calculate.jl",
+        "MAVEN_data/MAVEN_SWIA.jl",
+        "MAVEN_data/MAVEN_load.jl",
+        "TW_data/TW_MINPA.jl",
+        "test/runtests.jl",
+        ".agent/06_IMPLEMENTATION_LOG.md"
+      ]
+    },
+    {
+      "id": "t5",
+      "profileSeedId": "phase-7-verify-tests",
+      "subject": "PHASE 7 — Verification（测试/benchmark/基础验证，写入 07_VERIFICATION.md）",
+      "description": "独立验证（第一部分）。依赖 06_IMPLEMENTATION_LOG.md；执行依据为 05_TEST_STRATEGY.md 与 04 的 Testing/Benchmark Requirements。执行测试、benchmark 与基础验证，结果写入 .agent/07_VERIFICATION.md（先写『测试与 benchmark 结果』部分；科学/性能/代码 review 由下一任务完成）。\n\n按 04 的每个 Task ID 记录：五类测试结果（Unit / Integration / Regression / Scientific-Numerical Validation / Performance Benchmark）、benchmark 前后对比、通过/失败结论。不修改源码，验证中发现的问题只记录、不擅自修复。",
+      "status": "cancelled",
+      "dependencies": [
+        "t4"
+      ],
+      "attempt": 0,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791959009129,
+      "reassigning": false,
+      "assignee": "ds-worker",
+      "output": "Stopped from the captain chat."
+    },
+    {
+      "id": "t6",
+      "profileSeedId": "phase-7-verify-review",
+      "subject": "PHASE 7 — Verification（科学正确性/性能/代码 review，定稿 07_VERIFICATION.md）",
+      "description": "独立验证（第二部分）。依赖 phase-7-verify-tests。在上一任务测试/benchmark 结果基础上，对 PHASE 6 的实施做科学正确性、数值风险、性能与代码 review；审阅 .agent/07_VERIFICATION.md（已有测试部分）并定稿该文件，对每个 TASK 给出 PASS / FAIL 判定。\n\n任何 FAIL 任务必须在该文件中明确『返回 PHASE 6』及原因（需要修复的具体问题）。只读源码；仅在 .agent/ 下写入 07_VERIFICATION.md。",
+      "status": "cancelled",
+      "assignee": "deepseek-pro",
+      "dependencies": [
+        "t5"
+      ],
+      "attempt": 0,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791959009129,
+      "reassigning": false,
+      "output": "Stopped from the captain chat."
+    },
+    {
+      "id": "t7",
+      "profileSeedId": "phase-8-docs",
+      "subject": "PHASE 8 — Documentation Synchronization（产出 08_DOCUMENTATION_SYNC.md）",
+      "description": "依赖 phase-7-verify-review（需 07 全部 PASS 后方可继续；若有 FAIL，captain 会先安排返回 PHASE 6 修复）。\n\n检查代码与所有文档的一致性，产出并覆盖 .agent/08_DOCUMENTATION_SYNC.md。检查范围：README（README.md / README_EN.md）、API 文档、docstring、architecture documentation（.agent/03、04）、examples、configuration、scientific documentation（docs/ 等）。\n\n若发现代码与文档不一致：文档类不一致直接修正文档；若不一致指向代码缺陷，则记录并返回 PHASE 6 修复。所有修复与一致性结论记录在本文件。不删除任何 .agent/ 下的 Markdown。",
+      "status": "cancelled",
+      "dependencies": [
+        "t6"
+      ],
+      "attempt": 0,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791959009129,
+      "reassigning": false,
+      "assignee": "ustc-docs",
+      "output": "Stopped from the captain chat."
+    },
+    {
+      "id": "t8",
+      "profileSeedId": "phase-9-final",
+      "subject": "PHASE 9 — Final Review（产出 09_FINAL_REVIEW.md）",
+      "description": "依赖 phase-8-docs。最终架构与科学正确性审查，产出并覆盖 .agent/09_FINAL_REVIEW.md。\n\n检查：Architecture、Code、Tests、Benchmarks、Scientific Validation、Documentation。\n\n全部满足 → 在文件顶部标记 COMPLETE；否则标记 INCOMPLETE，并列出剩余问题与下一步任务。只读；仅在 .agent/ 下写入 09_FINAL_REVIEW.md。",
+      "status": "cancelled",
+      "dependencies": [
+        "t7"
+      ],
+      "attempt": 0,
+      "createdAt": 1791866431518,
+      "updatedAt": 1791959009129,
+      "reassigning": false,
+      "output": "Stopped from the captain chat."
+    }
+  ],
+  "taskSeq": 8,
+  "halted": true,
+  "haltedAt": 1791959009129
+}

@@ -1,0 +1,32 @@
+{
+  "known_issues": [
+    "C5: v_3d on coarse data (theta 3D) causes BoundsError - uses 4D indexing on 3D array",
+    "C4: n1d has dead variable tiny=1.0-31 (should be 1e-31) but unused"
+  ],
+  "metadata": {
+    "generated_at": "2026-10-14T01:57:42",
+    "julia_version": "1.10.5",
+    "phase": "TASK-001",
+    "purpose": "S0a golden snapshot - pre-implementation baseline",
+    "seed": 12345
+  },
+  "swea": {
+    "nenergy": 64,
+    "note_tiny": "tiny=1.0-31 = -30.0 is dead variable (C4) - TASK-018 fixes"
+  },
+  "swia_coarse": {
+    "domega_shape": [
+      30,
+      4,
+      48
+    ],
+    "ndeflect": 4,
+    "nenergy": 48,
+    "ntime": 30,
+    "theta_shape": [
+      30,
+      4,
+      48
+    ]
+  }
+}

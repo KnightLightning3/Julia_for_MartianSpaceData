@@ -1,0 +1,19 @@
+{
+  "inputs": {
+    "Omega_e_range_Hz": "1e4 to 1e5",
+    "Pi_e_range_Hz": "1e5 to 1e6",
+    "freq_range_Hz": "1 to 1e5",
+    "theta_range": "0 to π"
+  },
+  "known_issues": [
+    "AR-4: set_particles writes global state, Dispersion_Relation reads implicitly",
+    "C8: PlasmaState needs explicit parameterization (TASK-024)"
+  ],
+  "metadata": {
+    "generated_at": "2026-10-14T01:57:42",
+    "julia_version": "1.10.5",
+    "phase": "TASK-001",
+    "purpose": "S0a golden snapshot - pre-implementation baseline",
+    "seed": 12345
+  }
+}

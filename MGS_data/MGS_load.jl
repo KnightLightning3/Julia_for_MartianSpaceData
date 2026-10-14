@@ -3,7 +3,9 @@
 module MGS_load
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
-root_path = "E:/MGS/"
+include(joinpath(@__DIR__, "..", "common", "paths.jl"))
+using .Paths
+root_path = Paths.mgs_data_root()  # 经 common/paths.jl 解析：TOML 优先、默认 E:/MGS/
 using Dates
 # struct MGS_mag
 #     staute::Bool
@@ -109,16 +111,6 @@ end
 # 注意事项
 - 函数体引用了未初始化的全局 `data`，直接调用会报 `UndefVarError`。
 """
-function caculate_mag(position;models=["alt"])
-    funcs = Dict(
-        "alt" => MarsCommon.position_altitude,
-        "local_time" => MarsCommon.position_local_time,
-        "latitude" => MarsCommon.position_latitude,
-    )
-    for model in models
-        data[model] = funcs[model](position)
-    end
-end
 """
     read_list() -> Vector{String}
 
@@ -131,7 +123,8 @@ end
 - `Vector{String}`: 所有 MGS 磁场文件的完整路径。
 
 # 注意事项
-- `root_path` 硬编码为 `E:/MGS/`。
+- `root_path` 经 `common/paths.jl` 解析（`Paths.mgs_data_root()`，默认 `E:/MGS/`，可在
+  `config/settings.toml` 的 `paths.mgs_data_root` 覆盖）。
 """
 function read_list()
     list_path = root_path*"MAG_SUNSTATE_list"

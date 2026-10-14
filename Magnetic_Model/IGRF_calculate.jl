@@ -661,9 +661,8 @@ end
 - `Matrix{Float64}`: `(N2+N1)×6` 的拼接后磁力线数据。
 
 # 注意事项
-- 本实现调用的是 `IGRF_calculate.sphere2pc` / `IGRF_calculate.Bsphere2pc`（带模块前缀）。
-  在模块**内部**调用会找不到 `IGRF_calculate` 这个名字从而导致 `UndefVarError`；
-  如需在本模块内使用，应将前缀去掉改为 `sphere2pc` / `Bsphere2pc`。
+- **C2 修复**：模块内部已改为裸名 `sphere2pc` / `Bsphere2pc`，不再使用 `IGRF_calculate.` 前缀，
+  避免 `to_pc=true` 时出现 `UndefVarError`。
 - 两段的重叠起点会被保留两次（拼接处有重复行）。
 """
 function combina_two_dir_trace(B_data_1, B_data_2; to_pc=false) # 翻转第二个，获得指向磁场方向的磁力线
@@ -674,8 +673,9 @@ function combina_two_dir_trace(B_data_1, B_data_2; to_pc=false) # 翻转第二�
         data = zeros(mag_line_num, 6)
         @inbounds for i in 1:mag_line_num
             x = B_data[i, :]
-            px, py, pz = IGRF_calculate.sphere2pc(x[1], x[2], x[3])
-            Bx, By, Bz = IGRF_calculate.Bsphere2pc(x[1], x[2], x[3], x[4], x[5], x[6])
+            # C2 修复：模块内部直接使用裸名，不再通过 IGRF_calculate. 前缀自引用
+            px, py, pz = sphere2pc(x[1], x[2], x[3])
+            Bx, By, Bz = Bsphere2pc(x[1], x[2], x[3], x[4], x[5], x[6])
             data[i, :] = [px, py, pz, Bx, By, Bz]
         end
         B_data = data
@@ -699,7 +699,7 @@ end
 
 # 注意事项
 - 磁场键使用的是**字符串键** `"B"`（而其它键为 Symbol）；若传入字典只有 `:B` 键，
-  本函数会报 `KeyError`。
+  优先读 `:B`，缺失时回退 `"B"`。
 - 弧长基于笛卡尔坐标点间欧氏距离，与追踪步长（弧长参数）不完全一致。
 """
 function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力线数据结构
@@ -714,16 +714,20 @@ function get_mag_line_s(data) #取得磁力线的长度关系,需要标准磁力
     end
     data[:S] = s
     data[:alt] = [norm(x) for x in eachrow(position)] .- constants.R_Mars
-    data[:B_total] = [norm(x) for x in eachrow(data["B"])]
+    B = get(data, :B, nothing)
+    if B === nothing
+        B = get(data, "B", nothing)
+    end
+    data[:B_total] = [norm(x) for x in eachrow(B)]
     return data
 end
 """
-    trace_mag_line(p1, p2, p3; step=0.5, r_range=[R_Mars, 2R_Mars], max_trace=30000, input_frame="pc", output_frame="pc") -> Dict
+    trace_mag_line(p1, p2, p3; step=0.5, r_range=[R_Mars, 2R_Mars], max_trace=30000, input_frame="pc", output_frame="pc", method=:euler, maxfac=30.0, minfac=0.5, tol=0.1) -> Dict
 
 顶层磁力线追踪接口：从给定起点沿磁场双向追踪并拼接成完整磁力线。
 
 # 功能与算法概述
-按 `input_frame` 统一到球坐标后分别以 `dir = ±1.0` 调用 `mag_trace_Euler_step`，
+按 `input_frame` 统一到球坐标后，根据 `method` 选择追踪器以 `dir = ±1.0` 双向追踪，
 反序拼接两段并按 `output_frame` 决定是否转回笛卡尔，最终封装为标准结果字典。
 
 # 参数说明
@@ -733,18 +737,18 @@ end
 - `max_trace`: 单方向最大步数。
 - `input_frame`: `"pc"`（笛卡尔）或其它值（球坐标）。
 - `output_frame`: `"pc"`（笛卡尔）或其它值（球坐标）。
+- `method`: 追踪器选择，`:euler`（默认，一阶）/`:rk4`（四阶固定步长）/`:adaptive`（Fortran 自适应 RK4）。
+- `maxfac`, `minfac`, `tol`: 仅 `method=:rk4` 或 `:adaptive` 时使用的步长控制参数。
 
 # 返回值
 - `Dict{Symbol,Any}`: 键为 `:position`（`N×3`）、`:B`（`N×3`）、`:num_steps`、`:step`、
-  `:frame`、`:start_position`（起点行号）。
+  `:frame`、`:start_position`（起点行号）、`:method`。
 
 # 注意事项
-- 当前硬编码使用 `mag_trace_Euler_step`（一阶精度）；若需更高精度，应改为
-  `mag_trace_rk4` 或 `mag_trace_rk4_fortran_ADAPTIVE_STEP`。
+- **默认 `method=:euler` 保持与改动前逐位一致**；改为更高精度需科学负责人批准（03 §15 C1）。
 - `:num_steps` 仅在 `output_frame == "pc"` 分支被赋值，其它情况下未定义。
-- 代码中保留了对三种追踪器的注释选择，默认选择为第一行的 Euler 方案。
 """
-function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[constants.R_Mars, constants.R_Mars * 2], max_trace=30000, input_frame="pc", output_frame="pc") #追踪磁力线
+function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[constants.R_Mars, constants.R_Mars * 2], max_trace=30000, input_frame="pc", output_frame="pc", method::Symbol=:euler, maxfac=30.0, minfac=0.5, tol=0.1) #追踪磁力线
 
     # trace_function = Dict(
     #     1 => mag_trace_Euler_step,
@@ -756,10 +760,23 @@ function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[constan
     else
         r0, θ0, ϕ0 = p1, p2, p3
     end
+
+    # C1 修复：暴露追踪器选择，默认保持 :euler 以兼容既有结果
+    local tracer
+    if method === :euler
+        tracer = (r, θ, ϕ; dir, step, r_range, max_trace) -> mag_trace_Euler_step(r, θ, ϕ; dir=dir, step=step, r_range=r_range, max_trace=max_trace)
+    elseif method === :rk4
+        tracer = (r, θ, ϕ; dir, step, r_range, max_trace) -> mag_trace_rk4(r, θ, ϕ; dir=dir, step=step, r_range=r_range, max_trace=max_trace, maxfac=maxfac, minfac=minfac, tol=tol)
+    elseif method === :adaptive
+        tracer = (r, θ, ϕ; dir, step, r_range, max_trace) -> mag_trace_rk4_fortran_ADAPTIVE_STEP(r, θ, ϕ; dir=dir, step=step, r_range=r_range, max_trace=max_trace, maxfac=maxfac, minfac=minfac, tol=tol)
+    else
+        throw(ArgumentError("trace_mag_line: 不支持的 method=:$(method)，可选 :euler/:rk4/:adaptive"))
+    end
+
     # B_data_1 = Matrix{Float64}(undef, max_trace,6)
     # B_data_2 = Matrix{Float64}(undef, max_trace,6)
-    B_data_1 = mag_trace_Euler_step(r0, θ0, ϕ0; r_range=r_range, step=step, dir=1.0, max_trace=max_trace)
-    B_data_2 = mag_trace_Euler_step(r0, θ0, ϕ0; r_range=r_range, step=step, dir=-1.0, max_trace=max_trace)
+    B_data_1 = tracer(r0, θ0, ϕ0; dir=1.0, step=step, r_range=r_range, max_trace=max_trace)
+    B_data_2 = tracer(r0, θ0, ϕ0; dir=-1.0, step=step, r_range=r_range, max_trace=max_trace)
     B_data_2 = reverse(B_data_2, dims=1)
     n_source = length(B_data_2[:, 1])
     B_data = [B_data_2; B_data_1[2:end, :]]
@@ -781,7 +798,8 @@ function trace_mag_line(p1::Real, p2::Real, p3::Real; step=0.5, r_range=[constan
         :num_steps => mag_line_num,
         :step => step,
         :frame => output_frame,
-        :start_position => n_source    # 起点的坐标
+        :start_position => n_source,    # 起点的坐标
+        :method => method,
     )
     return result
 end

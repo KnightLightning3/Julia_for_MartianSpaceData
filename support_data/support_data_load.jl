@@ -5,13 +5,13 @@ module SP_load
 using TimesDates
 using CSV, DataFrames, Dates
 using JSON
-using IniFile
 using Statistics
 using Rotations
 
-dir = dirname(@__FILE__)
-root_path = get(read(Inifile(), dirname(dir) * "/download_data/MAVEN_download_config.ini"), "DEFAULT", "Save_dir") # 所有文件的根目录
-println(dirname(dir) * "/download_data/MAVEN_download_config.ini")
+include(joinpath(@__DIR__, "..", "common", "paths.jl"))
+using .Paths
+
+root_path() = Paths.maven_data_root()  # 所有文件的根目录（经 common/paths.jl 解析：TOML 优先、旧 INI 只读兼容）
 # -------------------------Read filelist parts-------------------------
 """
     load_omni2_data() -> DataFrame
@@ -28,7 +28,7 @@ println(dirname(dir) * "/download_data/MAVEN_download_config.ini")
 - 依赖 `root_path` 下的 `support_datas/omni2_all_years.dat`。
 """
 function load_omni2_data(;)
-    local file_path = root_path*"support_datas/omni2_all_years.dat"
+    local file_path = root_path()*"support_datas/omni2_all_years.dat"
     col_names = [
         "Year", "DOY", "Hour", "Bartels", "IMF_ID", "SW_ID", "IMF_Points", "Plasma_Points",
         "B_Avg", "B_Vec_Mag", "B_Lat", "B_Long", "Bx_GSE", "By_GSE", "Bz_GSE", "By_GSM", "Bz_GSM",
@@ -113,9 +113,9 @@ function load_drivers_merge_data(;high_res = true) # 读取Halekas等人推导�
     #  "2014-11-12/11:48:47     2.204     0.131   426.555  -426.431     9.984    -2.617     8.831    -0.232     1.644    -0.331"
 
     if high_res
-        file_path = root_path*"support_datas/drivers_merge_l2_hires.txt"
+        file_path = root_path()*"support_datas/drivers_merge_l2_hires.txt"
     else
-        file_path = root_path*"/support_datas/drivers_merge_l2.txt"
+        file_path = root_path()*"/support_datas/drivers_merge_l2.txt"
     end
     col_names = [
         "UT_str", "n_p", "n_alpha", "v_mag", "vx", "vy", "vz", "T_p", "Bx", "By", "Bz"

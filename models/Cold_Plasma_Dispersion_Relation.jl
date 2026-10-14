@@ -3,39 +3,83 @@
 module Cold_Plasma_Dispersion_Relation
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 
+# 全局状态容器（TASK-024）：旧脚本调用 set_particles 时写入此处，新代码推荐直接传递 PlasmaState。
+const PlasmaState = NamedTuple{(:Nparticles, :Ω_n, :Π_2), Tuple{Int, Vector{Float64}, Vector{Float64}}}
+const _state = Ref{Union{Nothing, PlasmaState}}(nothing)
+
+# 保留旧全局变量名，供仍直接读取 Nparticles/Ω_n/Π_2 的代码使用。
 global Nparticles
 global Ω_n
 global Π_2
+
+function _build_plasma_state(; ion_rate=[], ion_mass=[])
+    particles      = 1.0 ./ [1.0, Float64.(ion_mass)...]
+    particles_rate = [1.0, Float64.(ion_rate)...]
+    Np = length(particles)
+    # 以电子回旋频率归一化，fce 为负值
+    Ω = fill(constants.me/constants.mp, Np); Ω[1] = -1.0; Ω = Ω .* particles
+    Π = fill(constants.me/constants.mp, Np); Π[1] =  1.0; Π = Π .* particles_rate .* particles
+    return PlasmaState((Np, Ω, Π))
+end
+
+function _current_state()
+    s = _state[]
+    s === nothing && error("PlasmaState 未初始化：请先调用 set_particles(...) 或 make_particles(...)，或在调用 Dispersion_Relation/carculate_minimum_energy 时显式传入 state::PlasmaState。")
+    return s
+end
+
 # 暂时只支持单解的波
 """
-    set_particles(; ion_rate=[], ion_mass=[]) -> Nothing
+    make_particles(; ion_rate=[], ion_mass=[]) -> PlasmaState
 
-配置多成分**冷等离子体**的成分列表，并初始化本模块的全局归一化参数（回旋频率与等离子体频率平方）。
+纯函数版本：根据离子成分构建 `PlasmaState`，**不写模块全局状态**，可安全用于并行/隔离计算。
 
 # 功能与算法概述
-根据输入的各离子相对数密度（`ion_rate`）与质量数（`ion_mass`），自动补全电子基准项并构建多成分等离子体矩阵，为后续色散关系求解提供全局物理常数。
+根据输入的各离子相对数密度（`ion_rate`）与质量数（`ion_mass`），自动补全电子基准项并构建多成分等离子体状态 `(Nparticles, Ω_n, Π_2)`。
 
 # 参数说明
 - `ion_rate`: 各离子相对**电子数密度**的比例数组（无单位），长度 `N_i`。
 - `ion_mass`: 各离子的**质量数**（AMU），与 `ion_rate` 一一对应。
 
 # 返回值
-- `Nothing`: 本函数为内部状态初始化函数，通过副作用直接设置模块全局变量 (`Nparticles`, `Ω_n`, `Π_2`)。
+- `PlasmaState`: `NamedTuple{(:Nparticles,:Ω_n,:Π_2)}`，可直接传给 `Dispersion_Relation` / `carculate_minimum_energy`。
 
 # 注意事项
-- 必须在调用 `Dispersion_Relation` 之前执行。
-- **非线程安全**：会直接覆盖上一次设置的全局状态。
+- 不会修改模块全局状态；推荐在新代码中使用。
+- **示例**：`make_particles(ion_rate=[0.4, 0.6], ion_mass=[16, 32])` 表示 O⁺/O₂⁺ 混合等离子体。
+"""
+function make_particles(; ion_rate=[], ion_mass=[])
+    return _build_plasma_state(; ion_rate, ion_mass)
+end
+
+"""
+    set_particles(; ion_rate=[], ion_mass=[]) -> PlasmaState
+
+配置多成分**冷等离子体**的成分列表，并初始化本模块的全局归一化参数（回旋频率与等离子体频率平方）。
+
+# 功能与算法概述
+根据输入的各离子相对数密度（`ion_rate`）与质量数（`ion_mass`），自动补全电子基准项并构建多成分等离子体状态 `(Nparticles, Ω_n, Π_2)`。
+
+# 参数说明
+- `ion_rate`: 各离子相对**电子数密度**的比例数组（无单位），长度 `N_i`。
+- `ion_mass`: 各离子的**质量数**（AMU），与 `ion_rate` 一一对应。
+
+# 返回值
+- `PlasmaState`: 本次设置的状态；旧脚本可忽略返回值继续按旧路径调用。
+
+# 注意事项
+- 必须在调用 `Dispersion_Relation`（旧签名）之前执行。
+- **非线程安全**：会直接覆盖上一次设置的全局状态；并行计算请使用 `make_particles` + 显式 state。
 - **示例**：`set_particles(ion_rate=[0.4, 0.6], ion_mass=[16, 32])` 表示 O⁺/O₂⁺ 混合等离子体。
 """
-function set_particles(;ion_rate=[],ion_mass=[])
-  ion_rate = ion_rate
-  ion_mass = ion_mass
-  particles= 1.0 ./ [1.0,ion_mass...]
-  particles_rate = [1.0,ion_rate...]
-  global Nparticles=length(particles)
-  # 以电子回旋频率归一化  fce 为负值
-  global Ω_n = fill(constants.me/constants.mp,Nparticles) ; Ω_n[1] = -1.0 ; Ω_n = Ω_n .* particles
-  global Π_2 = fill(constants.me/constants.mp,Nparticles) ; Π_2[1] = 1.0 ; Π_2 = Π_2  .* particles_rate .* particles
+function set_particles(; ion_rate=[], ion_mass=[])
+    state = _build_plasma_state(; ion_rate, ion_mass)
+    _state[] = state
+    # 同时保留旧全局变量，供仍直接读取的代码使用。
+    global Nparticles = state.Nparticles
+    global Ω_n        = state.Ω_n
+    global Π_2        = state.Π_2
+    return state
 end
 
 # set_particles(ion_rate=[0.4,0.6],ion_mass=[16,32]) / 默认值
@@ -68,6 +112,40 @@ function get_Πe(Ne; unit="Hz")
 end
 
 """
+    Dispersion_Relation(θ, freq, Πe, Ωe, state::PlasmaState) -> Real
+
+显式状态版本：使用传入的 `PlasmaState` 计算冷等离子体折射率，不依赖模块全局状态。
+"""
+function Dispersion_Relation(θ,freq,Πe,Ωe,state::PlasmaState)
+  Πe_n = Πe / (-Ωe)
+  freq_n = freq / (-Ωe)
+  Π_2_local = state.Π_2 * Πe_n^2
+
+  #计算介电常数
+  R=1.0
+  L=1.0
+  P=1.0
+  for i=1:state.Nparticles
+    R=R-Π_2_local[i]/freq_n^2*( freq_n / (freq_n+state.Ω_n[i]) )
+    L=L-Π_2_local[i]/freq_n^2*( freq_n / (freq_n-state.Ω_n[i]) )
+    P=P-Π_2_local[i]/freq_n^2
+  end
+
+  S=(R+L)/2.
+  A=S*sin(θ)^2+P*cos(θ)^2
+  B=R*L*sin(θ)^2+P*S*(1+cos(θ)^2)
+  C=P*R*L
+  D=(R-L)/2.
+  #计算折光率μ  (μ^2=real)
+  F=sqrt(abs(B^2 - A*C*4.))
+  μ=[B+F,B-F]/2.0/A
+  # polar=(μ .- S ) ./D
+  μm=max(μ[1],μ[2])
+  μ=real(sqrt(complex(μm,0)))
+  return μ
+end
+
+"""
     Dispersion_Relation(θ, freq, Πe, Ωe) -> Real
 
 求解**冷等离子体色散关系**，返回给定传播角与频率下的**折射率（实部）** `μ`。
@@ -85,38 +163,14 @@ end
 - `Real`: 折射率实部 `μ`（无量纲，`μ ≥ 0`；截止区为 `0`）。
 
 # 注意事项
-- 必须先调用 `set_particles` 初始化全局量。
+- 旧签名会先读取模块全局状态；未初始化时会给出明确错误。
+- 推荐新代码使用 `Dispersion_Relation(θ, freq, Πe, Ωe, state)` 以显式传递状态。
 - 本文件顶部注释称"默认为分度制"，实现实际按**弧度**处理。
 - 仅取单分支较大根，不做 X/O 模式的光滑追踪。
 """
 function Dispersion_Relation(θ,freq,Πe,Ωe)  #返回折光率,与frep一一对应.
-
-  Πe_n = Πe / (-Ωe)
-  freq_n = freq / (-Ωe) 
-  Π_2_local = Π_2 * Πe_n^2 
-
-  #计算介电常数
-  R=1.0
-  L=1.0
-  P=1.0
-  for i=1:Nparticles
-    R=R-Π_2_local[i]/freq_n^2*( freq_n / (freq_n+Ω_n[i]) )
-    L=L-Π_2_local[i]/freq_n^2*( freq_n / (freq_n-Ω_n[i]) )
-    P=P-Π_2_local[i]/freq_n^2
-  end
-  
-  S=(R+L)/2.
-  A=S*sin(θ)^2+P*cos(θ)^2
-  B=R*L*sin(θ)^2+P*S*(1+cos(θ)^2)
-  C=P*R*L
-  D=(R-L)/2.
-  #计算折光率μ  (μ^2=real)
-  F=sqrt(abs(B^2 - A*C*4.))
-  μ=[B+F,B-F]/2.0/A
-  # polar=(μ .- S ) ./D
-  μm=max(μ[1],μ[2])
-  μ=real(sqrt(complex(μm,0)))
-  return μ
+  state = _current_state()
+  return Dispersion_Relation(θ,freq,Πe,Ωe,state)
 end
 
 """
@@ -162,7 +216,7 @@ function DR_phase_velocity(μ)
 end
 
 """
-    carculate_minimum_energy(θ, freq, Πe, Ωe, n)
+    carculate_minimum_energy(θ, freq, Πe, Ωe, n, state::PlasmaState=_current_state())
 
 计算满足**回旋共振条件**的粒子**最小能量** `E_min`。
 
@@ -175,34 +229,30 @@ end
 - `Πe`: 电子等离子体频率（Hz）。
 - `Ωe`: 电子回旋频率（Hz，带符号）。
 - `n`: 共振阶数（`0` 为 Landau 共振，`±1, ±2…` 为回旋共振）。
+- `state`: 可选 `PlasmaState`；省略时使用模块当前全局状态（未初始化会报错）。
 
 # 返回值
 - 共振粒子的最小能量（**eV**）。
 
 # 注意事项
-- 需先调用 `set_particles`；当前实现为单点计算。
+- 省略 `state` 时需先调用 `set_particles`；当前实现为单点计算。
 - `cos θ → 0`（垂直传播）时结果发散至 `Inf`。
-- 函数名 `carculate` 为 `calculate` 的拼写笔误，为兼容沿用。
+- 函数名 `carculate` 为 `calculate` 的拼写笔误，为兼容沿用；推荐使用 `calculate_minimum_energy`。
 """
-function carculate_minimum_energy(θ,freq,Πe,Ωe,n)
-  # 默认所有输入皆为分度制
-  # 单点计算
-  # if degree_measure
-  #   θ*=RAD
-  #   freq =freq*2*π
-  #   Πe   =Πe*2*π
-  #   Ωe   =Ωe*2*π
-  # end
-  # NΠ=length(Πe)
-  # Nf=length(freq)
-  # Emin=zeros(Nf,NΠ)
-
-  μ = Dispersion_Relation(θ,freq,Πe,Ωe)
+function carculate_minimum_energy(θ,freq,Πe,Ωe,n,state::PlasmaState=_current_state())
+  μ = Dispersion_Relation(θ,freq,Πe,Ωe,state)
   wave_vector = DR_wave_vector(μ , freq)
   v_para = (freq-n*Ωe)/wave_vector/cos(θ)
   Emin   = 0.5 * constants.me * v_para^2 / constants.eV
   return Emin
 end
+
+"""
+    calculate_minimum_energy(θ, freq, Πe, Ωe, n, state::PlasmaState=_current_state())
+
+`carculate_minimum_energy` 的规范拼写别名，签名与行为完全一致。
+"""
+calculate_minimum_energy(args...; kwargs...) = carculate_minimum_energy(args...; kwargs...)
 """
     alfven_weve(B, ρ)
 

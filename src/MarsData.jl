@@ -21,6 +21,10 @@ module MarsData
 # ==================== 轻量公共 API：路径 / 注册表 / 索引 ====================
 include(joinpath(@__DIR__, "..", "common", "paths.jl"))
 using .Paths
+
+include(joinpath(@__DIR__, "..", "common", "data_keys.jl"))
+using .DataKeys
+
 using JSON
 
 const REGISTRY_PATH = joinpath(Paths.project_root(), "MAVEN_data", "MAVEN_data_format.json")

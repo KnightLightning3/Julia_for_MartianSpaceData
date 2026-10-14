@@ -3,6 +3,38 @@
 module Call_fortran_dll
 # Ref{Float64},  Ptr{Float64}
 # Ref{Int32},    Ptr{Int32}
+
+include(joinpath(@__DIR__, "common", "paths.jl"))
+using .Paths
+
+const LEGACY_FORTRAN_DLL_DIR = "D:/CODE/Package_for_Julia/"
+
+# 定位 linear_growth_rate.dll（ARCH-005）：
+#   Paths.fortran_dll_dir()（settings.toml 可选键 → 仓库根）→ 仓库根 → 旧硬编码路径(@warn)
+function _linear_growth_rate_dll_path()
+    dir = Paths.fortran_dll_dir()
+    p1 = joinpath(dir, "linear_growth_rate.dll")
+    isfile(p1) && return p1
+    p2 = joinpath(Paths.project_root(), "linear_growth_rate.dll")
+    (p2 != p1) && isfile(p2) && return p2
+    p3 = joinpath(LEGACY_FORTRAN_DLL_DIR, "linear_growth_rate.dll")
+    if isfile(p3)
+        @warn "使用旧硬编码 DLL 路径 $p3；建议在 config/settings.toml 配置 paths.fortran_dll_dir 或将 DLL 放到仓库根目录。"
+        return p3
+    end
+    error("未找到 linear_growth_rate.dll。已尝试：\n  $p1\n  $p2\n  $p3\n" *
+          "请将 DLL 放置于仓库根目录，或在 config/settings.toml 的 [paths] 设置 fortran_dll_dir。")
+end
+
+# 定位 Bspline.dll（ARCH-005）：仓库根 → 当前工作目录(CWD，旧行为)
+function _bspline_dll_path()
+    p1 = joinpath(Paths.project_root(), "Bspline.dll")
+    isfile(p1) && return p1
+    p2 = joinpath(pwd(), "Bspline.dll")
+    isfile(p2) && return p2
+    error("未找到 Bspline.dll。已尝试：\n  $p1\n  $p2（当前工作目录）\n" *
+          "请将 Bspline.dll 放置于仓库根目录或当前工作目录。")
+end
 """
     cold_plasma_linear_growth(ekk, pa, psd, psir, frer; B=10.0, Ne=100.0, test=false, MMr=Int32[-100,100]) -> Vector
 
@@ -24,7 +56,8 @@ module Call_fortran_dll
 - 非测试时 `[frer, psir, tgr, sgr]`；测试时 `[tgr, sgr]`。
 
 # 注意事项
-- 依赖 `linear_growth_rate.dll`，路径当前硬编码为 Windows 绝对路径。
+- 依赖 `linear_growth_rate.dll`；路径经 `Paths.fortran_dll_dir()` 解析（settings.toml 可选键
+  `paths.fortran_dll_dir` → 仓库根 → 旧硬编码路径，缺失时抛含指引的错误）。
 """
 function cold_plasma_linear_growth(ekk,pa, psd, psir,frer; B=10.0, Ne=100.0,test=false, MMr=Int32[-100,100])
     npa=length(pa)
@@ -39,7 +72,7 @@ function cold_plasma_linear_growth(ekk,pa, psd, psir,frer; B=10.0, Ne=100.0,test
     # println(psd[1:44,1])
     # println(size(ekk),size(pa),size(psd))
     if test
-        ccall(("MAIN_mp_TEST_VALS", "D:/CODE/Package_for_Julia/linear_growth_rate.dll"), Cvoid,
+        ccall(("MAIN_mp_TEST_VALS", _linear_growth_rate_dll_path()), Cvoid,
         (Ref{Float64}, Ref{Float64}, Ptr{Float64},
         Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
         Ptr{Float64}, Ptr{Float64},
@@ -54,7 +87,7 @@ function cold_plasma_linear_growth(ekk,pa, psd, psir,frer; B=10.0, Ne=100.0,test
         tgr, sgr)
         return [tgr,sgr]
     end
-    ccall(("MAIN_mp_LINEAR_GROWTH_RATE", "D:/CODE/Package_for_Julia/linear_growth_rate.dll"), Cvoid,
+    ccall(("MAIN_mp_LINEAR_GROWTH_RATE", _linear_growth_rate_dll_path()), Cvoid,
             (Ref{Float64}, Ref{Float64}, Ptr{Float64},
             Ref{Int32}, Ref{Int32}, Ref{Int32}, Ref{Int32},
             Ptr{Float64}, Ptr{Float64},
@@ -95,7 +128,7 @@ function Bspline_db1ink(x,fcn; kx::Int32 = Int32(4))
     bcoef = Array{Float64}(undef, nx)
     tx = Array{Float64}(undef, nx+kx)
     iflag = Ref{Int32}(0)
-    ccall(("BSPLINE_SUB_MODULE_mp_DB1INK", "Bspline.dll"), Cvoid,
+    ccall(("BSPLINE_SUB_MODULE_mp_DB1INK", _bspline_dll_path()), Cvoid,
             (Ptr{Float64},Ref{Int32},Ptr{Float64},
             Ref{Int32},Ref{Int32},
             Ptr{Float64},Ptr{Float64},Ref{Int32}),
@@ -129,7 +162,7 @@ function Bspline_db1var(xval,INK_data;idx::Int32 = Int32(0), extrap = false,inbv
     nx,kx,tx,bcoef = INK_data
     f     = Ref{Float64}(0.0)
     iflag = Ref{Int32}(0)
-    ccall(("BSPLINE_SUB_MODULE_mp_DB1VAL", "Bspline.dll"), Cvoid,
+    ccall(("BSPLINE_SUB_MODULE_mp_DB1VAL", _bspline_dll_path()), Cvoid,
             (Ref{Float64},Ref{Int32},Ptr{Float64},
             Ref{Int32},Ref{Int32},
             Ptr{Float64},Ref{Float64},Ref{Int32},

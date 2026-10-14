@@ -42,6 +42,10 @@ end
 
 # 返回值
 - 修改后的同一数组。
+
+# 注意事项（AR-9 就地修改约定）
+- 函数带 `!`，直接修改输入数组 `y`；如需保留原数组请先 `deepcopy`。
+- 典型用法：`y1 = remove_0_point!(data_dict[...][:density][time_i])`，调用后原数组中的非正值已变成 `NaN`。
 """
 function remove_0_point!(y)
     y[y .<= 0] .= NaN

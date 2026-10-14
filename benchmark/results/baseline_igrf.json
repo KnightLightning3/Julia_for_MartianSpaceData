@@ -1,0 +1,13 @@
+{
+  "dll_required": true,
+  "metadata": {
+    "generated_at": "2026-10-14T01:57:42",
+    "julia_version": "1.10.5",
+    "phase": "TASK-001",
+    "purpose": "S0a golden snapshot - pre-implementation baseline",
+    "seed": 12345
+  },
+  "note": "IGRF baseline requires Windows DLL and will be generated in TASK-008",
+  "platform": "NT",
+  "status": "placeholder"
+}

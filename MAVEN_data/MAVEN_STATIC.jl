@@ -220,7 +220,8 @@ end
 # 返回值
 - `Dict{Symbol, Any}`: 已注入 `:df_mass_mass`（未乘 `mass_arr²`）与 `:df` 的同一字典。
 
-# 注意事项
+# 注意事项（AR-9 就地修改约定）
+- 本函数无 `!`，但会修改入参字典并返回同一对象；调用方如需保留原始字典请先 `deepcopy`。
 - 单位为 SPEDAS 约定（df 为 `1/(cm³·(km/s)³)`），非 SI。
 """
 function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
@@ -392,7 +393,7 @@ end
 
 # 参数说明
 - `dat`: STATIC 单时刻切片字典，需含 `:nbins`、`:nenergy`、`:gf`、`:eff`、`:geom_factor`、`:time_integ`、`:dead`、`:bkg`、`:data`。
-- `m_int`: 比荷/质量数（保留参数，当前未参与计算）。
+- `m_int`: 比荷/质量数（保留参数，当前未参与计算）。必须按离子种类显式传值（H⁺=1、O⁺=16 等，见 ion_mass_range）。
 
 # 返回值
 - `Dict{Symbol, Any}`: 已注入 `:eflux` 的同一字典。
@@ -400,7 +401,7 @@ end
 # 注意事项
 - 默认值引用未定义全局 `m_int`，显式传入更安全。
 """
-function STA_count2eflux(dat;m_int=m_int)
+function STA_count2eflux(dat; m_int::Real=16)
     local nbins   = dat[:nbins]
     local nenergy = dat[:nenergy]
     # energy = dat[:energy]   				# in eV     (n_e,nbins,n_m)
@@ -428,7 +429,7 @@ end
 
 # 参数说明
 - `dat`: STATIC 单时刻切片字典，需含 `:energy`、`:mass`、`:eflux`。
-- `m_int`: 比荷/质量数，用于修正质量。
+- `m_int`: 比荷/质量数，用于修正质量。必须按离子种类显式传值（H⁺=1、O⁺=16 等，见 ion_mass_range）。
 
 # 返回值
 - `Dict{Symbol, Any}`: 已注入 `:df` 的同一字典。
@@ -436,7 +437,7 @@ end
 # 注意事项
 - 默认值引用未定义全局 `m_int`，显式传入更安全。
 """
-function STA_eflux2df(dat;m_int=m_int)
+function STA_eflux2df(dat; m_int::Real=16)
     local energy = dat[:energy]
     local mass = dat[:mass].*m_int
     local scale = 1 ./(energy.^2 .* 2 ./mass./mass.*1e5)
@@ -458,9 +459,12 @@ end
 
 # 返回值
 - `Dict{Symbol, Any}`: 单时刻切片字典，供 `sta_v_4d` / `sta_n_4d` / `static_rotation` 等使用。
+  返回的是**新字典**，但数组值多为原数组的 `SubArray` 视图，与原数据共享内存。
 
-# 注意事项
-- 采用 `@views` 生成视图而非拷贝，后续就地修改切片需注意别名效应。
+# 注意事项（AR-9 就地修改约定）
+- `!` 后缀函数会原地修改入参；本函数无 `!`，但返回的切片与 `dat` 共享底层数组。
+- 对切片**写入新键**（如 `slip[:my_key] = ...`）不会影响原字典 `dat`。
+- 对切片**修改既有键的数组元素**会污染原数据；如需隔离请先做 `deepcopy`。
 - 因平滑会引入插值误差，刻意不做时间插值。
 """
 function static_slip(dat,time_ind) #取得static在指定时刻的切片,time_ind 为对应时刻的坐标; 平滑的时间会有插值的问题,所以不考虑

@@ -20,17 +20,57 @@ using JLD2
 using Statistics
 using Rotations
 using FortranFiles
+using Logging
 # -------------------------Export parts-------------------------
 export load_MAVEN_data
 export mean_SWEA_pad_pa, carclu_SWEA_pad
 
 dir = dirname(@__FILE__)
+# 模块级 KP 列映射 Ref（TASK-025）：change_kp_read_data 写此处；load_kp 默认读取此处。
+const _kp_dict = Ref{Dict}(Dict())
 open(dir * "/MAVEN_data_format.json", "r") do f
     data = JSON.parse(f)
-    global kp_dict = data["kp_dict"]
+    _kp_dict[] = data["kp_dict"]
     global data_model = data["data_model"]
 end
 root_path = Paths.maven_data_root() # 所有文件的根目录（经 common/paths.jl 解析：TOML 优先、旧 INI 只读兼容）
+
+# filename_lists.json 惰性访问器（TASK-007）：模块加载期不打开文件，调用时才读取。
+# 文件缺失时返回空字典，使各模型 file_flag=false 正常容错，避免 fresh clone 崩溃。
+function filename_list() :: Dict{String,Any}
+    idx = Paths.index_path()
+    if isfile(idx)
+        return JSON.parsefile(idx)
+    else
+        return Dict{String,Any}()
+    end
+end
+
+# 文件定位日期索引缓存（TASK-013）：每个模型首次调用时按文件名中的 8 位日期建索引，
+# 后续日期命中降为 O(1)；未命中时保留原 occursin 子串扫描作为回退。
+const _FILE_INDEX_CACHE = Dict{String, Dict{String, Vector{String}}}()
+
+function _file_index(model::String)
+    if haskey(_FILE_INDEX_CACHE, model)
+        return _FILE_INDEX_CACHE[model]
+    end
+    flist = filename_list()
+    filenames = get(flist, model, String[])
+    FileList_path = root_path * read_models[model][1]
+    index = Dict{String, Vector{String}}()
+    for fname in filenames
+        full = FileList_path * fname
+        # 取文件名中最右侧的 8 位连续数字串作为日期键（兼容更长数字串的末 8 位）
+        m = match(r"\d{8}(?!\d)", fname)
+        if m !== nothing
+            date_key = m.match
+            push!(get!(index, date_key, String[]), full)
+        end
+    end
+    _FILE_INDEX_CACHE[model] = index
+    return index
+end
+
 # -------------------------Read filelist parts-------------------------
 """
     show_load_models() -> Vector{String}
@@ -71,7 +111,7 @@ end
 function file_list(model::String)
     path = read_models[model][1]
     file_path = root_path .* path
-    data = file_path .* filename_list[model]
+    data = file_path .* filename_list()[model]
     return data
 end
 """
@@ -90,9 +130,18 @@ end
 - `(Bool, String)`: `(是否存在, 文件路径)`；未命中时路径为 `"NaN"`。
 """
 function find_file_of_data(model::String, date::DateTime)
-    FileList_path = root_path * read_models[model][1]
-    FileList = FileList_path .* filename_list[model]
     element = Dates.format(date, "yyyymmdd")
+    # TASK-013：优先走日期索引（O(1) 命中）
+    idx = _file_index(model)
+    hits = get(idx, element, String[])
+    if !isempty(hits)
+        return true, first(hits)
+    end
+    # 未命中则回退到原线性子串扫描（兼容无日期文件名、特殊命名等）
+    flist = filename_list()
+    file_list_for_model = get(flist, model, String[])
+    FileList_path = root_path * read_models[model][1]
+    FileList = FileList_path .* file_list_for_model
     for file_name in FileList
         if occursin(element, file_name)
             return true, file_name
@@ -121,20 +170,31 @@ end
 - 单个文件缺失不会中断批量加载。
 - `date` 参数为 `DateTime` 类型，语义为“读取该日期（一天）的数据”。
 """
-function load_MAVEN_data(date::DateTime; model_index=[], show_filename=false) #全局读取函数 date 格式为yyyymmdd
+function load_MAVEN_data(date::DateTime; model_index=[], show_filename=false, error_report::Vector{String}=String[]) #全局读取函数 date 格式为yyyymmdd
     datas_dict = Dict{String,Any}()
     for model in model_index
         file_flag, filename = find_file_of_data(model, date)
-        function_name = read_models[model][2]
         if !file_flag
+            push!(error_report, "$model: file not found")
             datas_dict[model] = Dict(:data_load_flag => false)
-        else
-            if show_filename
-                println("\033[0;32mloading\033[0m $model from $filename\r")
-            end
+            continue
+        end
+        if !haskey(read_models, model)
+            push!(error_report, "$model: model not registered")
+            datas_dict[model] = Dict(:data_load_flag => false)
+            continue
+        end
+        function_name = read_models[model][2]
+        if show_filename
+            println("\033[0;32mloading\033[0m $model from $filename\r")
+        end
+        try
             datas_dict[model] = function_name(filename)
             datas_dict[model][:filename] = filename
             datas_dict[model][:data_load_flag] = true
+        catch e
+            push!(error_report, "$model: $(sprint(showerror, e))")
+            datas_dict[model] = Dict(:data_load_flag => false)
         end
     end
     return datas_dict
@@ -171,21 +231,25 @@ end
 重设 KP 变量的列映射表。
 
 # 功能与算法概述
-把输入的 `变量名 => 变量序号` 转为 `变量名 => (序号, 列区间)` 并写入全局 `kp_dict`，
-供 `load_kp` 使用。
+把输入的 `变量名 => 变量序号` 转为 `变量名 => (序号, 列区间)` 并写入模块级 Ref `_kp_dict`，
+供 `load_kp` 默认使用。
 
 # 参数说明
 - `kp_dict_in`: `Dict{String,Int32}`，变量名到序号的映射。
 
 # 返回值
-- `Dict`: 更新后的 `kp_dict`。
+- `Dict`: 更新后的列映射表。
+
+# 注意事项
+- 保留写模块 Ref 的副作用以兼容旧脚本，但**非线程安全**；新代码推荐直接通过 `load_kp(...; kp_columns=...)` 显式传入。
+- 未来版本可能标记为弃用。
 """
 function change_kp_read_data(kp_dict_in) # 此函数用来修改load_KP能够读取的值有哪些. 格式为Dict{String,Int32}(变量名 => 变量序号)
     kp_dict_out = Dict()
     for (key, n) in kp_dict_in
         kp_dict_out[key] = (n, n * 16 - 16 .+ (4:19))
     end
-    global kp_dict = kp_dict_out
+    _kp_dict[] = kp_dict_out
     return kp_dict_out
 end
 ##----------------load parts------------------------
@@ -241,8 +305,7 @@ function load_cdf(file::String)  # 将CDF文件读为字典
         try
             cdf_data = CDFDataset(file)
         catch e
-            println("Error: ", file)
-            println(e)
+            @warn "load_cdf failed" file exception=e
             return Dict(:data_load_flag => false)
         end
 
@@ -257,6 +320,9 @@ function load_cdf(file::String)  # 将CDF文件读为字典
                 data_dict[var_name] = collect(v)
             end  # epoch需要为datetime格式，其与time_unix需要读在内存里以加快速度
             local v_num_dims = v.vdr.num_dims
+            # C13 疑点：CDF 记录变量（RV）判定使用 v.vdr.flags & 1 == 1。
+            # 出处待验证：NASA CDF 规范中 bit0=1 表示记录变变量；旧代码注释提到 flags==3/7。
+            # 状态：不改值，仅留此处待人类复核（03 §15 C13）。
             if v_num_dims >= 1 && (v.vdr.flags & 1 == 1)#(v.vdr.flags == 3 || v.vdr.flags == 7)
                 # println(i)
                 data_dict[var_name] = permutedims(collect(v), [v_num_dims+1; 1:v_num_dims]) # 这里的数据不采用硬盘地址保存方法,以便后续的高级处理
@@ -317,7 +383,11 @@ function load_mag_l2(file::String)
         return epoch, [bx, by, bz], [x, y, z]
     end
     lines = readlines(file)
-    line_i = maximum(findall(line -> startswith(line, "END"), lines[1:300]))
+    nums = length(lines)
+    line_i = findlast(line -> startswith(line, "END"), lines[1:min(300, nums)])
+    if line_i === nothing
+        error("load_mag_l2: 无法在文件 $file 的前 min(300, $nums) 行内找到 'END' 表头行")
+    end
     lines = lines[line_i+1:end]
 
     nums = length(lines)
@@ -381,26 +451,29 @@ function load_mag_vsc(file::String)
     return data
 end
 """
-    load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false) -> Dict{Symbol, Any}
+    load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false, kp_columns=_kp_dict[]) -> Dict{Symbol, Any}
 
 读取 KP 文本文件（可选解析坐标变换矩阵）。
 
 # 功能与算法概述
-按 `kp_dict` 的列区间抽取各变量（默认解析为 `Float64`，`str_model=true` 时保留字符串），
+按 `kp_columns` 的列区间抽取各变量（默认解析为 `Float64`，`str_model=true` 时保留字符串），
 解析时间为 `DateTime`；`pc2ss_Matrix_load=true` 时额外从指定列区间组装 `pc2ss_Matrix`。
 
 # 参数说明
 - `filename::String`: KP 文本文件路径。
 - `pc2ss_Matrix_load::Bool`: 是否加载并组装坐标变换矩阵。
 - `str_model::Bool`: 是否以字符串形式保留变量值。
+- `kp_columns`: 列映射字典（`变量名 => (序号, 列区间)`）。默认读取模块级 `_kp_dict[]`；
+  传入自定义映射可避免多脚本同进程互相污染。
 
 # 返回值
 - `Dict{Symbol, Any}`: 含各 KP 变量、`:time`（及可选的 `:pc2ss_Matrix`）的字典。
 
 # 注意事项
 - 内部辅助 `kp_indicate` 由变量序号推算列区间。
+- 旧脚本如调用过 `change_kp_read_data`，默认路径仍保持一致。
 """
-function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
+function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false, kp_columns=_kp_dict[])
     """
         kp_indicate(n) -> UnitRange
 
@@ -426,12 +499,12 @@ function load_kp(filename::String; pc2ss_Matrix_load=false, str_model=false)
     result_dict[:version] = filename[end-10:end-8]
 
     if str_model
-        for (key, value) in kp_dict
+        for (key, value) in kp_columns
             var = [line[value[2]] for line in lines]
             result_dict[key] = var
         end
     else
-        for (key, value) in kp_dict
+        for (key, value) in kp_columns
             var = [line[value[2]] for line in lines]
             # var_float = []
             # if "SCP" in var || "SC0" in var || "I" in var || "O" in var
@@ -903,34 +976,6 @@ function Bpc2sphere(x, y, z, bx, by, bz)
     return Br, Bθ, Bϕ
 end
 """
-    calculate_mag(position; models=[:alt])
-
-由位置矩阵计算海拔、地方时、纬度等辅助量。
-
-# 功能与算法概述
-以名称到 `MarsCommon` 位置派生函数的映射表为基础，遍历 `models` 逐个求值并写入结果字典。
-
-# 参数说明
-- `position`: `N×3` 位置矩阵（通常 MSO，单位 km）。
-- `models`: 需计算的量名列表，默认 `[:alt]`。
-
-# 返回值
-- `Dict`: 以量名为键的结果字典。
-
-# 注意事项
-- 函数体引用了未初始化的全局 `data`，直接调用会报 `UndefVarError`（与 `TW_load.calculate_mag` 同源）。
-"""
-function calculate_mag(position; models=[:alt])
-    funcs = Dict{Symbol,Any}(
-        :alt => MarsCommon.position_altitude,
-        :local_time => MarsCommon.position_local_time,
-        :latitude => MarsCommon.position_latitude,
-    )
-    for model in models
-        data[model] = funcs[model](position)
-    end
-end
-"""
     mean_SWEA_pad_pa(data_dict) -> Dict{Symbol, Any}
 
 把 SWEA PAD 的 360°（16 方向）俯仰角数据平均为 180°（8 方向）。
@@ -957,6 +1002,9 @@ function mean_SWEA_pad_pa(data_dict)  # 输入SWEA PAD的CDF字典,将其角度�
     flux2 = flux[:, 16:-1:9, :]
     nan_indices_flux1 = findall(isnan.(flux1))
     nan_indices_flux2 = findall(isnan.(flux2))
+    # C12 疑点：NaN 互填逻辑——先用对侧有效值填补本侧 NaN，再平均。
+    # 出处待验证：SPEDAS/IDL 对 SWEA PAD 180° 平均是否采用同样的互填规则？填补顺序是否影响结果？
+    # 状态：不改值，仅留此处待人类复核（03 §15 C12）。
     flux1[nan_indices_flux1] = flux2[nan_indices_flux1]
     flux2[nan_indices_flux2] = flux1[nan_indices_flux2]
 
@@ -1252,6 +1300,12 @@ function cyclone_R(v, B; mass=constants.me)
     R = v / (cyclone_frequency(B; mass) * 2 * π) # m
     return R
 end
+# SWEA shape parameter 计算相关的能量通道常量（TASK-022）
+const SWEA_N_ENERGY_BINS = 64
+const SWEA_SHAPE_FIRST_BIN = 13
+const SWEA_SHAPE_LAST_BIN = SWEA_N_ENERGY_BINS
+const SWEA_SHAPE_NBINS = SWEA_SHAPE_LAST_BIN - SWEA_SHAPE_FIRST_BIN + 1
+
 """
     SWEA_calc_shape_arr(dat; energy_range=[20,80], pad_range=[0,30], time_i=nothing) -> Vector{Float64}
 
@@ -1273,6 +1327,8 @@ end
 # 注意事项
 - 由文件名判断分辨率（`arc` → 高分辨率模板）。
 - 嵌套函数 `mvn_swe_calc_shape_arr` 与 `deriv` 分别做模板拟合与非均匀一阶差分。
+- 模板匹配默认使用能量通道 `SWEA_SHAPE_FIRST_BIN:SWEA_SHAPE_LAST_BIN`
+  （`$(SWEA_SHAPE_FIRST_BIN):$(SWEA_SHAPE_LAST_BIN)`，共 `SWEA_SHAPE_NBINS` 道）。
 """
 function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time_i = nothing)# 计算指定pa范围的shape parameter,设置time_i后可以计算指定时间段的数据以增加运行速度
     """
@@ -1352,9 +1408,9 @@ function SWEA_calc_shape_arr(dat;energy_range = [20,80], pad_range = [0,30],time
         # Select df_iono based on hresflg
         df_iono = hresflg == 1 ? df_hres : df_lres
         
-        # Select energy channels
-        n_e = 52 # Number of model energy channels
-        indx = collect(13:64)
+        # Select energy channels (TASK-022：用命名常量替换硬编码 13:64 / 52)
+        n_e = SWEA_SHAPE_NBINS # Number of model energy channels
+        indx = collect(SWEA_SHAPE_FIRST_BIN:SWEA_SHAPE_LAST_BIN)
         e = energy[indx]
         # Take the first derivative of log(eflux) w.r.t. log(E)
         f = log10.(fin[:,indx])
@@ -1451,14 +1507,32 @@ function SWEA_calc_shape_arr_mars_towrads(SWEA_dat,MAG_dat;energy_range=[0,100],
     return par_twd,par_away,par_mid
 end
 
-kp_dict = change_kp_read_data(kp_dict)
+_kp_dict[] = change_kp_read_data(_kp_dict[])
+
+# 显式 loader 函数表（TASK-012）：JSON value[4] 字符串 → 模块内真实函数。
+# 彻底去除 eval(Meta.parse(...)) 的任意代码执行入口；JSON 文件一字不改。
+const LOADER_FUNCS = Dict{String,Function}(
+    "load_cdf"            => load_cdf,
+    "load_c6_v3d"         => load_c6_v3d,
+    "load_d1_v4d"         => load_d1_v4d,
+    "load_kp"             => load_kp,
+    "load_mag_l2"         => load_mag_l2,
+    "load_mag_vsc"        => load_mag_vsc,
+    "load_NGIMS_den_l3"   => load_NGIMS_den_l3,
+    "load_NGIMS_den_l4"   => load_NGIMS_den_l4,
+    "load_NGIMS_sht_l3"   => load_NGIMS_sht_l3,
+    "load_quat"           => load_quat,
+    "load_swea_pad"       => load_swea_pad,
+)
+
 read_models = Dict{String,Tuple{String,Function}}()
 for (key, value) in data_model
-    func = eval(Meta.parse(value[4]))
-    read_models[key] = (value[3], func)
-end
-open(dir * "/" * "filename_lists.json", "r") do f
-    global filename_list = JSON.parse(f)
+    loader_name = value[4]
+    if !haskey(LOADER_FUNCS, loader_name)
+        error("MAVEN model '$(key)' references unknown loader function '$(loader_name)'. " *
+              "Add it to LOADER_FUNCS in MAVEN_data/MAVEN_load.jl.")
+    end
+    read_models[key] = (value[3], LOADER_FUNCS[loader_name])
 end
 end # module
 

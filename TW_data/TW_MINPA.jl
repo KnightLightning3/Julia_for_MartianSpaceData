@@ -2,12 +2,14 @@
 
 module TW_MINPA
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+include(joinpath(@__DIR__, "..", "common", "paths.jl"))
+using .Paths
 using Dates
 using DelimitedFiles, DataFrames
 using LinearAlgebra
 using StaticArrays
 
-root_path = "E:/Tianwen-1/"
+root_path = Paths.tw_data_root()  # 经 common/paths.jl 解析：TOML 优先、默认 E:/Tianwen-1/
 secondry_path = root_path*"MINPA/2B/"
 
 """
@@ -108,7 +110,9 @@ function load_mod1(filename::String)
     
     dϕ = ϕ[2]-ϕ[1]
 
-    # 能量的体积元可能不对
+    # C6 疑点：denergy 原实现被注释，当前等间距取 (E[i+1]-E[i-1])/2。
+    # 出处待验证：SPEDAS/IDL 原始代码是否同样用中心差分？TW MINPA 能量表是否对数等距？
+    # 状态：不改值，仅留此处待人类复核（03 §15 C6）。
     denergy = (circshift(energy,(-1)) - circshift(energy,(1)))/2
     denergy[1] = energy[2] - energy[1]
     denergy[end] = energy[end] - energy[end-1]
@@ -438,10 +442,16 @@ function v3d(dat) # 通过角度，能量，质量数，计算PSD
 
     n0  =  sum(2.0 .* J ./ velocity   .*dsum ;dims=3:5)
     nvx =  sum(2.0 .* J .* (ct       .* dsum);dims=3:5)
+    # C7 疑点：nvy 带负号，随后整体 vel = -vel，相当于速度方向全反。
+    # 出处待验证：SPEDAS/IDL 原始代码是否同样先取负再整体反向？可能与坐标系手性或探测器朝向有关。
+    # 状态：不改值，仅留此处待人类复核（03 §15 C7）。
     nvy = -sum(2.0 .* J .* (st .* cp .* dsum);dims=3:5)
     nvz =  sum(2.0 .* J .* (st .* sp .* dsum);dims=3:5)
-    #  单位转换，m → cm   Δv/v(=1/2ΔE/E)  Δθ Δφ 乘上积分间隔 
+    #  单位转换，m → cm   Δv/v(=1/2ΔE/E)  Δθ Δφ 乘上积分间隔
 
+    # C6 疑点：密度归一化系数 0.2/2，原注释中的 denergy=0.15*energy 已被弃用。
+    # 出处待验证：SPEDAS/IDL 中该系数是否为固定 0.1？是否应与 denergy 积分口径一致？
+    # 状态：不改值，仅留此处待人类复核（03 §15 C6）。
     den[:,:] = n0 .* (1.0E-6 * 0.2/2)
     vel[:,:,1] = nvx  ./ n0 ./ 1.0e3 # 单位转换，m/cm → km
     vel[:,:,2] = nvy  ./ n0 ./ 1.0e3

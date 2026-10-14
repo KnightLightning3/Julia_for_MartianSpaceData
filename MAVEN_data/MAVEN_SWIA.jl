@@ -354,26 +354,55 @@ end
 
 # 注意事项
 - SWIA 只区分质子；作者注释称本函数"已经过检验，可以正常工作"。
+- **C5 修复**：`theta`/`domega` 支持 coarse 3D（`(ntime, ndeflect, nenergy)`）与 fine 4D
+  （`(ntime, 1, ndeflect, nenergy)`）两种输入；非法维度会抛出带实际形状的清晰报错。
 """
 function v_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的速度, SWIA假设所有离子为质子,需要SWIA coarse data 3D, 经过检验，可以正常工作
     # general/science/v_3d.pro // projects/maven/swia/mvn_swia_get_3dc.pro 参考，已经经过检验，速度单位km/s
     local ntime_local = length(time_ind)
-    # ntime = dat[:ntime]  
-    # nbins = dat[:nbins]  
+    # ntime = dat[:ntime]
+    # nbins = dat[:nbins]
 
-    local nenergy = dat[:nenergy]  
+    local nenergy = dat[:nenergy]
     local energy = dat[:energy]
     local denergy = dat[:denergy]
 
-    local ndeflect = dat[:ndeflect]  
-    local theta = reshape(dat[:theta][time_ind,:,:,:],ntime_local,1,ndeflect,nenergy)
+    local ndeflect = dat[:ndeflect]
+    local nanode = dat[:nanode]
+
+    # --- C5 修复：theta/domega 可能是 coarse 3D 或 fine 4D，按 ndims 分支索引 ---
+    local theta_raw = dat[:theta]
+    local domega_raw = dat[:domega]
+    local theta, domega
+    if ndims(theta_raw) == 3
+        size(theta_raw, 1) >= maximum(time_ind) ||
+            error("v_3d: theta 时间维长度 $(size(theta_raw,1)) 小于最大索引 $(maximum(time_ind))")
+        size(theta_raw, 2) == ndeflect ||
+            error("v_3d: coarse theta 的第二维 $(size(theta_raw,2)) 不等于 ndeflect=$(ndeflect)")
+        size(theta_raw, 3) == nenergy ||
+            error("v_3d: coarse theta 的第三维 $(size(theta_raw,3)) 不等于 nenergy=$(nenergy)")
+        size(domega_raw) == size(theta_raw) ||
+            error("v_3d: domega 形状 $(size(domega_raw)) 与 theta 形状 $(size(theta_raw)) 不一致")
+        theta  = reshape(theta_raw[time_ind,:,:],  ntime_local, 1, ndeflect, nenergy)
+        domega = reshape(domega_raw[time_ind,:,:], ntime_local, 1, ndeflect, nenergy)
+    elseif ndims(theta_raw) == 4
+        size(theta_raw, 1) >= maximum(time_ind) ||
+            error("v_3d: theta 时间维长度 $(size(theta_raw,1)) 小于最大索引 $(maximum(time_ind))")
+        size(theta_raw, 3) == ndeflect ||
+            error("v_3d: fine theta 的偏转维 $(size(theta_raw,3)) 不等于 ndeflect=$(ndeflect)")
+        size(theta_raw, 4) == nenergy ||
+            error("v_3d: fine theta 的能量维 $(size(theta_raw,4)) 不等于 nenergy=$(nenergy)")
+        size(domega_raw) == size(theta_raw) ||
+            error("v_3d: domega 形状 $(size(domega_raw)) 与 theta 形状 $(size(theta_raw)) 不一致")
+        theta  = reshape(theta_raw[time_ind,:,:,:],  ntime_local, 1, ndeflect, nenergy)
+        domega = reshape(domega_raw[time_ind,:,:,:], ntime_local, 1, ndeflect, nenergy)
+    else
+        error("v_3d: theta 维度 $(ndims(theta_raw)) 不被支持，应为 3（coarse）或 4（fine）")
+    end
     # local dtheta = reshape(dat[:dtheta][time_ind,:,:],ntime_local,1,ndeflect,nenergy)
 
-    local nanode = dat[:nanode]  
     local phi = reshape(dat[:phi],1,nanode,1,1)
-    # local dphi = dat[:dphi]  
-    local domega = reshape(dat[:domega][time_ind,:,:,:],ntime_local,1,ndeflect,nenergy)
-    # mass = dat[:mass]
+    # local dphi = dat[:dphi]
     local data0 = reshape(dat[:diff_en_fluxes][time_ind,:,:,:],ntime_local,nanode,ndeflect,nenergy)
 
     local mask = reshape(energy_range[1] .<= energy[1,:] .<= energy_range[2],1,1,1,nenergy)
@@ -382,6 +411,9 @@ function v_3d(dat,time_ind;energy_range=[0.1,1e8])# 计算SWIA的速度, SWIA假
 
     local sumdata = sum(data.*domega,dims=2:3)[:,1,1,:]
 
+    # C11 疑点：系数 7.224566339926571e-7 无推导注释。
+    # 出处待验证：该值是否等于 sqrt(m_p/2)/某个单位换算？与 SPEDAS/IDL mvn_swia_get_3dc.pro 是否一致？
+    # 状态：不改值，仅留此处待人类复核（03 §15 C11）。
     local Const = 7.224566339926571e-7
     density = Const*sum(denergy.*(energy.^(-1.5)).*sumdata,dims=2)
 
@@ -427,6 +459,9 @@ function n_1d(dat0;energy_range=[0.1,1e8],time_ind=1:10)# 计算SWIA的密度, S
     flux[:,energy_ind] .= 0.0
     denergy = energy.*dat[:de_over_e_spectra]
     mass = constants.mp_g
+    # C11 疑点：系数 8.8 乘在 sqrt(m_p/(2*erg_per_eV)) 上，无推导注释。
+    # 出处待验证：SPEDAS/IDL mvn_swia_get_spectrum.pro 中该系数是否为仪器几何因子或单位换算？
+    # 状态：不改值，仅留此处待人类复核（03 §15 C11）。
     Const = sqrt(mass/(2.0*constants.erg_per_eV)) * 8.8
     density = Const*sum(denergy.*(energy.^(-1.5)).*flux,dims=2)[:,1]
     return density

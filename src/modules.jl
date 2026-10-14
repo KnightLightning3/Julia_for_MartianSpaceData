@@ -63,6 +63,7 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
         deps = [:constants], allow = [:searchsortednearest, :e_energy2v, :ion_energy2v],
     ),
     :Paths => _spec(:Paths, "common/paths.jl", "配置与路径解析（已随包预装）"; kind = :preloaded),
+    :DataKeys => _spec(:DataKeys, "common/data_keys.jl", "数据键契约常量（已随包预装）"; kind = :preloaded),
     :MAVEN_load => _spec(
         :MAVEN_load, "MAVEN_data/MAVEN_load.jl", "MAVEN 统一读取入口";
         deps = [:constants, :MarsCommon, :Paths], allow = [:load_cdf, :load_MAVEN_data],
@@ -391,41 +392,69 @@ function load_module(
 end
 
 """
-    validate_registry(; verbose=false) -> Vector{String}
+    validate_registry(; verbose=false) -> (; errors, warnings)
 
-自检注册表：键与 `name` 一致、文件存在、文件内确有 `module <name>`、`deps` 均在注册表中、依赖无环。
+自检注册表：键与 `name` 一致、文件存在、文件内确有 `module <name>`、`deps` 均在注册表中、
+依赖无环，并检查模块文件中的相对引用与自包含 include 是否和 `deps` 一致。
+
+# 新增校验（TASK-015）
+- **错误**：文件含 `using ..X` 但 `X` 未声明在 `deps` 中。
+- **警告**：文件自包含 `include(...X.jl...)` 且 `X` 又声明在 `deps` 中（冗余）。
 
 # 返回值
-- `Vector{String}`：问题清单；为空表示全部通过。
+- `NamedTuple{(:errors, :warnings)}`：`errors` 为问题清单；两者皆空表示全部通过。
 """
 function validate_registry(; verbose::Bool = false)
-    problems = String[]
+    errors = String[]
+    warnings = String[]
     for (s, spec) in MODULE_REGISTRY
-        s === spec.name || push!(problems, "键 `$(s)` 与 `name` 字段 `$(spec.name)` 不一致")
+        s === spec.name || push!(errors, "键 `$(s)` 与 `name` 字段 `$(spec.name)` 不一致")
         file = module_path(s)
         if !isfile(file)
-            push!(problems, "模块 `$(s)` 的文件不存在：$(spec.path)")
-        else
-            txt = read(file, String)
-            if !occursin(Regex("(?m)^\\s*module\\s+" * string(spec.name) * "\\b"), txt)
-                push!(problems, "文件 `$(spec.path)` 中未找到 `module $(spec.name)`")
-            end
+            push!(errors, "模块 `$(s)` 的文件不存在：$(spec.path)")
+            continue
+        end
+        txt = read(file, String)
+        if !occursin(Regex("(?m)^\\s*module\\s+" * string(spec.name) * "\\b"), txt)
+            push!(errors, "文件 `$(spec.path)` 中未找到 `module $(spec.name)`")
         end
         for d in spec.deps
             haskey(MODULE_REGISTRY, d) ||
-                push!(problems, "模块 `$(s)` 的依赖 `$(d)` 不在注册表中")
+                push!(errors, "模块 `$(s)` 的依赖 `$(d)` 不在注册表中")
+        end
+
+        # TASK-015 (a): 检测 `using ..X` 但 X 未声明在 deps 中 → 错误
+        for m in eachmatch(r"using\s+\.\.([A-Za-z_]\w*)", txt)
+            dep_name = Symbol(m[1])
+            if !(dep_name in spec.deps)
+                push!(errors,
+                    "模块 `$(s)` 使用 `using ..$(m[1])`，但 `$(m[1])` 未在 deps 中声明")
+            end
+        end
+
+        # TASK-015 (b): 检测自包含 `include(...\.jl)` 且同名模块又在 deps 中 → 警告
+        for inc in eachmatch(r"include\s*\(([^)]*\.jl[^)]*)\)", txt)
+            inc_arg = inc[1]
+            for m in eachmatch(r"([A-Za-z_]\w*)\.jl", inc_arg)
+                stem = Symbol(m[1])
+                if stem in spec.deps
+                    push!(warnings,
+                        "模块 `$(s)` 自包含 include `$(m[1]).jl`，同时 deps 包含 `$(m[1])`（冗余）")
+                end
+            end
         end
     end
     try
         _topo_order()
     catch err
-        push!(problems, sprint(showerror, err))
+        push!(errors, sprint(showerror, err))
     end
     if verbose
-        println("注册表自检：$(length(MODULE_REGISTRY)) 个模块，$(length(problems)) 个问题")
-        foreach(p -> println("  - ", p), problems)
+        println("注册表自检：$(length(MODULE_REGISTRY)) 个模块，$(length(errors)) 个错误，$(length(warnings)) 个警告")
+        foreach(e -> println("  [错误] ", e), errors)
+        foreach(w -> println("  [警告] ", w), warnings)
     end
-    return problems
+    return (errors = errors, warnings = warnings)
 end
 
 """
