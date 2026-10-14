@@ -101,11 +101,29 @@ end
     #     discribe = "heat=energy>30eV,cold=energy<30eV,total=energy<1e8eV",
     # )
 end
-"""将 STATIC 一维派生数据写入 Fortran 无格式二进制文件。"""
+"""将 STATIC 一维派生数据写入 JLD2 文件。
+
+**先写临时文件，成功关闭后再改名到最终路径**，因此任何中途失败（异常、
+断电、进程被杀）都只会留下 `*.temp` 残留，绝不会产生「名字正确但内容残缺」
+的产品文件——这点很重要，因为批处理用 `isfile` 跳过已完成任务，一个残缺的
+正式文件会被永久跳过而不会被重建。
+
+注意：`mv` 在同目录内是原子改名，所以只要临时文件和目标在同一目录即可。
+"""
 @inline function data2bi(datas_dict,filename)
     filter = [Shuffle(), Deflate()]
-    jldopen(filename, "w"; compress = filter) do f
-        f["data"] = datas_dict
+    tempname_ = filename * ".temp"
+    # 上次异常退出可能留下同名临时文件，先清掉，避免 jldopen 追加写入脏数据
+    isfile(tempname_) && rm(tempname_)
+    try
+        jldopen(tempname_, "w"; compress = filter) do f
+            f["data"] = datas_dict
+        end
+        mv(tempname_, filename; force = true)
+    catch e
+        # 写失败时清掉半成品，避免下次被误当作可用文件
+        isfile(tempname_) && rm(tempname_; force = true)
+        rethrow(e)
     end
     # time = datas_dict.time_unix
     # Ntime = length(time)
@@ -188,12 +206,16 @@ for (date, file_ion) in common_dates
         mkpath(dir)
     end
     yyyymmdd_new = date
-    files_old = readdir(dir;join=true)
+    # 只在 readdir 阶段就按前缀过滤，避免每次迭代都把整个月份的目录读进来再逐个正则匹配。
+    # 本目录同时存放 d1_v4d 等其他产物，条目数会随运行不断增长，
+    # 原写法（readdir 全量 + 每个条目两次 match）代价随迭代次数线性上升。
+    files_old = filter(f -> startswith(basename(f), "mvn_sta_l3_c6_v3d_") && endswith(f, ".jld2"), readdir(dir; join=true))
     for file_old in files_old # 移除旧版本数据
-        if isnothing(match(r"mvn_sta_l3_c6_v3d_(\d{8})_",file_old))
+        m_old = match(r"mvn_sta_l3_c6_v3d_(\d{8})_", file_old)
+        if isnothing(m_old)
             continue
         end
-        yyyymmdd_old = match(r"mvn_sta_l3_c6_v3d_(\d{8})_",file_old).captures[1]
+        yyyymmdd_old = m_old.captures[1]
         if yyyymmdd_old == yyyymmdd_new
             v_old = match(r"_v([0-9]{2})",file_old).captures[1]
             r_old = match(r"_r([0-9]{2})",file_old).captures[1]
@@ -203,22 +225,24 @@ for (date, file_ion) in common_dates
             rr_new = parse(Int32, ion_revision)
             if vv_old < vv_new || (vv_old == vv_new && rr_old < rr_new)
                 rm(file_old)
-                println("\033[0;31mrm $yyyymmdd_old$v_old$r_old to_bulid $yyyymmdd_new$v_new$r_new\033[0m")
+                println("\033[0;31mrm $yyyymmdd_old$v_old$r_old to_bulid $yyyymmdd_new$vv_new$rr_new\033[0m")
             end
         end
     end
 
-    @time if !isfile(new_path)
+    if !isfile(new_path)
         print("\033[0;32mBuilding $(date)\033[0m \n")
         local ion_data = MAVEN_load.load_cdf(file_ion)
         local datas_dict = get_ion_vel(ion_data)
-        touch(new_path)
+        # 注意：这里**不能**再 touch(new_path)。data2bi 已是「写临时文件再原子改名」，
+        # 提前 touch 会先造出一个 0 字节的正式文件；一旦在改名之前被杀，
+        # 这个空文件会被 isfile 永久跳过、再也不会重建。
         try
             data2bi(datas_dict,new_path)
         catch e
             global e
             print("\033[0;31mERROR: $(e)\033[0m \n")
-            rm(new_path)
+            rm(new_path; force = true)
         end
     else
         print("\033[0;33mSKIP $(date)\033[0m \n")
