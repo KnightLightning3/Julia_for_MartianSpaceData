@@ -636,3 +636,72 @@
 - 本 attempt 修改源码遵循 03/04/05 已定方案（TASK-006/007/012/013/018/019/020/021/022/023），未自行扩大范围。
 - 未重新全仓扫描；仅按需读取涉及文件。
 - 未修改 Python 侧、未修改 JSON/gh_gao/核心算法、未删除任何 `.agent/` Markdown；`Project.toml` `[deps]` 未改动。
+
+---
+
+## STATIC 质量基准常量替换与 sta_v_4d_new 删除（团队 static-small-change；t2 实施 / t3 独立验证 / t4 审查）
+
+**状态**：t2 实施完成，t3 独立验证、t4 独立审查（verdict=pass）通过；按用户要求**不单独提交**，并入最终一次提交。
+
+**修改内容**：
+- `MAVEN_data/MAVEN_STATIC.jl`：9 处质量基准读取 `dat[:mass]` → `constants.mp_eV_per_km_s2`（现行行 239/304/324/335/445/579/737/954/996，分属 STA_count2df、STA_count2df_all 两分支+基准²、STA_eflux2df、sta_v_4d、sta_n_4d、STA_count3df、sta_v_1d）；运算次序、公式、`m_int` 默认值、`mass_arr` 用法与单位均不变；矩计算处注明「不用 dat[:mass]：物理等效且常量精度更高」。
+- 同文件：`sta_v_4d_new` 连同 docstring 整段删除（92 行），无 alias/兼容分支；STA_count2df/STA_count2df_all/STA_eflux2df/STA_count3df docstring 移除必需 `:mass` 键。
+- `docs/src/api.md`：只列 `sta_v_4d`。
+- `test/runtests.jl`：末尾 include 新回归；`test/static_mass_regression.jl`（新增）覆盖 9 处读取所属函数/分支与副作用（同对象就地修改、两分支 df 与 df_mass_mass 关系、valid=0 的 NaN 与 "Invalid Data" 输出、缺键/异值不再依赖 `:mass`）。
+- `benchmark/bench_03_sta_v4d.jl`：改为单 `sta_v_4d` 有效合成夹具 + Base 计时，删除缺键 try/catch/`exit(0)` 伪通过与 `sta_v_4d_new` 对比段。
+
+**旧/新误差依据（改动前 5f225db 只读实测）**：
+- `constants.mp_eV_per_km_s2 = 0.010439684891821985`（Float64）；`Float32` 基准自身相对差 2.6560460581326496e-8。
+- 同一确定性夹具 101 探针：Float32 质量基准 vs Float64 同值基准 100/101 不同，最大相对差 **7.068977758535884e-8**（授权精度提升的实测误差依据）；键值 ×1.0001 → 输出最大相对变化 2.0001e-4；缺失 `:mass` → `KeyError(:mass)`。
+- 改动后 Float64 同值/Float32/异值/缺失/Float32 数组夹具 5 种情形，101 探针全部与改动前 Float64 基线逐位一致（同值路径 exact）。
+
+**命令结果**：
+- `julia --project=. test/runtests.jl` → exit 0：主套件 141 Pass / 1 Broken / 142（broken 为 runtests.jl:30 既有注册表警告断言，改动前后同为 1 条），新增回归 64 Pass。
+- `julia --project=. benchmark/bench_03_sta_v4d.jl` → exit 0（两分支逐位一致；Base 计时约 232–314 µs/call）。
+- `git diff --check` → exit 0。
+
+**审查结论（t4，独立审查者，与本批 t3 验证同成员已披露）**：verdict = pass。HD-08/HD-10/HD-13 逐点符合；14 hunk 无签名/默认值/公式/运算次序变更；oracle 以旧实现复算 `OLD(F64)==BASELINE_F64`、`OLD(F32)==BASELINE_F32` 成立；删除与范围合规。
+
+**已知边界（非缺陷）**：`models/Pickup_ion.jl:103` 的 sta 分支仍读数据包 `d1_data_slip[:mass]`（本次不回写 dat，属授权接受边界）；`MAVEN_STATIC.jl:276` 注释内行号 `:332` 陈旧（基准²实际在 335 行），为保持审查哈希本次未改动，可在后续触碰该文件时更正。
+
+**提交状态**：本批**未提交**，本地未执行任何 git 写操作、未 push；待与后续迁移合并为一次最终提交，外部提交清单见 t5 交付。
+
+---
+
+## 调用点迁移与旧入口收束 + AST 校验器 + IGRF 同批迁移 + DLL 字符串修复（团队 static-small-change；实施 t13/t24/t25/t16/t18，独立审查 t14/t17/t20/t21/t23/t29）
+
+**状态**：实施任务全部完成，独立审查 verdict 均为 pass；本批**未提交**（按指示不执行 git 写操作、不 push），与上一批 STATIC 合计为一次外部提交（清单与命令见 t15 交付）。
+
+**逐项可核对**：`validation/migrations/index.toml`（由脚本从 6 份清单**实际解析**生成，含每单元 name/from/to/status/target_hash 形态与各清单 sha256）。
+- 迁移单元 36：行级 finalized 35 / pending 1；校验器 verdict = ok 25 / fail 0 / pending 1 / unknown 10（unknown 为动态/无法静态解析点，**不计通过**）。
+- 唯一 pending：`mean_SWEA_pad_pa` —— 真实读取入口（load_swea_pad(mean_PA=true)）与逆层依赖约束，保留原实现与原行为，未声称完成。
+
+**主要落地**：`common/MarsCommon.jl` + `common/marscommon/*`（4 子文件 16 函数）；`models/Mars_Environment.jl`（模块名 `MarsEnvironment`）；`common/function_coordinate.jl` 包化为 `FunctionCoordinate`（含 3 个旋转函数迁入）；`MAVEN_data/MAVEN_SWEA.jl`（shape 闭包 + `carclu_SWEA_pad`）；`MAVEN_data/MAVEN_load.jl`、`calculate/calculate_models.jl` 旧定义清除；`:MarsCommon`/`:MarsEnvironment` 策略 P 预装（绑定 `MAVEN_plot` 内实例，`src/MarsData.jl` 只加常量）；`models/Pickup_ion.jl` 显式载入 + 限定名调用。
+
+**旧入口真删**：`common/head.jl`、`calculate/calculate_models.jl`（清单逐行补 `source_revision = "5f225db"` 后物理删除，工具给出 `SOURCE_FILE_DELETED_VERIFIED`）；MAVEN_plot 改 `using .MarsCommon`；`cyclone_*` 与 `static_c6_*` 旧副本删除（旧输入逐位等价已证）。
+
+**IGRF 同批迁移**：`Magnetic_Model/{IGRF_calculate.jl, gh_gao, IGRF_DLL.dll}` → `models/`（字节级 sha256 不变；`gh_gao.txt` 原位保留），注册表/example/Pickup 消费者同步，资源仍以 `dirname(@__FILE__)` 同目录定位。
+
+**语法修复**：`call_fortran_dll.jl` 字符串插值 `$p3；` → `$(p3)；`（仅 1 行），新增 `test/fortran_parse_test.jl` 解析回归。
+
+**新增回归**：`test/callsite_migration_test.jl`、`test/common_migration_test.jl`、`test/coordinate_migration_test.jl`、`test/environment_migration_test.jl`、`test/swea_migration_test.jl`、`test/igrf_move_test.jl`、`test/ast_migration_test.jl`、`test/fortran_parse_test.jl`（`test/static_mass_regression.jl` 由 STATIC 批引入）。
+
+**命令结果（全部 exit 0）**：`test/runtests.jl` 143 Pass / 1 Broken / 144 + STATIC 64；callsite 79；common 280；coordinate 113；environment 191；swea 140；igrf_move 64；ast 204；fortran 28；`validation/check_migrations.jl` ok 25 / fail 0 / pending 1 / unknown 10；`git diff --check` 0。
+
+**已知边界（不列为通过）**：`mean_SWEA_pad_pa` 未合并；IGRF `:adaptive` 缺 DLL 符号 `MAIN_mp_ADAPTIVE_STEP_TRACE`（既有开放项，测试以"当前抛错"的可证伪断言固定）；10 条 unknown 动态点；`models/Single_Particle_Orbit.jl:404` 注释内旧路径未改（out-of-scope）；README/CHANGELOG/docs 未同步（留文档重构统一）。
+
+**提交状态**：本批**未提交**；按指示不对受限 `.git` 重试或绕过；外部提交清单与命令见 t15 交付（排除 `.agent-teams/**` 与仅行尾差异的 `.agent/审计结果.md`）。
+
+---
+
+## 迁移批次冻结与一次性提交交付（实施 t36/t38/t40/t42，独立审查 t37/t39/t41/t43 全 pass；t44 收尾）
+
+**状态**：本轮全部改动**冻结**；**未提交、未 push**。受限 `.git` 按既定口径不再尝试/绕过，改交外部一次性提交清单（见 t44 输出）。
+
+**最终数字（现场核对，非估计）**：迁移清单 **7 份**（脚本遍历 `validation/migrations/*.toml` 下实际含 `moves`/`retained` 者，排除输出自身）；moves 记录 **39**（finalized 39 / pending 0）；**保留例外 3**（`swea/mean_SWEA_pad_pa`；`coordinate_variants` 的 `slice2d_cal_rot` 两条 —— FC 版 @common/function_coordinate.jl 与 MAVEN_plot 嵌套版 @MAVEN_data/MAVEN_plot.jl，均 `status=retained`、无 `target_hash`）；校验器 verdict **ok 28 / fail 0 / pending 0 / unknown 11**（unknown 为动态/无法静态解析点，**不计通过**；28 ≠ 39 科学通过）。
+
+**本批新增/收口**：IGRF 注册依赖补 `:MarsCommon`，模块内两档 guard 复用规范实例（`IGRF_calculate.MarsCommon === MarsData.MarsCommon`）；磁场分量坐标变换权威入 `common/marscommon/geometry.jl`（hypot 版 `Bpc2sphere` 与 loader sqrt 版显式改名 `Bpc2sphere_naive`，不合并、不改算法）；TW 切片矩阵显式改名 `slice2d_cal_rot_matrix`。
+
+**回归**：coordinate_variants 81/81｜igrf_move 64/64｜runtests 144 Pass / 1 Broken / 145 + STATIC 64｜`validation/check_migrations.jl` exit 0｜`git diff --check` 0。
+
+**保留边界（不得称为全项目完成）**：Extras 与 Pickup 的物理移动未做；registry `allow` 白名单与 DataKeys 相关项未完成；README/CHANGELOG/docs 未同步（留文档重构统一）；IGRF `:adaptive` 缺 DLL 符号属既有开放项；`mean_SWEA_pad_pa` 为 loader 层保留例外。
