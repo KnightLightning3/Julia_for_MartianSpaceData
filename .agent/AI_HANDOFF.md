@@ -1,5 +1,14 @@
 # AI_HANDOFF.md —— 当前唯一接续入口（DeepSeek Flash 整理，2026-10-15 14:15 +08:00）
 
+> **配置完全统一为 TOML（2026-10-15，优先于历史 INI 兼容说明）**
+> - 用户明确要求弃用 INI。Julia Paths 与 Python 下载、扫描、汇总、检查、清理及派生构建入口只读 `config/settings.toml`，无旧文件回退；删除 `tools/migrate_config.py`、migrate CLI、INI 列表工具与 IniFile 依赖。保留接手前 Project/Manifest 的其他改动。
+> - `settings.example.toml` 补齐旧下载配置所有参数；初始化器复制完整模板且拒绝覆盖。三个共享数据根必填，其余可选配置按模板默认；Python 检查字段、类型、索引、模式、日期和范围。相对路径以仓库根解析，Windows绝对路径原样保留；所有已发现依赖尾斜杠的数据根调用改用joinpath/os.path.join。
+> - 本机原来没有settings.toml，已一次性把本机旧INI值完整保留到该忽略文件中；旧INI留在本机但运行代码不再读取，不提交或输出本地认证配置。CDF_LIB以paths.cdf_lib保留，其旧Python脚本原本也未将它传给spacepy，本轮不扩展科学运行逻辑。
+> - Paths在加载时缓存，include_dependency跟踪TOML以使预编译缓存随本地配置修改失效；缺配置明确报初始化命令。清理CLI的显式--config不依赖默认文件，目录下载器不再硬编码覆盖server.index。
+> - 定向验证：Python unittest发现18项通过；手工runner P0 6/P2 CLI 5/utils 1/P3 6/package 2通过（P0有效CDF写入子场景因缺cdflib跳过，不算已验证）；Julia Paths 13及路径调用5项通过；4组合成跨语言路径一致。API工具23项通过。Documenter构建成功（API页面超过100KiB提示），Wiki10页预览自检通过，无发布。
+> - 中英文README明确INI已弃用，首次using MarsData前需初始化并编辑TOML；同步指南、API、CHANGELOG。真实数据继续挂起，不验证DLL、不执行真实下载。此项为dfefefd之后的新工作；用户随后明确授权记录、提交并推送当前分支，覆盖历史“不push”约束。本节随本次提交归档，实际提交及远端状态以Git为准。
+
+
 > **MAVEN 专用坐标归位与 hypot 审查（2026-10-15，当前最新）**
 > - 用户确认原 instrument 两函数未对外使用，要求直接移入 FunctionCoordinate 并命名 `MAVEN_sphere2xyz` / `MAVEN_xyz2sphere`，不在面向用户的迁移指南记录改名。本轮已删除 MarsCommon 旧定义/导出，无 alias；README、坐标定义专题和生成API同步现行名称。
 > - AST 对旧源 d828a6e 的索引确认两定义及四处生产引用：STATIC.static_rotation 两处、static_slip_2_V 一处、Pickup 一处。现行 STATIC 显式 include FunctionCoordinate，并补 `using Rotations: QuatRotation`；分析脚本原已 include FC，本轮严格只改一个调用。FC 清除未使用的 MarsCommon/constants include，避免反向依赖与嵌套副本。

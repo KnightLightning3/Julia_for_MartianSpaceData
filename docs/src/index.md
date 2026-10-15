@@ -1,6 +1,6 @@
 # MarsData.jl 文档
 
-本项目使用 Julia 读取、处理和绘制火星空间科学数据，使用 Python 管理配置、下载、库存与文件索引，并提供环境、磁场和粒子计算工具。
+本项目使用 Julia 读取、处理和绘制火星空间科学数据，使用 Python 下载数据并维护本地文件索引。Python 与 Julia 共用 `config/settings.toml` 中的路径设置；下载参数仅供 Python 使用。
 
 当前代码已经完成多项模块拆分与文件迁移。旧的 `common/head.jl`、`calculate/calculate_models.jl` 已删除；首次使用请从架构和迁移指南开始，而不是直接运行历史脚本。
 

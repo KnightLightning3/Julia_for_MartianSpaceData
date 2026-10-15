@@ -6,7 +6,7 @@ include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 include(joinpath(@__DIR__, "..", "common", "paths.jl"))
 using .Paths
-root_path = Paths.tw_data_root()  # 所有文件的根目录（经 common/paths.jl 解析：TOML 优先、默认 E:/Tianwen-1/）
+root_path = Paths.tw_data_root()  # 数据根目录由 config/settings.toml 配置
 using Dates
 
 # function load_mag(file::String);#弃用，以dlm方法为准
@@ -174,7 +174,7 @@ end
 读取天问磁场本地文件清单（`mag_list.txt`）并拼上根目录，返回完整路径。
 
 # 功能与算法概述
-逐行读取清单中的相对路径，再用广播把 `root_path` 拼到每个路径前。
+逐行读取清单中的相对路径，再用 `joinpath` 与 `root_path` 组合。
 
 # 参数说明
 - 无参数；依赖本文件顶部的全局 `root_path`。
@@ -183,14 +183,14 @@ end
 - `Vector{String}`: 所有磁场数据文件的完整路径。
 
 # 注意事项
-- `root_path` 经 `common/paths.jl` 解析（`Paths.tw_data_root()`，默认 `E:/Tianwen-1/`，可在
-  `config/settings.toml` 的 `paths.tw_data_root` 覆盖）。
+- `root_path` 经 `common/paths.jl` 解析（`Paths.tw_data_root()`，由
+  `config/settings.toml` 的 `paths.tw_data_root` 配置）。
 - 清单文件不存在时会报 `SystemError`。
 """
 function read_list()
-    list_path = root_path*"List/"*"mag_list.txt"
+    list_path = joinpath(root_path, "List", "mag_list.txt")
     files = readlines(list_path)
-    files = root_path.*files  
+    files = joinpath.(root_path, files)
     return files
 end
 

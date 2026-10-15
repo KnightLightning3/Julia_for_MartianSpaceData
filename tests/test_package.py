@@ -3,10 +3,7 @@ import os
 import sys
 import tempfile
 import shutil
-import configparser
 import json
-import io
-import contextlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -28,26 +25,28 @@ def test_import_public_api():
     print("  [PASS] import public API")
 
 
-def _make_ini_and_tree(tmp):
+def _make_toml_and_tree(tmp):
     save_dir = os.path.join(tmp, "MAVEN")
     os.makedirs(os.path.join(save_dir, "KP", "insitu", "2014", "10"))
     with open(os.path.join(save_dir, "KP", "insitu", "2014", "10", "mvn_kp_insitu_20141010_v01_r01.tab"), "w") as f:
         f.write("x\n")
-    ini = os.path.join(tmp, "cfg.ini")
-    cp = configparser.ConfigParser()
-    cp.optionxform = str
-    cp["DEFAULT"] = {"Save_dir": save_dir}
-    with open(ini, "w", encoding="utf-8") as f:
-        cp.write(f)
-    return ini
+    config_path = os.path.join(tmp, "settings.toml")
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(
+            '[paths]\n'
+            f'maven_data_root = {json.dumps(save_dir)}\n'
+            f'tw_data_root = {json.dumps(tmp)}\n'
+            f'mgs_data_root = {json.dumps(tmp)}\n'
+        )
+    return config_path
 
 
 def test_cli_scan_e2e():
     tmp = tempfile.mkdtemp(prefix="mp_pkg_")
     try:
-        ini = _make_ini_and_tree(tmp)
+        config_path = _make_toml_and_tree(tmp)
         out = os.path.join(tmp, "index.json")
-        idx = cli.main(["scan", "--config", ini, "--index-output", out, "--models", "KP"])
+        idx = cli.main(["scan", "--config", config_path, "--index-output", out, "--models", "KP"])
         assert idx is not None and os.path.exists(out)
         data = json.load(open(out, encoding="utf-8"))
         assert data["KP"] == ["2014/10/mvn_kp_insitu_20141010_v01_r01.tab"]
@@ -57,23 +56,8 @@ def test_cli_scan_e2e():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def test_cli_migrate_dry_run():
-    tmp = tempfile.mkdtemp(prefix="mp_pkg_")
-    try:
-        ini = _make_ini_and_tree(tmp)
-        out = os.path.join(tmp, "settings.toml")
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            cli.main(["migrate", "--input", ini, "--output", out])
-        assert not os.path.exists(out)  # dry-run 默认不写文件
-        assert "dry-run" in buf.getvalue().lower()
-        print("  [PASS] cli migrate dry-run")
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
 def main():
-    tests = [test_import_public_api, test_cli_scan_e2e, test_cli_migrate_dry_run]
+    tests = [test_import_public_api, test_cli_scan_e2e]
     failed = []
     for t in tests:
         try:

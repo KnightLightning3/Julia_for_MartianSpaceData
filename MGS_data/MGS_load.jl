@@ -5,7 +5,7 @@ include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
 include(joinpath(@__DIR__, "..", "common", "paths.jl"))
 using .Paths
-root_path = Paths.mgs_data_root()  # 经 common/paths.jl 解析：TOML 优先、默认 E:/MGS/
+root_path = Paths.mgs_data_root()  # 数据根目录由 config/settings.toml 配置
 using Dates
 # struct MGS_mag
 #     staute::Bool
@@ -117,19 +117,19 @@ end
 读取 MGS 本地磁场数据文件清单并拼上根目录。
 
 # 功能与算法概述
-逐行读取 `MAG_SUNSTATE_list` 中的相对路径，再广播拼接 `root_path`。
+逐行读取 `MAG_SUNSTATE_list` 中的相对路径，再用 `joinpath` 与 `root_path` 组合。
 
 # 返回值
 - `Vector{String}`: 所有 MGS 磁场文件的完整路径。
 
 # 注意事项
-- `root_path` 经 `common/paths.jl` 解析（`Paths.mgs_data_root()`，默认 `E:/MGS/`，可在
-  `config/settings.toml` 的 `paths.mgs_data_root` 覆盖）。
+- `root_path` 经 `common/paths.jl` 解析（`Paths.mgs_data_root()`，由
+  `config/settings.toml` 的 `paths.mgs_data_root` 配置）。
 """
 function read_list()
-    list_path = root_path*"MAG_SUNSTATE_list"
+    list_path = joinpath(root_path, "MAG_SUNSTATE_list")
     files = readlines(list_path)
-    files = root_path.*files  
+    files = joinpath.(root_path, files)
     return files
 end
 end

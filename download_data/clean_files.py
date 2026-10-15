@@ -1,17 +1,12 @@
 #清理掉所有的下载问题文件
 import os
-from tqdm import tqdm
-from time import sleep
-import configparser
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import sys
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
 
-config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
-config_data = configparser.ConfigParser()
-config_data.optionxform = str
-config_data.read(config_file_path, encoding='utf-8')
-
-save_dir = config_data['DEFAULT']['Save_dir']#"E:/MAVEN/SWEA"#
+from config.config import load_config
 
 def clean_pydownload_files(root_directory, end=".pydownload", dry_run=True):
     """递归查找并清理未完成下载产生的临时文件（默认 dry-run 仅报告）。"""
@@ -57,7 +52,9 @@ if __name__ == "__main__":
         action="store_true",
         help="显式启用删除；不传则只打印将删除的清单",
     )
+    parser.add_argument("--config", default=None, help="TOML 配置文件路径")
     args = parser.parse_args()
+    save_dir = load_config(args.config).paths.maven_data_root
 
     for end in (".aria2download", ".aria2", "_compressed.cdf"):
         clean_pydownload_files(save_dir, end=end, dry_run=not args.apply)

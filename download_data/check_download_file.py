@@ -118,12 +118,12 @@ def main(argv=None):
     parser.add_argument("--action", choices=["report", "isolate", "delete"], default="report",
                         help="对损坏文件执行的动作；默认 report 仅报告。")
     parser.add_argument("--config", default=None,
-                        help="配置文件路径；缺省为 download_data/MAVEN_download_config.ini。")
+                        help="TOML 配置文件路径")
     args = parser.parse_args(argv)
 
     config_data = load_config(args.config)
     data_model = load_schema()["data_model"]
-    save_dir = config_data['DEFAULT']['Save_dir']
+    save_dir = config_data.paths.maven_data_root
 
     if args.action != "report":
         print(f"[!] 已显式启用动作: {args.action}（会修改/移动损坏文件）")

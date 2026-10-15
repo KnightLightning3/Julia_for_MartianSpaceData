@@ -9,8 +9,8 @@ using DelimitedFiles, DataFrames
 using LinearAlgebra
 using StaticArrays
 
-root_path = Paths.tw_data_root()  # 经 common/paths.jl 解析：TOML 优先、默认 E:/Tianwen-1/
-secondry_path = root_path*"MINPA/2B/"
+root_path = Paths.tw_data_root()  # 由 config/settings.toml 的 paths.tw_data_root 配置
+secondry_path = joinpath(root_path, "MINPA", "2B")
 
 """
     build_file_list() -> Nothing
@@ -22,7 +22,7 @@ secondry_path = root_path*"MINPA/2B/"
 把全部相对路径逐行写入 `List/MINPA_list.txt`。
 
 # 参数说明
-- 无参数；依赖全局 `root_path`（`E:/Tianwen-1/`）与 `secondry_path`。
+- 无参数；依赖配置所得的 `root_path` 与 `secondry_path`。
 
 # 返回值
 - `Nothing`: 通过副作用写入清单文件。
@@ -36,7 +36,7 @@ function build_file_list()
     println(files)
     years = 2020:2024
     for y in years
-        path = secondry_path*string(y)*"/"
+        path = joinpath(secondry_path, string(y))
         if !isdir(path)
             continue
         end
@@ -47,7 +47,7 @@ function build_file_list()
         time_range = [DateTime(x[begin:end-4], DateFormat("y-m-dTH:M:S.s")) for x in paths]
         append!(files,paths)
     end
-    open(root_path*"List/"*"MINPA_list.txt", "w") do io
+    open(joinpath(root_path, "List", "MINPA_list.txt"), "w") do io
         for file in files
             println(io, file)
         end
@@ -60,7 +60,7 @@ end
 读取 MINPA 本地文件清单（`MINPA_list.txt`）并拼上根目录，返回完整路径。
 
 # 功能与算法概述
-逐行读取清单中的相对路径，再用广播把 `root_path` 拼到每个路径前。
+逐行读取清单中的相对路径，再用 `joinpath` 与 `root_path` 组合。
 
 # 参数说明
 - 无参数；依赖全局 `root_path`。
@@ -72,9 +72,9 @@ end
 - 需先执行 `build_file_list()` 生成清单，否则报 `SystemError`。
 """
 function read_list()
-    list_path = root_path*"List/"*"MINPA_list.txt"
+    list_path = joinpath(root_path, "List", "MINPA_list.txt")
     files = readlines(list_path)
-    files = root_path.*files  
+    files = joinpath.(root_path, files)
     return files
 end
 """

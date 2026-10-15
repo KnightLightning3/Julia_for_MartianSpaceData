@@ -4,19 +4,17 @@
 import os
 import re
 import json
-import configparser
+import sys
 
 PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_PATH not in sys.path:
+    sys.path.insert(0, PROJECT_PATH)
+from config.config import load_config as _load_config  # noqa: E402
 
 
 def load_config(config_path=None):
-    """读取下载配置；config_path 为空时使用仓库内的默认配置文件。"""
-    if config_path is None:
-        config_path = os.path.join(PROJECT_PATH, "download_data", "MAVEN_download_config.ini")
-    config_data = configparser.ConfigParser()
-    config_data.optionxform = str
-    config_data.read(config_path, encoding='utf-8')
-    return config_data
+    """加载 TOML 配置；保留 config_path 位置参数以兼容调用方。"""
+    return _load_config(config_path)
 
 
 def load_schema():
@@ -76,7 +74,7 @@ def main(config_path=None, index_path=None):
     """
     config_data = load_config(config_path)
     data_model = load_schema()["data_model"]
-    save_dir = config_data['DEFAULT']['Save_dir']
+    save_dir = config_data.paths.maven_data_root
     scan(save_dir, data_model)
 
     from get_download_files import write_index

@@ -15,7 +15,6 @@ using CommonDataFormat
 using TimesDates, Dates
 using DataFrames
 using JSON
-using IniFile
 using JLD2
 using Statistics
 using Rotations
@@ -33,7 +32,7 @@ open(dir * "/MAVEN_data_format.json", "r") do f
     _kp_dict[] = data["kp_dict"]
     global data_model = data["data_model"]
 end
-root_path = Paths.maven_data_root() # 所有文件的根目录（经 common/paths.jl 解析：TOML 优先、旧 INI 只读兼容）
+root_path = Paths.maven_data_root() # 配置于 config/settings.toml；根路径在 Paths 模块加载时缓存
 
 # filename_lists.json 惰性访问器（TASK-007）：模块加载期不打开文件，调用时才读取。
 # 文件缺失时返回空字典，使各模型 file_flag=false 正常容错，避免 fresh clone 崩溃。
@@ -56,10 +55,10 @@ function _file_index(model::String)
     end
     flist = filename_list()
     filenames = get(flist, model, String[])
-    FileList_path = root_path * read_models[model][1]
+    FileList_path = joinpath(root_path, read_models[model][1])
     index = Dict{String, Vector{String}}()
     for fname in filenames
-        full = FileList_path * fname
+        full = joinpath(FileList_path, fname)
         # 取文件名中最右侧的 8 位连续数字串作为日期键（兼容更长数字串的末 8 位）
         m = match(r"\d{8}(?!\d)", fname)
         if m !== nothing
@@ -96,8 +95,8 @@ end
 获取指定模型在本地已下载的全部文件绝对路径。
 
 # 功能与算法概述
-由全局 `read_models` 取该模型的相对子目录，与 `root_path` 及 `filename_list[model]`
-广播拼接，生成完整路径数组。
+由全局 `read_models` 取该模型的相对子目录，再用 `joinpath` 与
+`filename_list[model]` 中的文件名组合，生成完整路径数组。
 
 # 参数说明
 - `model`: 模型/仪器标识符（如 `"MAG_l2"`）。
@@ -110,8 +109,8 @@ end
 """
 function file_list(model::String)
     path = read_models[model][1]
-    file_path = root_path .* path
-    data = file_path .* filename_list()[model]
+    file_path = joinpath(root_path, path)
+    data = joinpath.(file_path, filename_list()[model])
     return data
 end
 """
@@ -140,8 +139,8 @@ function find_file_of_data(model::String, date::DateTime)
     # 未命中则回退到原线性子串扫描（兼容无日期文件名、特殊命名等）
     flist = filename_list()
     file_list_for_model = get(flist, model, String[])
-    FileList_path = root_path * read_models[model][1]
-    FileList = FileList_path .* file_list_for_model
+    FileList_path = joinpath(root_path, read_models[model][1])
+    FileList = joinpath.(FileList_path, file_list_for_model)
     for file_name in FileList
         if occursin(element, file_name)
             return true, file_name
@@ -214,7 +213,7 @@ end
 - 时间字符串格式固定为 `yyyy-mm-ddTHH:MM:SS`。
 """
 function get_orbits()  # 获取每个轨道对应的time_range
-    file_path = root_path * "orbit_time_range.txt"
+    file_path = joinpath(root_path, "orbit_time_range.txt")
     lines = readlines(file_path)
     data = []
     for line in lines

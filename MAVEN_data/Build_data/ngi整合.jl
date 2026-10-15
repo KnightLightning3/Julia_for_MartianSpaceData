@@ -49,7 +49,7 @@ for (date, file_group) in grouped_files
     push!(files_list,"$(date[1:4])/$(date[5:6])/$name_format$date.csv")
 end
 
-f=save_path*"lists/$(name_formats[data_key][2])_list.txt"
+f=joinpath(save_path, "lists", "$(name_formats[data_key][2])_list.txt")
 open(f,"w") do io
     for ff in files_list
         println(io,ff)

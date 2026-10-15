@@ -31,7 +31,6 @@ Pkg_list = [
     "Optim"
     "ProgressMeter"
     "Rotations"
-    "IniFile"
     "DataInterpolations"
     "TimesDates"
     "StatsBase"

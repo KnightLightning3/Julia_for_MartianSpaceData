@@ -23,13 +23,22 @@
 | `analysis/` | 事件分析脚本，例如 `Pickup_ion.jl` |
 | `support_data/` | OMNI 等外部支持数据读取 |
 | `download_data/`、`martian_pipeline/` | Python 下载、扫描、索引和文件维护 |
-| `config/`、`tools/` | TOML 配置及迁移、扫描/API/Wiki 工具 |
+| `config/`、`tools/` | TOML 配置、扫描/API/Wiki 工具 |
 | `example/` | 使用示例；部分脚本会读数据、写文件或载入 DLL，运行前请先检查脚本顶部的设置 |
 | `docs/` | Documenter 源、Wiki 页面、参考资料及历史报告 |
 
 ## Julia 包与共享能力
 
 Julia 要求 1.10 或更新版本。`using MarsData` 会初始化绘图栈（CairoMakie/Makie），并预装绘图子模块；路径、产品注册表和索引 API 本身不加载科学数据读取器，也不要求本地观测数据或 IGRF DLL。
+
+首次使用（fresh clone）前，先创建配置并编辑三个数据根路径；否则首次 `using MarsData` 会因缺少 `config/settings.toml` 报错：
+
+```bash
+python download_data/initialize_download_parameters.py
+# 使用文本编辑器修改 config/settings.toml 中的 [paths]
+```
+
+将 `paths.maven_data_root`、`tw_data_root`、`mgs_data_root` 设置为本机目录后，再启动 Julia。
 
 `MarsData` 的预装实例包括 `MarsData.MarsCommon`、`MarsData.MarsEnvironment`、`MarsData.MAVEN_plot`、`MarsData.Paths` 和 `MarsData.DataKeys`。它们由包初始化，装载器会复用这些实例。包没有把所有 API 名称重新导出为裸名；优先使用明确限定名，例如 `MarsData.project_root()`、`MarsData.DataKeys.ENERGY`。
 
@@ -91,7 +100,9 @@ MarsData.load_index()     # 缺少索引文件时返回空字典
 
 ## 配置与数据路径
 
-路径配置唯一写端为 `config/settings.toml`，模板为 `config/settings.example.toml`；旧 `download_data/MAVEN_download_config.ini` 仅作读取兼容输入。解析优先级为 TOML、旧 INI、内置默认值。配置 `paths.maven_data_root`、`tw_data_root` 和 `mgs_data_root` 指向各自数据根目录；仓库不要求把真实数据放入代码目录。
+所有 Python 与 Julia 路径配置统一编辑 `config/settings.toml`；全参数模板见 [`config/settings.example.toml`](config/settings.example.toml)。旧 `download_data/MAVEN_download_config.ini` 已弃用且不再读取。首次初始化可运行 `python download_data/initialize_download_parameters.py`；该命令只在配置文件不存在时创建，不覆盖已有设置。Python 下载器独有的服务器、下载方式、线程数和日期窗口也保存在同一 TOML 中，但只有 Python 下载流程使用这些参数。
+
+必须填写 `[paths]` 中非空的 `maven_data_root`、`tw_data_root` 和 `mgs_data_root`。仅由空白组成的值会被拒绝；其他路径值会保留首尾空格。绝对路径按其平台语义保留；相对路径均以仓库根目录为基准，与启动 Julia/Python 时的当前目录无关。可选的 `fortran_dll_dir` 留空时使用仓库根目录。Julia 加载路径模块时读取并缓存配置；缺少 `settings.toml` 会明确提示运行上述初始化命令，不会自动切换到某个磁盘目录。
 
 Python 工具要求 Python 3.11 或更新版本。Python 运行依赖与可选构建依赖列于 `pyproject.toml`；`spacepy` 属于派生 CDF 构建的可选依赖。详细配置、下载和索引流程见[项目执行流程](docs/src/pipeline.md)。
 

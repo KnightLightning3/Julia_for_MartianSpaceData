@@ -8,7 +8,8 @@ import sys
 import json
 import shutil
 import tempfile
-import configparser
+import tomllib
+from dataclasses import is_dataclass
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOWNLOAD = os.path.join(REPO, "download_data")
@@ -18,54 +19,48 @@ import initialize_download_parameters as init_cfg  # noqa: E402
 import check_exist_files as inventory  # noqa: E402
 import get_download_files as manifest  # noqa: E402
 import check_download_file as checker  # noqa: E402
-
-
-def _load_cfg(ini):
-    cfg = configparser.ConfigParser()
-    cfg.optionxform = str
-    cfg.read(ini, encoding='utf-8')
-    return cfg
+from config.config import load_config as load_app_config  # noqa: E402
 
 
 def test_config_contract():
-    """H2: 初始化器生成的新配置必须能被下载器完整读取（含 check_download_file）。"""
+    """H2: 初始化器生成完整 TOML，且拒绝覆盖现有文件。"""
     tmp = tempfile.mkdtemp(prefix="p0_cfg_")
     try:
-        ini = os.path.join(tmp, "MAVEN_download_config.ini")
-        init_cfg.generate_config(ini)
+        path = os.path.join(tmp, "settings.toml")
+        built = init_cfg.build_config()
+        assert isinstance(built, dict)
+        for section in ("paths", "server", "download", "window", "proxy", "products"):
+            assert section in built
+        assert set(built["paths"]) >= {"maven_data_root"}
+        assert set(built["server"]) >= {"index", "urls", "username", "password"}
+        assert set(built["download"]) >= {
+            "mode", "threads", "continue", "sleep_time", "step_time",
+            "show_tqdm_bar", "idm_program_path", "aria2c_program_path",
+        }
+        assert set(built["products"]) >= {
+            "single_model", "models", "skip", "single_download",
+            "update_file_version", "check_download_file",
+        }
+        assert built["proxy"]["outer_server"] == "http://127.0.0.1:7890"
+        assert built["proxy"]["ustc_server"] == ""
+        assert isinstance(built["window"]["start"], str)
+        assert isinstance(built["window"]["end"], str)
 
-        cfg = _load_cfg(ini)
-        # 逐条复刻 MAVEN_download.py 实际读取序列，验证契约点。
-        save_dir = cfg['DEFAULT']['Save_dir']
-        server_ind = cfg.getint('Servers', 'Server_ind')
-        url = cfg['Servers'][server_ind]
-        sleep_time = cfg.getint('DEFAULT', 'sleep_time')
-        step_time = cfg.getint('DEFAULT', 'step_time')
-        continue_download = cfg['Properties'].getboolean('continue_download')
-        download_mode = cfg['Properties']['download_mode']
-        max_threads = cfg.getint('Properties', 'max_threads')
-        show_tqdm_bar = cfg['Properties'].getboolean('show_tqdm_bar')
-        single_model = cfg['Settings'].get('single_model', [])
-        muti_models = cfg['Settings']['muti_models']
-        single_download = cfg['Settings'].getboolean('single_download')
-        check_download_file = cfg['Settings'].getboolean('check_download_file')  # 原契约缺口
-        update_file_version = cfg['Settings'].getboolean('update_file_version')
-        models_pass = cfg['Settings']['models_pass']
-        vpn_ustc = cfg['VPN_proxy']['USTC_server']
-
-        assert server_ind == 0
-        assert url == "http://222.195.76.155:8000/MAVEN/"
-        assert sleep_time == 60 and step_time == 0
-        assert continue_download is True
-        assert max_threads == 5
-        assert show_tqdm_bar is False
-        assert single_download is False
-        assert check_download_file is False  # 关键：新增键存在且默认 False
-        assert update_file_version is False
-        assert save_dir == "E:/MAVEN/"
-        assert isinstance(models_pass, str) and "MAG_ss" in models_pass
-        assert vpn_ustc == "None"
-        print("  [PASS] config contract（含 check_download_file 契约）")
+        init_cfg.generate_config(path)
+        with open(path, "rb") as f:
+            parsed = tomllib.load(f)
+        assert parsed == built
+        example = os.path.join(REPO, "config", "settings.example.toml")
+        with open(example, "rb") as f:
+            expected_example = f.read()
+        with open(path, "rb") as f:
+            assert f.read() == expected_example
+        try:
+            init_cfg.generate_config(path)
+            raise AssertionError("generate_config must refuse to overwrite")
+        except FileExistsError:
+            pass
+        print("  [PASS] TOML config contract and no-overwrite behavior")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -121,15 +116,23 @@ def test_main_refreshes_index():
     tmp = tempfile.mkdtemp(prefix="p0_main_")
     try:
         save_dir = _build_synthetic_tree(tmp)
-        ini = os.path.join(tmp, "MAVEN_download_config.ini")
-        cfg = configparser.ConfigParser()
-        cfg.optionxform = str
-        cfg['DEFAULT'] = {'Save_dir': save_dir}
-        with open(ini, 'w', encoding='utf-8') as f:
-            cfg.write(f)
+        config_path = os.path.join(tmp, "settings.toml")
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write(
+                '[paths]\n'
+                f'maven_data_root = {json.dumps(save_dir)}\n'
+                f'tw_data_root = {json.dumps(tmp)}\n'
+                f'mgs_data_root = {json.dumps(tmp)}\n'
+            )
+
+        config = load_app_config(config_path)
+        assert is_dataclass(config)
+        assert config.paths.maven_data_root == save_dir
+        assert inventory.load_config(config_path).paths.maven_data_root == save_dir
+        assert manifest.load_config(config_path).paths.maven_data_root == save_dir
 
         idx = os.path.join(tmp, "filename_lists.json")
-        out = inventory.main(config_path=ini, index_path=idx)
+        out = inventory.main(config_path=config_path, index_path=idx)
         assert out == idx and os.path.exists(idx)
         with open(idx, encoding='utf-8') as f:
             data = json.load(f)

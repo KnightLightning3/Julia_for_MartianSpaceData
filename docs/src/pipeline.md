@@ -8,7 +8,7 @@
 [0] 环境准备           Project.toml / pyproject.toml
         │
         ▼
-[1] 配置               config/settings.toml（TOML 唯一写端；旧 INI 只读兼容）
+[1] 配置               config/settings.toml（Python 与 Julia 共用路径配置）
         │
         ▼
 [2] 下载               download_data/MAVEN_download.py
@@ -42,7 +42,7 @@ Pkg.instantiate()          # 安装 Julia 项目声明的包依赖
 using MarsData             # 包入口；公开路径/注册表/索引 API，并加载绘图相关代码
 ```
 
-`MAVEN_load` 直接使用 `CommonDataFormat`、`TimesDates`、`DataFrames`、`JSON`、`IniFile`、`JLD2`、`Rotations` 和 `FortranFiles`；`Dates`、`Statistics`、`Logging` 属于 Julia 标准库。Julia 包依赖由根 `Project.toml`/`Manifest.toml` 管理。`Pkg.instantiate()` 只安装 Julia 项目声明的 Julia 包，不安装下方 Python 依赖或 MAVEN 数据文件，也不提供或验证项目依赖之外的 C++/Fortran DLL 等运行时组件。
+`MAVEN_load` 直接使用 `CommonDataFormat`、`TimesDates`、`DataFrames`、`JSON`、`JLD2`、`Rotations` 和 `FortranFiles`；`Dates`、`Statistics`、`Logging` 属于 Julia 标准库。Julia 包依赖由根 `Project.toml`/`Manifest.toml` 管理。`Pkg.instantiate()` 只安装项目声明的 Julia 包，不安装 Python 依赖或 MAVEN 数据文件，也不提供或验证项目依赖之外的 C++/Fortran DLL 等运行时组件。
 
 **Python 侧**：`pyproject.toml` 当前作为依赖清单，仓库采用脚本布局且未声明 `build-system`，因此不要用 editable 安装命令。请在仓库根目录安装脚本所需运行依赖：
 
@@ -64,42 +64,15 @@ Python 工具从仓库根目录按模块运行，例如 `python -m martian_pipel
 
 ## [1] 配置
 
-配置的唯一写端是 **TOML**（`config/settings.toml`，不入库），模板见 `config/settings.example.toml`；旧 INI（`download_data/MAVEN_download_config.ini`）保留为**只读兼容输入**。
+Python 与 Julia 共用 `config/settings.toml` 中的路径配置；所有参数示例见 [`config/settings.example.toml`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/config/settings.example.toml)。旧 `download_data/MAVEN_download_config.ini` 已弃用，当前代码不读取它，也没有 INI 迁移命令。首次创建配置运行 `python download_data/initialize_download_parameters.py`；该初始化命令不覆盖已有配置。必须设置非空的 `paths.maven_data_root`、`tw_data_root`、`mgs_data_root`；纯空白值会被拒绝，路径中其他首尾空格会保留。相对数据根和相对 `fortran_dll_dir` 均以仓库根解析，与当前工作目录无关；可选 DLL 目录留空时使用仓库根。Julia 在 Paths 模块加载时缓存配置，缺失 `settings.toml` 会明确报错并提示初始化命令。
 
-首次可将旧 INI 一次性迁移为 TOML：
-
-```bash
-python tools/migrate_config.py                    # dry-run：仅打印将要生成的 TOML（默认）
-python tools/migrate_config.py --apply            # 实际写入 config/settings.toml
-python tools/migrate_config.py --apply --force    # 覆盖已存在的 settings.toml
-```
-
-迁移**幂等**、不搬动任何数据目录、也不改动原 INI。配置结构：
-
-```toml
-[paths]
-maven_data_root = "E:/MAVEN/"     # MAVEN 根（原始与派生共用）
-tw_data_root    = "E:/Tianwen-1/"
-mgs_data_root   = "E:/MGS/"
-[server]
-index = 0
-urls  = ["http://222.195.76.155:8000/MAVEN/", "https://pds-ppi.igpp.ucla.edu/data/", "https://lasp.colorado.edu/maven/sdc/public/data/sci/"]
-[download]
-mode = "python.request"           # python.request | win.idm | Aria2c
-threads = 5
-continue = true
-[window]
-start = "2014-10-01"
-end   = "2025-06-01"
-```
-
-读取优先级：`config/settings.toml`（TOML） → 旧 INI（只读） → 内置默认值。也可用 `config/settings.example.toml` 手动复制为 `config/settings.toml`。
+`[server]`、`[download]`、`[window]` 等其余字段是 Python 下载流程专用参数；Julia 只需要路径配置。
 
 ---
 
 ## [2] 下载
 
-首次运行初始化器生成 INI 模板（后续可直接编辑配置）：
+首次运行初始化器创建 TOML 配置（已有文件不会被覆盖）：
 
 ```bash
 python download_data/initialize_download_parameters.py
@@ -231,11 +204,14 @@ save("overview.png", fig)
 
 ```bash
 python tests/test_p0.py          # 配置初始化 / 扫描 / 索引 / 下载后刷新
-python tests/test_p1.py          # TOML 与旧 INI 兼容、迁移 dry-run/幂等、路径 CWD 无关
+python tests/test_p1.py          # TOML 类型/范围校验、拒绝 INI、初始化不覆盖
+python tests/test_config_wiring.py # 下载配置接线，使用替身禁止联网
 python tests/test_p2_utils.py    # 共享纯函数
 python tests/test_p2_cli.py      # 扫描/索引边界（空目录、未知模型、正则无匹配、路径分隔符）
 python tests/test_p3.py          # 索引 v2、派生输出路径注册表解析
 python tests/test_package.py     # martian_pipeline 包与 CLI 端到端
+julia --project=. test/paths_config_test.jl # Julia TOML 路径配置（临时仓库）
+julia --project=. test/path_callsite_test.jl # 不带尾分隔符的目录与清单拼接
 ```
 
 **文档构建与发布**：

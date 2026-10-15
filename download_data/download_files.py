@@ -7,7 +7,6 @@ from tqdm import tqdm
 import re
 from time import sleep
 import json
-import configparser
 from pathlib import Path
 import sys
 
@@ -15,39 +14,34 @@ _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from config.utils import get_list_from_ini  # noqa: E402
+from config.config import load_config  # noqa: E402
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
-config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
-config_data = configparser.ConfigParser()
-config_data.optionxform = str
-config_data.read(config_file_path, encoding='utf-8')
-
-save_dir = config_data['DEFAULT']['Save_dir']
-Server_ind = config_data.getint('Servers','Server_ind')
-url_path_0 = config_data['Servers'][Server_ind]
-sleep_time = config_data.getint('DEFAULT','sleep_time')
-step_time = config_data.getint('DEFAULT','step_time')
+config_data = load_config()
+save_dir = config_data.paths.maven_data_root
+Server_ind = config_data.server.index
+url_path_0 = config_data.server.urls[Server_ind]
+sleep_time = config_data.download.sleep_time
+step_time = config_data.download.step_time
 timeout = None
-Server_ind = 1
 session = requests.Session()
 if Server_ind == 0:  #自建服务器
-    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
-    user_name = config_data['Servers']['Username']
-    password = config_data['Servers']['Password']
+    vpn_proxy = config_data.proxy.ustc_server or None
+    user_name = config_data.server.username
+    password = config_data.server.password
     session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
     step_time = 0
 else:       # 外部服务器
-    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
-print(f"vpn: {vpn_proxy}")
-if vpn_proxy != None:
+    vpn_proxy = config_data.proxy.outer_server or None
+print(f"proxy: {'enabled' if vpn_proxy else 'disabled'}")
+if vpn_proxy:
     vpn_proxy = {
-    "http": vpn_proxy[0],
-    "https": vpn_proxy[0],
+    "http": vpn_proxy,
+    "https": vpn_proxy,
     }
 
 # 设置区
@@ -76,7 +70,7 @@ def test_proxies(url):
     try:
         response = requests.get(url,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
-            print("\033[1;32m Connection Succeed\033[0m:"+vpn_proxy["http"])
+            print("\033[1;32m Connection Succeed\033[0m")
         response.close()
         return True
     except requests.exceptions.RequestException as e:
@@ -85,7 +79,7 @@ def test_proxies(url):
     try:
         response = requests.get("https://www.google.com/",proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
-            print("\033[1;32m The Proxy Server Connection Succeed \033[0m:"+vpn_proxy["http"])
+            print("\033[1;32m The Proxy Server Connection Succeed \033[0m")
         response.close()
         return True
     except requests.exceptions.RequestException as e:

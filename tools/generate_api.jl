@@ -289,7 +289,7 @@ function render(root::AbstractString=ROOT)
         "| 路径 | 职责 |", "| --- | --- |",
         "| `martian_pipeline/`、`python -m martian_pipeline` | 统一 CLI 入口（扫描、检查与维护） |",
         "| `download_data/MAVEN_download.py` | MAVEN 数据下载，并在完成后触发扫描刷新 |",
-        "| `config/`、`tools/migrate_config.py` | 配置读取与旧 INI 到 TOML 的显式迁移 |",
+        "| `config/`、`download_data/initialize_download_parameters.py` | Julia/Python 共用 TOML 配置与模板初始化 |",
         "| `martian_pipeline/inventory.py`、`tools/scan_and_index.py` | 本地文件扫描、产品清单和索引生成 |",
         "| `tools/push_wiki.py`、`MAVEN_data/build_read_me.py` | Wiki 页面发布与数据产品说明生成 |", "",
         "## Julia 源码索引", "",

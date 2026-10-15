@@ -2,20 +2,19 @@
 """批量检查并压缩 MAVEN CDF 数据文件。"""
 
 import os
-import configparser
 from tqdm import tqdm
 from spacepy import pycdf
 import time
 
 # 1. 基础配置读取
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
+import sys
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
+from config.config import load_config
 
-config_data = configparser.ConfigParser()
-config_data.optionxform = str
-config_data.read(config_file_path, encoding='utf-8')
-
-save_dir = config_data['DEFAULT']['Save_dir']#"E:/MAVEN/LPW"#"E:/MAVEN/STATIC"#
+cfg = load_config()
+save_dir = cfg.paths.maven_data_root
 
 def check_if_compressed(file_path, gzip_level_threshold):
     """检查 CDF 文件是否已达到指定的 GZIP 压缩等级。"""

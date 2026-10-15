@@ -8,7 +8,6 @@ import sys
 import json
 import shutil
 import tempfile
-import configparser
 import importlib.util
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -110,7 +109,7 @@ def test_scan_empty_and_index():
 
 
 def test_cli_end_to_end():
-    """CLI main() 端到端：临时 INI + 合成 KP 文件 + 未知产品被忽略。"""
+    """CLI main() 端到端：临时 TOML + 合成 KP 文件 + 未知产品被忽略。"""
     tmp = tempfile.mkdtemp(prefix="p2_cli_")
     try:
         save_dir = os.path.join(tmp, "MAVEN")
@@ -120,16 +119,18 @@ def test_cli_end_to_end():
         with open(os.path.join(kp_dir, fname), "w") as f:
             f.write("line1\n")
 
-        ini = os.path.join(tmp, "MAVEN_download_config.ini")
-        cfg = configparser.ConfigParser()
-        cfg.optionxform = str
-        cfg["DEFAULT"] = {"Save_dir": save_dir}
-        with open(ini, "w", encoding="utf-8") as f:
-            cfg.write(f)
+        config_path = os.path.join(tmp, "settings.toml")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(
+                '[paths]\n'
+                f'maven_data_root = {json.dumps(save_dir)}\n'
+                f'tw_data_root = {json.dumps(tmp)}\n'
+                f'mgs_data_root = {json.dumps(tmp)}\n'
+            )
 
         out_json = os.path.join(tmp, "filename_lists.json")
         ret = scan_and_index.main([
-            "--config", ini,
+            "--config", config_path,
             "--index-output", out_json,
             "--models", "KP", "NotExist",
         ])

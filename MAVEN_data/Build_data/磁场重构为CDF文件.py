@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from spacepy import pycdf
-import configparser
 import json
 from collections import defaultdict
 
@@ -15,18 +14,12 @@ from collections import defaultdict
 # ==================================================
 # 1. 基础配置与路径动态解析（你提供的代码段）
 # ==================================================
-def get_list_from_ini(input_string):
-    if input_string == "Null":
-        return []
-    if input_string == "None":
-        return None
-    stripped_string = input_string.replace(" ", "")
-    items = stripped_string.split(",")
-    return items
-
 
 # 获取项目根目录
 project_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
 print(project_path)
 # 读取数据格式 JSON 文件
 with open(os.path.join(project_path, "MAVEN_data", "MAVEN_data_format.json"), "r", encoding="utf-8") as file:
@@ -35,15 +28,8 @@ with open(os.path.join(project_path, "MAVEN_data", "MAVEN_data_format.json"), "r
 with open(os.path.join(project_path, "MAVEN_data", "filename_lists.json"), "r", encoding="utf-8") as file:
     json_list_data = json.load(file)
 
-# 读取下载配置文件 INI
-config_file_path = os.path.join(
-    project_path, "download_data", "MAVEN_download_config.ini"
-)
-config_data = configparser.ConfigParser()
-config_data.optionxform = str
-config_data.read(config_file_path, encoding="utf-8")
-
-save_dir = config_data["DEFAULT"]["Save_dir"]
+from config.config import load_config
+cfg = load_config()
 def download_model(model):
     """根据磁场产品标识取得本地保存路径与文件名模式。"""
     global save_dir
@@ -53,7 +39,7 @@ def download_model(model):
     for key, value in data_model.items():
         model_key[key] = value[:3]
     _, filename, pathname = model_key[model]
-    save_path = save_dir + pathname
+    save_path = os.path.join(save_dir, pathname)
     return [save_path, filename]
 def parse_pds_header_and_data(txt_file_path):
     """解析 PDS 文本文件头和磁场记录数据。"""

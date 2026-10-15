@@ -8,7 +8,6 @@ import re
 from time import sleep
 import time
 import json
-import configparser
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import math
@@ -18,59 +17,55 @@ _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from config.utils import get_list_from_ini  # noqa: E402
+from config.config import load_config  # noqa: E402
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(f"{project_path}/MAVEN_data/MAVEN_data_format.json", "r", encoding='utf-8') as file:
     json_data = json.load(file)
 data_model = json_data["data_model"]
 
-config_file_path = os.path.join(project_path, "download_data", "MAVEN_download_config.ini")
-config_data = configparser.ConfigParser()
-config_data.optionxform = str
-config_data.read(config_file_path, encoding='utf-8')
-
-save_dir = config_data['DEFAULT']['Save_dir']
-Server_ind = config_data.getint('Servers','Server_ind')
-url_path_0 = config_data['Servers'][Server_ind]
-sleep_time = config_data.getint('DEFAULT','sleep_time')
-step_time = config_data.getint('DEFAULT','step_time')
+config_data = load_config()
+save_dir = config_data.paths.maven_data_root
+Server_ind = config_data.server.index
+url_path_0 = config_data.server.urls[Server_ind]
+sleep_time = config_data.download.sleep_time
+step_time = config_data.download.step_time
 timeout = 60
 
-continue_download = config_data['Properties'].getboolean('continue_download')
-download_mode = config_data['Properties']['download_mode']
-max_threads = config_data.getint('Properties','max_threads')
-disable_tqdm_bar = not config_data['Properties'].getboolean('show_tqdm_bar')
+continue_download = config_data.download.continue_flag
+download_mode = config_data.download.mode
+max_threads = config_data.download.threads
+disable_tqdm_bar = not config_data.download.show_tqdm_bar
 
-start_date = datetime.datetime.strptime(config_data['Settings']['start_date'], '%Y-%m-%d').date()
-end_date = datetime.datetime.strptime(config_data['Settings']['end_date'], '%Y-%m-%d').date() 
+start_date = datetime.datetime.strptime(config_data.window.start, '%Y-%m-%d').date()
+end_date = datetime.datetime.strptime(config_data.window.end, '%Y-%m-%d').date()
 
-single_model = config_data['Settings'].get('single_model', [])
-muti_models = get_list_from_ini(config_data['Settings']['muti_models'])
-single_download = config_data['Settings'].getboolean('single_download')
+single_model = config_data.products.single_model
+muti_models = config_data.products.models
+single_download = config_data.products.single_download
 # P0 契约修复：初始化器会生成该键；旧配置缺失时回退 False，避免 NoOptionError。
 # 实际完整性检查已按 D1 抽离为 download_data/check_download_file.py（下载热路径不再耦合校验）。
-check_download_file = config_data['Settings'].getboolean('check_download_file', fallback=False)
-update_file_version = config_data['Settings'].getboolean('update_file_version')
+check_download_file = config_data.products.check_download_file
+update_file_version = config_data.products.update_file_version
 
 session = requests.Session()
 if Server_ind == 0:  #自建服务器
-    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['USTC_server'])
-    user_name = config_data['Servers']['Username']
-    password = config_data['Servers']['Password']
+    vpn_proxy = config_data.proxy.ustc_server or None
+    user_name = config_data.server.username
+    password = config_data.server.password
     session.auth = (user_name.encode('utf-8'), password.encode('utf-8'))
-    models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
+    models_pass = config_data.products.skip
     models_skip = ["MAG_ss","MAG_ss1s","MAG_pc1s","MAG_pc","KP"]  #批量下载的时候跳过的模块, 这些模块存在本地自制的体积更小的二进制文件
     step_time = 0
 else:       # 外部服务器
-    vpn_proxy = get_list_from_ini(config_data['VPN_proxy']['Outer_server'])
-    models_pass = get_list_from_ini(config_data['Settings']['models_pass'])
+    vpn_proxy = config_data.proxy.outer_server or None
+    models_pass = config_data.products.skip
     models_skip = ["MAG_ss_cdf","MAG_ss1s_cdf","MAG_pc1s_cdf","MAG_pc_cdf","NGIMS_den_l4","KP_l3","MAG_ss1s_vsc","STATIC_d1_v4d","STATIC_c6_v3d","SWIA_quat","KP_cdf"]  #批量下载的时候跳过的模块, 这些模块为本地自制模块,外部服务器上不存在
-print(f"Server: {url_path_0},vpn: {vpn_proxy}")
-if vpn_proxy != None:
+print(f"Server: {url_path_0}, proxy: {'enabled' if vpn_proxy else 'disabled'}")
+if vpn_proxy:
     vpn_proxy = {
-    "http": vpn_proxy[0],
-    "https": vpn_proxy[0],
+    "http": vpn_proxy,
+    "https": vpn_proxy,
     }
 print(f"使用线程数:{max_threads}")
 if max_threads == 1:
@@ -91,7 +86,7 @@ def test_proxies():
     try:
         response = requests.get(url_path_0,proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
-            print("\033[1;32m Connection Succeed\033[0m:"+vpn_proxy["http"])
+            print("\033[1;32m Connection Succeed\033[0m")
         response.close()
         return True
     except requests.exceptions.RequestException as e:
@@ -100,7 +95,7 @@ def test_proxies():
     try:
         response = requests.get("https://www.google.com/",proxies=vpn_proxy,timeout=timeout)
         if response.status_code == 200:
-            print("\033[1;32m The Proxy Server Connection Succeed \033[0m:"+vpn_proxy["http"])
+            print("\033[1;32m The Proxy Server Connection Succeed \033[0m")
         response.close()
         return True
     except requests.exceptions.RequestException as e:
@@ -210,9 +205,9 @@ def idm_add_download_links(url,save_path,filename):
     global step_time
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    # command = f'"{config_data["Properties"]["IDM_program_path"]}" /a /d "{url}" /p "{save_path}" /f "{filename}"'
+    # command = f'"{config_data.download.idm_program_path}" /a /d "{url}" /p "{save_path}" /f "{filename}"'
     command = [
-        config_data["Properties"]["IDM_program_path"],
+        config_data.download.idm_program_path,
         "/a" ,
         "/d", url,
         "/p", save_path,
@@ -237,7 +232,7 @@ def aria2_download(url, save_path):
 
     # 构建命令
     cmd = [
-        config_data["Properties"]["Aria2c_program_path"],
+        config_data.download.aria2c_program_path,
         url,
         "--dir", dir_save_path,
         "--out", file_name,
@@ -308,7 +303,7 @@ def download_model(model):
     if model_url == "None":
         return None,None,None
     url = url_path_0+model_url
-    save_path =  save_dir+pathname
+    save_path = os.path.join(save_dir, pathname)
     return [url,save_path,filename]
 def find_downloaded_file(file_names, element):
     """判断给定文件清单中是否已有匹配项目。"""
@@ -376,7 +371,7 @@ def download_from_head(head,num_links_added,num_links):
         return f'{model}: \033[1;34m{date} v: {v_new} r:{r_new} \033[0m ' +f'Status: \033[0;31m{logic}\033[0m ' +f'Responses: \033[0;32m{url_status_code}\033[0m '+f'Time: \033[1;34m{time_now.strftime("%Y-%m-%d %H:%M:%S")}\033[0m  {num_links_added}/{num_links}'
 
 if __name__ == '__main__':
-    os.makedirs(save_dir+"lists/", exist_ok=True)
+    os.makedirs(os.path.join(save_dir, "lists"), exist_ok=True)
     if vpn_proxy == None:
         print("\033[1;32m No VPN \033[0m")
     else:

@@ -9,19 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from config.utils import get_list_from_ini, read_last_line_large_file
-
-
-def test_get_list_from_ini():
-    # 'Null' -> []
-    assert get_list_from_ini('Null') == [], "Expected [] for 'Null'"
-    # 'None' -> None
-    assert get_list_from_ini('None') is None, "Expected None for 'None'"
-    # 带空格的逗号分隔列表
-    result = get_list_from_ini('MAG_ss, MAG_ss1s, KP')
-    assert result == ['MAG_ss', 'MAG_ss1s', 'KP'], f"Unexpected list: {result}"
-    # 空串保持原行为 -> ['']
-    assert get_list_from_ini('') == [''], "Expected [''] for empty string"
+from config.utils import read_last_line_large_file
 
 
 def test_read_last_line_large_file():
@@ -53,7 +41,6 @@ def test_read_last_line_large_file():
 
 if __name__ == '__main__':
     tests = [
-        ('test_get_list_from_ini', test_get_list_from_ini),
         ('test_read_last_line_large_file', test_read_last_line_large_file),
     ]
     passed = 0

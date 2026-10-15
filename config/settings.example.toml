@@ -1,22 +1,53 @@
-# MAVEN/TW/MGS 数据根路径（决策 D2：三任务分别配置根目录）
+# Julia 和 Python 共用此配置；复制为 settings.toml 后按本机环境修改。
+# Windows 路径可用 /，或用单引号字符串保留反斜杠。
+# 配置值中的相对文件系统路径以仓库根目录为基准，与运行目录无关。
 [paths]
 maven_data_root = "E:/MAVEN/"
 tw_data_root = "E:/Tianwen-1/"
 mgs_data_root = "E:/MGS/"
+cdf_lib = "D:/software/CDF.3.9_64bit/lib"
+# 空字符串表示使用仓库根目录查找 DLL。
+fortran_dll_dir = ""
 
 [server]
+# urls 的索引从 0 开始；0 为 USTC，1 为 UCLA，2 为 LASP。
 index = 0
 urls = [
   "http://222.195.76.155:8000/MAVEN/",
   "https://pds-ppi.igpp.ucla.edu/data/",
   "https://lasp.colorado.edu/maven/sdc/public/data/sci/",
 ]
+username = ""
+password = ""
+
+[proxy]
+# 空字符串禁用代理；USTC 和外部服务器可分别设置。
+outer_server = "http://127.0.0.1:7890"
+ustc_server = ""
 
 [download]
+# 可选 python.request、win.idm、Aria2c。
 mode = "python.request"
 threads = 5
 continue = true
+sleep_time = 60
+step_time = 0
+show_tqdm_bar = false
+idm_program_path = 'C:\Program Files (x86)\Internet Download Manager\IDMan.exe'
+aria2c_program_path = 'D:\software\aria2-1.37.0-win-64bit-build1\aria2c.exe'
 
 [window]
+# 使用带引号的 YYYY-MM-DD 字符串，包含下载时间范围。
 start = "2014-10-01"
 end = "2025-06-01"
+
+[products]
+single_download = false
+single_model = "LPW_lpiv"
+# 空数组表示批量选择全部产品（仍受 skip 和服务器规则约束）。
+models = []
+skip = ["MAG_ss", "MAG_ss1s", "MAG_pc1s", "MAG_pc", "KP"]
+# 开启后会检查并删除本地旧版本，使用前请确认。
+update_file_version = false
+# 预留开关；完整性检查仍通过独立 check 命令显式执行。
+check_download_file = false

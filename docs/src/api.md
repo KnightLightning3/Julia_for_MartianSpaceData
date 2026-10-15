@@ -26,7 +26,7 @@
 | --- | --- |
 | `martian_pipeline/`、`python -m martian_pipeline` | 统一 CLI 入口（扫描、检查与维护） |
 | `download_data/MAVEN_download.py` | MAVEN 数据下载，并在完成后触发扫描刷新 |
-| `config/`、`tools/migrate_config.py` | 配置读取与旧 INI 到 TOML 的显式迁移 |
+| `config/`、`download_data/initialize_download_parameters.py` | Julia/Python 共用 TOML 配置与模板初始化 |
 | `martian_pipeline/inventory.py`、`tools/scan_and_index.py` | 本地文件扫描、产品清单和索引生成 |
 | `tools/push_wiki.py`、`MAVEN_data/build_read_me.py` | Wiki 页面发布与数据产品说明生成 |
 
@@ -309,9 +309,10 @@
 
 | 限定名/函数名 | 标记 | docstring 首句 |
 | --- | --- | --- |
-| `Paths._load_roots` | — |  |
-| `Paths._roots_from_toml` | — |  |
-| `Paths.fortran_dll_dir` | — | Fortran DLL 定位目录（ARCH-005，只读可选键）。 |
+| `Paths._configured_root` | — |  |
+| `Paths._is_windows_absolute` | — |  |
+| `Paths._load_settings` | — |  |
+| `Paths.fortran_dll_dir` | — |  |
 | `Paths.index_path` | — |  |
 | `Paths.maven_data_root` | — |  |
 | `Paths.mgs_data_root` | — |  |
@@ -359,6 +360,31 @@
 | `IGRF_calculate.set_B_compress` | — | 更新模块全局的外源磁场压缩修正参数 `B_compress`。 |
 | `IGRF_calculate.sphere2pc` | — | 将行星球坐标转为笛卡尔坐标，是 `pc2sphere` 的逆变换。 |
 | `IGRF_calculate.trace_mag_line` | `export` | 顶层磁力线追踪接口：从给定起点沿磁场双向追踪并拼接成完整磁力线。 |
+
+### [`models/IGRF_test.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/IGRF_test.jl)
+
+模块：`IGRF_calculate_test`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `IGRF_calculate_test.Bpc2sphere` | `export` |  |
+| `IGRF_calculate_test.Bsphere2pc` | `export` |  |
+| `IGRF_calculate_test.CALCULATE_SCHMIDT_COEFFICIENTS` | — |  |
+| `IGRF_calculate_test.IGRF` | — |  |
+| `IGRF_calculate_test.IGRF_fortran` | — |  |
+| `IGRF_calculate_test.IGRF_fortran_free` | — |  |
+| `IGRF_calculate_test.IGRF_pc` | `export` |  |
+| `IGRF_calculate_test.RK4_Trace_fortran` | — |  |
+| `IGRF_calculate_test.combina_two_dir_trace` | — |  |
+| `IGRF_calculate_test.get_mag_line_s` | — |  |
+| `IGRF_calculate_test.mag_trace_Euler_step` | — |  |
+| `IGRF_calculate_test.mag_trace_rk4` | — |  |
+| `IGRF_calculate_test.mag_trace_rk4_fortran_ADAPTIVE_STEP` | — |  |
+| `IGRF_calculate_test.pc2sphere` | `export` |  |
+| `IGRF_calculate_test.read_gh` | — |  |
+| `IGRF_calculate_test.set_B_compress` | — |  |
+| `IGRF_calculate_test.sphere2pc` | `export` |  |
+| `IGRF_calculate_test.trace_mag_line` | `export` |  |
 
 ### [`models/Mars_Environment.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Mars_Environment.jl)
 
@@ -415,6 +441,10 @@
 | `build_octree!` | — | 根据区域判定函数**递归细分**八叉树节点，标记哪些节点位于目标区域内部。 |
 | `get_min_bounding_box` | — | 根据区域判定函数，用八叉树搜索并返回目标的**最小轴对齐包围盒**（AABB）。 |
 | `is_sphere` | — | 判断给定点是否位于**单位球**内（本文件用于验证八叉树的示例区域判定函数）。 |
+
+### [`models/test.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/test.jl)
+
+未发现顶层函数定义。
 
 ### [`src/MarsData.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/src/MarsData.jl)
 

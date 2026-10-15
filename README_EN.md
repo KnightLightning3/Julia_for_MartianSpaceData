@@ -21,13 +21,22 @@ This repository contains download, reading, and processing tools for MAVEN, MGS,
 | `analysis/` | Event-analysis scripts, including `Pickup_ion.jl` |
 | `support_data/` | Readers for external support data such as OMNI |
 | `download_data/`, `martian_pipeline/` | Python download, scan, index, and file-maintenance tools |
-| `config/`, `tools/` | TOML configuration and migration, scan/API/Wiki tools |
+| `config/`, `tools/` | TOML configuration, scan/API/Wiki tools |
 | `example/` | Examples; some read data, write files, or load DLLs, so inspect script settings before running |
 | `docs/` | Documenter sources, Wiki pages, references, and historical reports |
 
 ## Julia package and shared capabilities
 
 Julia 1.10 or later is required. `using MarsData` initializes the plotting stack (CairoMakie/Makie) and preloads the plotting submodule. The path, product-registry, and index APIs do not load scientific-data readers and do not require local observation data or the IGRF DLL.
+
+Before the first `using MarsData` on a fresh clone, create the settings file and edit its three data roots. Otherwise package loading stops because `config/settings.toml` is missing:
+
+```bash
+python download_data/initialize_download_parameters.py
+# Edit [paths] in config/settings.toml with your text editor
+```
+
+Set `paths.maven_data_root`, `tw_data_root`, and `mgs_data_root` to local directories before starting Julia.
 
 Preloaded package instances include `MarsData.MarsCommon`, `MarsData.MarsEnvironment`, `MarsData.MAVEN_plot`, `MarsData.Paths`, and `MarsData.DataKeys`. Package initialization creates these instances, and the loader reuses them. The package does not re-export every API name as a bare identifier; prefer explicit qualification such as `MarsData.project_root()` and `MarsData.DataKeys.ENERGY`.
 
@@ -89,7 +98,9 @@ Call these functions with the `MarsData.` qualifier. Data roots come from config
 
 ## Configuration and data paths
 
-`config/settings.toml` is the sole configuration write target; `config/settings.example.toml` is the template. The legacy `download_data/MAVEN_download_config.ini` is retained as read-only compatibility input. Resolution order is TOML, legacy INI, then built-in defaults. Configure `paths.maven_data_root`, `tw_data_root`, and `mgs_data_root` for the respective data roots; observation data does not need to live inside the source tree.
+Edit `config/settings.toml` as the shared Python and Julia path configuration; the full-parameter template is [`config/settings.example.toml`](config/settings.example.toml). The old `download_data/MAVEN_download_config.ini` is deprecated and is no longer read. To initialize a missing settings file, run `python download_data/initialize_download_parameters.py`; it creates the file only when absent and preserves existing settings. Python-only server, download mode, thread count, and date-window options also live in this TOML, and are used only by Python download workflows.
+
+Set non-empty `paths.maven_data_root`, `tw_data_root`, and `mgs_data_root`. Values containing only whitespace are rejected; other path values retain leading and trailing spaces. Absolute paths retain their platform meaning; relative paths are resolved from the repository root, independent of the process working directory. The optional `fortran_dll_dir` defaults to the repository root when empty. Julia reads and caches settings when the Paths module loads; if `settings.toml` is missing, it reports the initialization command instead of choosing a machine-specific drive.
 
 Python 3.11 or later is required. Python runtime and optional build dependencies are listed in `pyproject.toml`; `spacepy` is optional for derived CDF building. See the [project workflow](docs/src/pipeline.md) for configuration, downloads, and indexing.
 

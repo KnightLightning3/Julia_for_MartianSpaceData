@@ -2,23 +2,21 @@
 # 索引输出路径固定由本脚本所在位置推导（仓库根/MAVEN_data/），不再依赖运行时的 CWD。
 import os
 import json
-import configparser
 import tempfile
 import datetime
 
 PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import sys
+if PROJECT_PATH not in sys.path:
+    sys.path.insert(0, PROJECT_PATH)
+from config.config import load_config as _load_config
 SCHEMA_VERSION = 2
 _METADATA_KEYS = {"schema_version", "generated_at"}
 
 
 def load_config(config_path=None):
-    """读取下载配置；config_path 为空时使用仓库内的默认配置文件。"""
-    if config_path is None:
-        config_path = os.path.join(PROJECT_PATH, "download_data", "MAVEN_download_config.ini")
-    config_data = configparser.ConfigParser()
-    config_data.optionxform = str
-    config_data.read(config_path, encoding='utf-8')
-    return config_data
+    """加载 TOML 配置并返回 Config。"""
+    return _load_config(config_path)
 
 
 def default_index_path():
@@ -74,7 +72,7 @@ def load_index(path=None):
 
 def main():
     config_data = load_config()
-    save_dir = config_data['DEFAULT']['Save_dir']
+    save_dir = config_data.paths.maven_data_root
     output_path = write_index(save_dir)
     print("\033[1;32m成功录入以下数据模块目录:\033[0m")
     list_dir = os.path.join(save_dir, "lists")

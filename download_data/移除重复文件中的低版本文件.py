@@ -1,6 +1,5 @@
 """根据 MAVEN 文件版本信息查找并移除重复的低版本数据文件。"""
 
-import configparser
 import json
 import os
 import re
@@ -9,21 +8,20 @@ from collections import defaultdict
 
 # 获取项目根目录
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import sys
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
 
 # 读取数据格式 JSON 文件
 json_path = os.path.join(project_path, "MAVEN_data", "MAVEN_data_format.json")
 with open(json_path, "r", encoding="utf-8") as file:
     json_data = json.load(file)
 
-# 读取下载配置文件 INI
-config_file_path = os.path.join(
-    project_path, "download_data", "MAVEN_download_config.ini"
-)
-config_data = configparser.ConfigParser()
-config_data.optionxform = str
-config_data.read(config_file_path, encoding="utf-8")
+# 加载 TOML 下载配置
+from config.config import load_config
 
-save_dir = config_data["DEFAULT"]["Save_dir"]
+cfg = load_config()
+save_dir = cfg.paths.maven_data_root
 
 
 def download_model(model):
@@ -35,7 +33,7 @@ def download_model(model):
     for key, value in data_model.items():
         model_key[key] = value[:3]
     _, filename, pathname = model_key[model]
-    save_path = save_dir + pathname
+    save_path = os.path.join(save_dir, pathname)
     return [save_path, filename]
 
 

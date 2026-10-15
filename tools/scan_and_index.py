@@ -4,7 +4,7 @@
 用法：
     python tools/scan_and_index.py
     python tools/scan_and_index.py --models MAG_ss KP
-    python tools/scan_and_index.py --config <ini> --index-output <json>
+    python tools/scan_and_index.py --config <toml> --index-output <json>
 """
 import argparse
 import sys
@@ -22,13 +22,13 @@ from get_download_files import write_index  # noqa: E402
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="扫描本地 MAVEN 文件并刷新索引。")
-    parser.add_argument("--config", default=None, help="配置文件路径（默认 download_data/MAVEN_download_config.ini）")
+    parser.add_argument("--config", default=None, help="TOML 配置文件路径")
     parser.add_argument("--index-output", default=None, help="索引输出路径（默认 MAVEN_data/filename_lists.json）")
     parser.add_argument("--models", nargs="*", default=None, help="要扫描的产品列表；缺省为全部注册产品")
     args = parser.parse_args(argv)
 
     config_data = load_config(args.config)
-    save_dir = config_data['DEFAULT']['Save_dir']
+    save_dir = config_data.paths.maven_data_root
     full_model = load_schema()["data_model"]
 
     if args.models:

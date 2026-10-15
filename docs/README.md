@@ -10,7 +10,7 @@ README 提供上手入口；`docs/src/` 提供当前架构、迁移方式、执�
 | `src/index.md` | Documenter 首页 |
 | `src/architecture.md`、`src/migration.md` | 当前模块边界、旧入口和名称迁移；手工维护 |
 | `src/coordinates.md` | 点坐标接口、仪器球坐标约定与旋转方向专题；手工维护 |
-| `src/pipeline.md`、`src/data_reading.md` | 配置/下载/索引/构建与实际读取接口；手工维护 |
+| `src/pipeline.md`、`src/data_reading.md` | 共用 TOML 路径配置、Python 下载/索引/构建与实际读取接口；手工维护 |
 | `src/data_format.md` | 产品说明前言手工维护；产品表从 JSON 注册表生成 |
 | `src/swia_electron.md` | 科学专题；改版文档时保留公式与假设的含义 |
 | `src/api.md` | `tools/generate_api.jl` 静态生成；不要直接编辑生成正文 |
