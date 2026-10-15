@@ -1,8 +1,8 @@
 # AI_HANDOFF.md —— 当前唯一接续入口（DeepSeek Flash 整理，2026-10-15 14:15 +08:00）
 
-> 本文档是**当前唯一权威接续入口**。历史规划/审计稿全部**原地保留**，但除本文档「§9 文档效力索引」明示为现行者外，一律视为 **superseded（历史）**。
+> 本文档是**当前唯一权威接续入口**。冗余的规划/决策/分析历史稿已于 2026-10-15 清理移除（可经 git 历史找回，见 §9）。
 > **本整理只做记录整合，不代表对已审成果的额外审查**；未重跑整套科学测试（见 §4 的“最后运行时间”标注）。
-> 整理者按用户要求**未使用子 agent**、**未改任何源码/测试/工具**、**未提交、未 push**。
+> 整理与提交由 captain 依用户三步要求完成：①代码提交 → ②文档备份提交 → ③删冗余文档后整理提交（见 §1）。
 
 ---
 
@@ -15,8 +15,8 @@
 | remote | `origin` = `git@git.ustc.edu.cn:KnightLightning/Julia_for_MartianSpaceData.git` |
 | 与远端关系 | `main...origin/main [ahead 2]`（`git rev-list --left-right --count HEAD...@{u}` = **2 / 0**） |
 | 领先的 2 个提交（**均早于本批、均未 push**） | `5f225db 暂存`、`46db822 快照：纳入 HD-01…15 裁决文档与执行快照` |
-| 本批改动状态 | **全部未提交**：`git status --porcelain` = M 20 / D 5 / ?? 18（含团队运行态与 1 个仅 CR 差异文件，见 §8） |
-| 本批是否已提交/推送 | **否**：未 `git add`、未 `commit`、未 `push`；受限 `.git` 按既定口径不重试、不绕过 |
+| 提交状态（2026-10-15 清理后） | 已分三步提交（均**未 push**）：`f6e63bb` 代码更改（53 文件）→ `5b3e87d` 文档备份 → 本清理提交（删 32 份冗余文档 + 本说明更新） |
+| 剩余未提交 | 仅团队运行态 `.agent-teams/**`（永不入库）；无源码/文档待提交 |
 
 要点：`5f225db` 是**已提交的旧参考基线**（历史 oracle 来源，见 §7），而本批成果**完全在工作区未提交**（见 §4/§8）。
 
@@ -112,9 +112,9 @@
 
 ---
 
-## 8. 单次提交清单（精确、逐文件；供用户外部执行）
+## 8. 提交清单（已执行，仅留档；供排查用）
 
-**基线（本批此前核对过的 57 条）**：58 条 = MODIFIED 18 + DELETED 5 + NEW 34（逐文件数组见下），**其后本整理新增 2 条**（`<.agent/AI_HANDOFF.md>`、`<.agent/new_plan.md>`）⇒ 当前应为 **59 条**。请以**写后现场**核对，勿假定 57 仍然完整。
+> 本清单的代码与文档备份**已由 captain 于 2026-10-15 分步提交**（§1）；下方逐文件数组为当时提交的路径留档，不再需要外部执行。若后续 AI 需要核对提交内容，用 `git show f6e63bb` 与 `git show 5b3e87d`。
 
 ```powershell
 cd H:\code\Julia_for_MartianSpaceData
@@ -204,12 +204,10 @@ git commit -m "迁移批次：STATIC 质量基准常量 + common/MarsEnvironment
 3. **机器记录** <validation/migrations/index.toml> + 7 份清单 <validation/migrations/>（`common`/`environment`/`coordinate`/`coordinate_variants`/`swea`/`igrf` + `callsite_plan`）。
 4. **实施证据** <validation/check_migrations.jl>、<validation/ast/>（AST 校验器与自检）、<test/> 下各回归、<.agent/06_IMPLEMENTATION_LOG.md>（实施日志；STATIC 节 + 迁移批次冻结节）。
 
-**历史 / superseded（原地保留，不再作为当前依据）**
-- 规划与架构稿：<.agent/new_plan.md>（团队总纲 V2，**已在头部加指引**）、<.agent/00_PROJECT_SCOPE.md>、<.agent/01_PROJECT_MAP.md>、<.agent/02_ARCHITECTURE_REVIEW.md>、<.agent/03_ARCHITECTURE_PLAN.md>、<.agent/04_OPTIMIZATION_PLAN.md>、<.agent/05_TEST_STRATEGY.md>、<.agent/07_VERIFICATION.md>、<.agent/08_DOCUMENTATION_SYNC.md>、<.agent/09_FINAL_REVIEW.md>。
-- 目标架构系列：<.agent/target_architecture_draft.md>、<.agent/target_architecture_execution.md>、<.agent/target_architecture_final.md>、<.agent/architecture_draft_review.md>、<.agent/architecture_expert_analysis.md>、<.agent/architecture_final_recheck.md>。
-- 执行/依赖收敛系列：<.agent/execution_decisions.md>、<.agent/execution_snapshot.md>、<.agent/execution_task_breakdown.md>、<.agent/execution_batch1_handoff.md>、<.agent/current_state_recovery.md>、<.agent/physical_path_audit.md>（历史路径审计：现以清单/测试为准）、<.agent/dependency_convergence_*>.md（4 份）、<.agent/planning_archive_handoff.md>、<.agent/ustc_supplement.md>。
-- 科学/STATIC 审计系列：<.agent/science_expert_analysis.md>、<.agent/science_draft_review.md>、<.agent/science_final_recheck.md>、<.agent/static_mass_removal_audit.md>（其结论**已实施**，故作为历史证据而非待办）。
-- 说明：上述历史稿中的旧数字/旧哈希**可能已过期**，本文档**不复制**它们；需要旧值时请查原文或 `git show 5f225db:<路径>`。
+**历史 / 已清理（冗余决策备案与规划/分析稿，可经 git 历史找回）**
+- 已从工作区移除 **32 份冗余文档**：`00…09` 规划链、`target_architecture_*` / `architecture_*` / `science_*` 系列、`execution_*` / `dependency_convergence_*`、`physical_path_audit`、`static_mass_removal_audit`、`planning_archive_handoff`、`ustc_supplement`、`current_state_recovery`、`new_plan`。
+- 它们的内容已由本文档与机器记录收敛；**需要原始文本时**：`git show 5b3e87d:.agent/<name>.md`，或更早归档提交 `3f68187` / `46db822` / `5f225db`。
+- **不要**据此假设旧数字/旧哈希仍有效；以本文件与 <validation/migrations/index.toml> 为准。
 
 ---
 
