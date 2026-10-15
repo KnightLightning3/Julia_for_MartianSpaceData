@@ -1,0 +1,476 @@
+# =============================================================================
+# validation/migrations/callsite_plan.toml
+# t12 施工契约：权威迁入后的「旧副本删除 / 调用点切换 / 变体保留」清单
+#
+# 本文件**不是迁移记录**（迁移记录见 common.toml / environment.toml），而是下一
+# 实现单元（t13）的只读审计产物与施工清单。基线修订：5f225db；行号为现行 read
+# 核对值（grep 级），非 validation/ast 报告的行号（该工具的 per-ref 行号是 chunk
+# 级，实测与真实行号不符，见 [[plan.caveats]]）。
+#
+# 【AST 校验器互操作】validation/check_migrations.jl 会消费本目录全部 *.toml；
+# Records.jl 对「无记录数组」的 toml 报 REC_NO_RECORDS（阻塞 exit 3）。为不破坏
+# 全体成员的校验基线，本文件首部保留空迁移数组 `moves = []`（解析为 0 条记录、
+# 不产生错误）；计划内容全部放在 [plan] 之下，校验器只报一条 REC_UNKNOWN_TOP_KEY
+# 告警（非阻塞）。迁移记录字段语义（t19/t20 后）：source_hash = 旧源溯源原值，
+# target_hash = 目标定义规范 AST 64 位十六进制，二者不要求统一，不得混用。
+# =============================================================================
+
+schema_version = 1
+moves = []
+
+[plan]
+base_revision = "5f225db"
+author = "t12 (flash-reviewer, repository audit)"
+status = "audit-ready"
+next_implementer = "t13"
+independent_review = "t14"
+summary = "24 条迁移单元（16 common + 6 environment + 2 plot 变体）的等价性、调用点、删除顺序与保留口径；含 head.jl/function_coordinate.jl 删除阻塞项、SWEA shape/PAD 私有闭包、TimeFormat 两版差异、注册表策略P与 G-include 护栏"
+
+# ---------------------------------------------------------------------------
+# 一、逐单元：等价性 + 调用点 + 处置
+#   equivalence: exact-verbatim（整块含 docstring 逐字相同）
+#                exact-renamed（改名迁入，函数体逐字相同，含体内调用改名）
+#                variant-different-nan（实质不等价，必须不同名保留）
+#   action: delete-source-now（无调用者，可直接删旧定义）
+#           switch-callers-then-delete（先改调用点再删旧定义）
+#           retain-variant（保留为独立变体，不得 finalized 为 from==to 伪迁移）
+# ---------------------------------------------------------------------------
+
+[[plan.units]]
+name = "safe_log_mean"
+from = "common/head.jl:104"
+to = "common/marscommon/statistics.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+evidence = "t10 逐函数哈希+整块文本 16/16 一致"
+
+[[plan.units]]
+name = "skipnan"
+from = "common/head.jl:204"
+to = "common/marscommon/statistics.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "nozeros"
+from = "common/head.jl:227"
+to = "common/marscommon/statistics.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "geomean"
+from = "common/head.jl:251"
+to = "common/marscommon/statistics.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "find_range"
+from = "common/head.jl:275"
+to = "common/marscommon/statistics.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "get_normal_plane"
+from = "common/head.jl:299"
+to = "common/marscommon/geometry.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "get_angle"
+from = "common/head.jl:327"
+to = "common/marscommon/geometry.jl"
+equivalence = "exact-verbatim"
+callers = ["models/Pickup_ion.jl:416"]
+action = "switch-callers-then-delete"
+notes = "Pickup_ion 目前靠 include head.jl 取到该名；切换为 MarsCommon.get_angle（或模块内 using）后删 head.jl 副本"
+
+[[plan.units]]
+name = "vector_angle"
+from = "MAVEN_data/MAVEN_plot.jl:1442"
+to = "common/marscommon/geometry.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+notes = "MAVEN_plot 的副本无任何调用者（t10 证 16/16 一致）"
+
+[[plan.units]]
+name = "solve_func"
+from = "common/head.jl:458"
+to = "common/marscommon/numerics.jl"
+equivalence = "exact-verbatim"
+callers = ["common/head.jl:505-507 (head 内 get_bowshock_normal)", "models/Mars_Environment.jl:204-206 (已改为复用)"]
+action = "switch-callers-then-delete"
+notes = "Mars_Environment 已按 t23 复用同一权威实例（ME.solve_func === ME.MarsCommon.solve_func）；head.jl 删除即消除其内部调用"
+
+[[plan.units]]
+name = "Vandermonde"
+from = "MAVEN_data/MAVEN_plot.jl:1462"
+to = "common/marscommon/numerics.jl"
+equivalence = "exact-verbatim"
+callers = ["MAVEN_data/MAVEN_plot.jl:1049", "MAVEN_data/MAVEN_plot.jl:1063", "MAVEN_data/MAVEN_plot.jl:1091"]
+action = "switch-callers-then-delete"
+notes = "MAVEN_plot 已在 :5 include MarsCommon；需在处理 include 后加 using .MarsCommon: Vandermonde, polynomial_fit（或在调用处限定名）再删本地定义"
+
+[[plan.units]]
+name = "polynomial_fit"
+from = "MAVEN_data/MAVEN_plot.jl:1485"
+to = "common/marscommon/numerics.jl"
+equivalence = "exact-verbatim"
+callers = ["MAVEN_data/MAVEN_plot.jl:1063", "MAVEN_data/MAVEN_plot.jl:1085"]
+action = "switch-callers-then-delete"
+
+[[plan.units]]
+name = "Linear_fit"
+from = "calculate/calculate_models.jl:178"
+to = "common/marscommon/numerics.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "cyclotron_radius"
+from = "calculate/calculate_models.jl:116"
+to = "common/marscommon/cyclotron.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+notes = "注意 models/Single_Particle_Orbit.jl:355 有同名但**不同语义/单位**的 SI 变体（B 以 T、第二参为速度），不得合并；见 [[plan.special]] id=cyclotron-naming"
+
+[[plan.units]]
+name = "cyclotron_frequency"
+from = "calculate/calculate_models.jl:149"
+to = "common/marscommon/cyclotron.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "cyclotron_frequency_kg"
+source_name = "cyclone_frequency"
+from = "MAVEN_data/MAVEN_load.jl:1277"
+to = "common/marscommon/cyclotron.jl"
+equivalence = "exact-renamed"
+callers = ["MAVEN_data/MAVEN_load.jl:1300 (在 cyclone_R 内，随其一并迁走)"]
+action = "switch-callers-then-delete"
+notes = "采用已批准的 kg 名；与 cyclotron_frequency（AMU/电子口径）为两套独立单位入口，值一致到 rel≈1.5e-16，非别名"
+
+[[plan.units]]
+name = "cyclotron_radius_velocity"
+source_name = "cyclone_R"
+from = "MAVEN_data/MAVEN_load.jl:1298"
+to = "common/marscommon/cyclotron.jl"
+equivalence = "exact-renamed"
+callers = []
+action = "delete-source-now"
+notes = "函数体内调用已同步改名为 cyclotron_frequency_kg；无外部调用者"
+
+[[plan.units]]
+name = "mars_sun_dist_phys"
+from = "common/head.jl:134"
+to = "models/Mars_Environment.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+
+[[plan.units]]
+name = "bowshock"
+from = "common/head.jl:358"
+to = "models/Mars_Environment.jl"
+equivalence = "exact-verbatim"
+callers = ["common/head.jl:482 (head 内 get_bowshock_normal，随 head 删除)"]
+action = "switch-callers-then-delete"
+notes = "MAVEN_plot 另有旧同名副本，属 variant-different-nan，见下方两行"
+
+[[plan.units]]
+name = "magnetopause"
+from = "common/head.jl:397"
+to = "models/Mars_Environment.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+notes = "MAVEN_plot 另有旧同名副本，属 variant-different-nan"
+
+[[plan.units]]
+name = "get_bowshock_normal"
+from = "common/head.jl:502"
+to = "models/Mars_Environment.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+notes = "t23 已用 5f225db 独立 oracle 验证三组输入逐位一致"
+
+[[plan.units]]
+name = "bowshock_zero"
+from = "common/function_coordinate.jl:249"
+to = "models/Mars_Environment.jl"
+equivalence = "exact-verbatim"
+callers = ["models/Pickup_ion.jl:291"]
+action = "switch-callers-then-delete"
+notes = "t22 已补回旧源 docstring（32/32 行）；Pickup_ion 切换后 function_coordinate.jl 仅剩 slice2d_cal_rot 等阻塞项"
+
+[[plan.units]]
+name = "escape_energy"
+from = "calculate/calculate_models.jl:87"
+to = "models/Mars_Environment.jl"
+equivalence = "exact-verbatim"
+callers = []
+action = "delete-source-now"
+notes = "历史缺陷（planet≠\"Mars\" 时 UndefVarError(:v)）按用户口径原样保留，不得顺手修"
+
+[[plan.units]]
+name = "bowshock"
+source_name = "bowshock"
+from = "MAVEN_data/MAVEN_plot.jl:1514"
+to = "MAVEN_data/MAVEN_plot.jl (自留)"
+equivalence = "variant-different-nan"
+callers = ["MAVEN_plot 内部（局部作用域调用）"]
+action = "retain-variant"
+variant_contract = "源 hash A6A9747AEE13F565D4ABAA91BA04C75423AB03F490CD665DB494A0DF9BA45006；有效区与权威逐位相同；无定义分支返回 NaN64(Float64)，权威为 NaN32(Float32)；docstring 不同。最终可迁入环境侧为显式变体新名（如 bowshock_plot_nan64），带 source_name/target name 与全部消费者；不得以 from==to 伪迁移置 finalized"
+
+[[plan.units]]
+name = "magnetopause"
+source_name = "magnetopause"
+from = "MAVEN_data/MAVEN_plot.jl:1541"
+to = "MAVEN_data/MAVEN_plot.jl (自留)"
+equivalence = "variant-different-nan"
+callers = ["MAVEN_plot 内部（局部作用域调用）"]
+action = "retain-variant"
+variant_contract = "源 hash 4A4805B9BAC5FD2E00CB38D9EEE8D8D3080F3EA166D765891A25D1BC7664E72C；差异同上（仅无定义分支 NaN64 vs NaN32 + docstring）"
+
+# ---------------------------------------------------------------------------
+# 二、调用点清单（下一实现单元要动的确切位置）
+# ---------------------------------------------------------------------------
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 3
+symbol = "include(\"../common/head.jl\")"
+current_resolution = "head.jl 整文件 include（含 25 个 using 与模块引导块 :29-36）"
+required_change = "删除该 include；改为显式载入所需模块（MarsData.@load MAVEN_load MAVEN_plot MAVEN_STATIC MAVEN_SWIA 或等价 include），并显式 using DataFrames, JLD2（见下两行）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 4
+symbol = "include(\"../common/function_coordinate.jl\")"
+current_resolution = "function_coordinate.jl 整文件 include"
+required_change = "删除该 include；bowshock_zero → Mars_Environment.bowshock_zero；slice2d_cal_rot 需先有归宿（阻塞项 B2）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 291
+symbol = "bowshock_zero(P_mso[1] / constants.R_Mars)"
+current_resolution = "function_coordinate.jl（经 include）"
+required_change = "改为 Mars_Environment.bowshock_zero（保持逐位行为；Mars_Environment 需可被该文件解析，见 registration 契约）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 413
+symbol = "slice2d_cal_rot(B_vec, E_vec)"
+current_resolution = "function_coordinate.jl（经 include）"
+required_change = "该函数无新权威；建议归入 MAVEN_plot（其已有两处同名局部实现）或 MarsCommon/geometry；定家后再删 function_coordinate.jl 副本（阻塞项 B2）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 416
+symbol = "get_angle(B_vec, V_vec_sw)"
+current_resolution = "head.jl（经 include）"
+required_change = "改为 MarsCommon.get_angle"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = "340-343, 400-401"
+symbol = "searchsortednearest_range / searchsortednearest"
+current_resolution = "head.jl:84-85 的 const 透传（= MAVEN_load.MarsCommon.*）"
+required_change = "直接使用 MarsCommon.searchsortednearest/_range（head.jl 透传随文件删除）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 380
+symbol = "DataFrame"
+current_resolution = "依赖 head.jl 的 `using DataFrames`"
+required_change = "在本文件显式 `using DataFrames`（否则删 head.jl 后 UndefVarError）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Pickup_ion.jl"
+line = 261
+symbol = "JLD2"
+current_resolution = "依赖 head.jl 的 `using JLD2`"
+required_change = "在本文件显式 `using JLD2`"
+owner = "t13"
+
+[[plan.callsites]]
+file = "MAVEN_data/MAVEN_plot.jl"
+line = "1049, 1063, 1091"
+symbol = "Vandermonde"
+current_resolution = "MAVEN_plot 本地定义 :1462（内部自用）"
+required_change = "改为 MarsCommon 提供者（:5 已 include MarsCommon；加 using/限定名），随后删本地定义"
+owner = "t13"
+
+[[plan.callsites]]
+file = "MAVEN_data/MAVEN_plot.jl"
+line = "1063, 1085"
+symbol = "polynomial_fit"
+current_resolution = "MAVEN_plot 本地定义 :1485（内部自用）"
+required_change = "同 Vandermonde，改指向 MarsCommon 后删本地定义"
+owner = "t13"
+
+[[plan.callsites]]
+file = "MAVEN_data/MAVEN_plot.jl"
+line = "297, 537"
+symbol = "color_mapping（两处函数内局部定义）+ 396/598 调用"
+current_resolution = "MAVEN_plot 自身的函数内局部实现；head.jl:169 的顶层副本另按绘图面迁移处置"
+required_change = "【按队长更正】MAVEN_plot 现有嵌套定义**保持不动**；head.jl 的 color_mapping 迁入 MAVEN_plot 作为模块级提供者（不得删除、不得与现有嵌套定义混改）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "MAVEN_data/MAVEN_plot.jl"
+line = "321, 561"
+symbol = "slice2d_cal_rot（两处函数内局部定义）+ 339-355/577 调用"
+current_resolution = "MAVEN_plot 自身的函数内局部实现"
+required_change = "【按队长更正】保持不动；Pickup_ion:413 继续用 common/function_coordinate.jl（该文件保留包化），无需定家/上提"
+owner = "t13"
+
+[[plan.callsites]]
+file = "MAVEN_data/MAVEN_load.jl"
+line = 1300
+symbol = "cyclone_frequency(B; mass)"
+current_resolution = "本文件本地定义 :1277（cyclone_R 内部）"
+required_change = "两函数一并切到 MarsCommon 的 cyclotron_frequency_kg / cyclotron_radius_velocity，随后删本地两份定义（无外部调用者）"
+owner = "t13"
+
+[[plan.callsites]]
+file = "calculate/calculate_models.jl"
+line = "87, 116, 149, 178"
+symbol = "escape_energy / cyclotron_radius / cyclotron_frequency / Linear_fit 定义"
+current_resolution = "本模块本地定义（无外部调用者）"
+required_change = "删除这四处本地定义；模块内若仍有调用（当前无）改指 Mars_Environment / MarsCommon"
+owner = "t13"
+
+[[plan.callsites]]
+file = "models/Single_Particle_Orbit.jl"
+line = "9, 355"
+symbol = "export cyclotron_radius + 本地 SI 变体 cyclotron_radius(B_in::Real, v::Real; nM, nQ)"
+current_resolution = "本模块自有实现（B 以 T，第二参为速度），与 MarsCommon.cyclotron_radius（nT + 能量）语义不同"
+required_change = "保留本地实现（不合并）；最终报告统一命名（见 [[plan.special]] id=cyclotron-naming）。若与 MarsData 导出同名函数并存，需去冲突"
+owner = "t13"
+
+[[plan.callsites]]
+file = "TW_data/TW_MINPA.jl"
+line = "236, 274, 566"
+symbol = "MINPA_sphere2xyz / MINPA_xyz2sphere / slice2d_cal_rot 本地定义（调用点 256/301/325/549/568）"
+current_resolution = "本模块自包含实现"
+required_change = "无需切换；function_coordinate.jl 的同名副本在 TW 侧无消费者（删除不阻塞）"
+owner = "t13"
+
+# ---------------------------------------------------------------------------
+# 三、删除阻塞项（哪一步之前不能删旧文件）
+# ---------------------------------------------------------------------------
+
+[[plan.blockers]]
+target = "common/head.jl"
+blocker = "唯一 includer 是 models/Pickup_ion.jl:3；该文件同时依赖 head.jl 的 using 面（DataFrames:380、JLD2:261）与模块引导块（:29-36 载入 MAVEN_load/MAVEN_plot/MAVEN_STATIC/SP_load/MAVEN_SWIA/Maxwellian_Distribution）"
+required_change = "先把 Pickup_ion.jl 的模块载入与 using 面显式化（t13 的前置步骤），再把其中 3 个调用点改指新权威（bowshock_zero/get_angle/searchsortednearest*）"
+status = "blocking-head-deletion"
+
+[[plan.blockers]]
+target = "common/head.jl"
+blocker = "14 个顶层函数中 12 个属本次迁移（见 units）；绘图面符号另有 5 个不在迁移清单内：color_mapping(:169)、get_log_ticks(:429)、label_data(:41)、print_f(:38)、norm2(:39)"
+required_change = "【按队长 2026-10-15 更正】零仓内消费者 ≠ 删除科研 API：这 5 个绘图面符号按已论证的处置**迁入 MAVEN_plot**（作为模块级提供者），**不得随 head.jl 删除**；MAVEN_plot 现有的函数内嵌套同名定义（color_mapping :297/:537、slice2d_cal_rot :321/:561）保持不动、不改写。t13 先完成迁入并确认 MAVEN_plot 侧可用，再删 head.jl。详见 [[plan.special]] id=head-plotting-surface"
+status = "blocking-head-deletion"
+
+[[plan.blockers]]
+target = "common/head.jl"
+blocker = "head.jl:84-85 的 const 透传依赖 `MAVEN_load.MarsCommon` 已加载（include 顺序耦合）；label_data(:41)/print_f(:38)/norm2(:39) 与 color_mapping/get_log_ticks 同属绘图面符号"
+required_change = "【按队长更正】透传改由使用方直接引用 MarsCommon（Pickup 侧 searchsortednearest*）；label_data/print_f/norm2 **同样迁入 MAVEN_plot**，不随文件删除（见 [[plan.special]] id=head-plotting-surface）"
+status = "blocking-head-deletion"
+
+[[plan.blockers]]
+target = "common/function_coordinate.jl"
+blocker = "6 个顶层函数中仅 bowshock_zero 属本次迁移；slice2d_cal_rot(:21) 仍被 models/Pickup_ion.jl:413 使用（MAVEN_plot/TW_MINPA 各有自己的局部副本）"
+required_change = "【按队长 2026-10-15 更正】**保留包化，不整删**：本文件不作为「删源」对象；t13 只清掉 bowshock_zero 的源副本（迁入 models/Mars_Environment.jl 后），文件本体按包化方式保留（slice2d_cal_rot 等继续由需要者使用）；Pickup_ion:413 的调用无需改家"
+status = "keep-packaged"
+
+# ---------------------------------------------------------------------------
+# 四、专项
+# ---------------------------------------------------------------------------
+
+[[plan.special]]
+id = "swea-shape-pad-closure"
+detail = "SWEA shape/PAD 整体搬迁必须携带 2 层私有闭包与 4 个命名常量。入口/私有件：MAVEN_load.jl:1333 SWEA_calc_shape_arr → 内嵌 :1349 mvn_swe_calc_shape_arr → 内嵌 :1362 deriv；常量 :1304 SWEA_N_ENERGY_BINS=64、:1305 SWEA_SHAPE_FIRST_BIN=13、:1306 SWEA_SHAPE_LAST_BIN=SWEA_N_ENERGY_BINS、:1307 SWEA_SHAPE_NBINS；组合入口 :1474 SWEA_calc_shape_arr_mars_towrads（三次调用 + 需 MAG 数据/B_out）；PAD 侧 :993 mean_SWEA_pad_pa、:1172 carclu_SWEA_pad（导出名，example/MAVEN_plot_sample/*.jl:176-177 经 MAVEN_load 限定名使用）。搬迁时不得只搬外层函数，否则嵌套 helper 丢失。"
+consumers = ["example/MAVEN_plot_sample/MAVEN_overview_cases.jl:176-177", "example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl:165-166", "MAVEN_load.jl 内部 :1496-1498"]
+owner = "t13"
+
+[[plan.special]]
+id = "timeformat-two-versions"
+detail = "同名 TimeFormat 两版、格式不同且都导出：src/plotting.jl:26 → HH:MM:SS.mmm（:13 export，MarsData 公共面；example/*.jl 经 using MarsData 调用）；models/Single_Particle_Orbit.jl:30 → MM:SS.mmm（无小时位，:9 export；:217/:319 内部调用）。两版对 >59 min 的展示不同，且同名导出并存会产生使用侧歧义。"
+required_change = "最终报告里二选一或改名（建议公共面保留 plotting 的 HH:MM:SS.mmm，SPO 侧改本地名/撤导出）；t12 不施工"
+owner = "最终集成"
+
+[[plan.special]]
+id = "cyclotron-naming"
+detail = "回旋系列共 4 个实现、3 套口径：① common/marscommon/cyclotron.jl 的 cyclotron_radius(B[nT], ek) 与 cyclotron_frequency(B; nM, nQ)（AMU/电子口径，源自 calculate_models）；② 同文件 cyclotron_frequency_kg(B; mass[kg]) 与 cyclotron_radius_velocity(v, B[nT]; mass[kg])（源自 MAVEN_load 的 cyclone_frequency/cyclone_R，已按批准采用这两个名，保留到最终汇报）；③ models/Single_Particle_Orbit.jl:355 cyclotron_radius(B[T], v; nM, nQ) SI 变体（与 ② 近似但单位/参数不同）。②③ 不得合并，① 与 ③ 同名不同语义，需在最终集成时用不同名显式区分。"
+owner = "最终集成"
+
+[[plan.special]]
+id = "registry-strategy-p"
+detail = "注册表（src/modules.jl）现状：MarsCommon 已登记 deps=[:constants]；models/Mars_Environment.jl **未登记**（当前仅能被直接 include）。策略P下新权威的接线二选一：A) 在 MODULE_REGISTRY 增加 :Mars_Environment => _spec(:Mars_Environment, \"models/Mars_Environment.jl\", ...; deps=[:constants, :MarsCommon])；B) 由已登记模块（如 MarsCommon 或 models 侧调用方）include 它。无论哪种，均不改 loader 本体。"
+g_include_guard = "护栏（Captain 2026-10-15）：module 包装必须保留，不得靠移除包装实现复用。文件内按 G-include 写法：检查 parentmodule(@__MODULE__) 是否已有 constants/MarsCommon —— 有则 const 绑定到父模块的实例，无则 self include（本文件当前用 `if !isdefined(@__MODULE__, ...)`，因自带 module 包装而恒走 self include；两种写法都可用，但需保持「复用父实例」语义可在移除包装时成立）"
+solve_func_rule = "solve_func 必须复用同一规范实例（Mars_Environment 内经 `using .MarsCommon: solve_func`，实证 ME.solve_func === ME.MarsCommon.solve_func）"
+owner = "t13"
+
+[[plan.special]]
+id = "head-plotting-surface"
+detail = "head.jl 绘图面 5 符号的处置（按队长 2026-10-15 更正：零仓内消费者 ≠ 删除科研 API）：color_mapping(:169)、get_log_ticks(:429) 为函数；label_data(:41) 为 Makie 标签 NamedTuple；print_f(:38)、norm2(:39) 为脚本层辅助 lambda。处置=**迁入 MAVEN_plot**（模块级提供者），不随 head.jl 删除；MAVEN_plot 现有函数内嵌套定义（color_mapping :297/:537、slice2d_cal_rot :321/:561）保持不动。"
+owner = "t13"
+
+[[plan.special]]
+id = "igrf-extras-superseded"
+detail = "（原文已过期，保留为证据）物理 IGRF 资产（gh_gao / IGRF_DLL.dll）随源码迁往 models **已获用户批准**，由 t16 一并移动；Extras 包化仍未决。本计划不施工、不再询问来源。"
+owner = "-"
+
+[[plan.special]]
+id = "ast-tool-caveat"
+detail = "validation/ast 的 per-ref 行号不可用于施工：实测把 Pickup_ion.jl:291/413/416 报为 :259/:397，把 MAVEN_plot.jl 内多处引用统一报为 :3（chunk 级行号）。**t14 核查范围**：该工具不解析函数内嵌套定义的作用域，故对本批迁移只能给「顶层迁移」的静态覆盖；顶层部分可用人工核对 + 真实测试（test/common_migration_test.jl、test/environment_migration_test.jl 及 runtests）补足，**不得宣称全 scope 严格证明**；嵌套/局部定义（MAVEN_plot 内 color_mapping/slice2d_cal_rot 等）不在静态证明范围内，且按决定保持不动。本计划行号一律以 grep/现行 read 为准。"
+owner = "t14"
+
+# ---------------------------------------------------------------------------
+# 五、施工顺序建议（t13）
+# ---------------------------------------------------------------------------
+[[plan.steps]]
+order = 1
+action = "接线新权威入口：按策略P处理 models/Mars_Environment.jl（A 或 B），并保持 module + G-include 护栏；跑 test/environment_migration_test.jl 与 test/common_migration_test.jl 保持 exit 0"
+[[plan.steps]]
+order = 2
+action = "MAVEN_plot.jl：Vandermonde/polynomial_fit 调用改指 MarsCommon，删本地两处定义（:1462/:1485），跑绘图冒烟"
+[[plan.steps]]
+order = 3
+action = "MAVEN_load.jl：删 cyclone_frequency/cyclone_R 本地两份定义（改由 MarsCommon 提供），确认无外部调用者"
+[[plan.steps]]
+order = 4
+action = "calculate_models.jl：删 escape_energy/cyclotron_radius/cyclotron_frequency/Linear_fit 四处本地定义"
+[[plan.steps]]
+order = 5
+action = "Pickup_ion.jl：显式化模块载入与 using(DataFrames/JLD2)，3 个调用点改指新权威（bowshock_zero/get_angle/searchsortednearest*）；slice2d_cal_rot 无需改家（function_coordinate.jl 保留包化）"
+[[plan.steps]]
+order = 6
+action = "head.jl 绘图面 5 符号先迁入 MAVEN_plot（现有嵌套定义不动），随后删除 common/head.jl（无 shim；按 HD-13 仅文档标注）；common/function_coordinate.jl **保留包化、不整删**，只清 bowshock_zero 源副本；完成后从 common.toml/environment.toml 把对应行改 finalized 并补 64 位 target_hash（--print-hash）"
+[[plan.steps]]
+order = 7
+action = "两条 plot 变体行改成显式变体（source_name/target name/consumers），不得 finalized 为 from==to；SWEA shape/PAD 闭包搬迁单独单元执行"

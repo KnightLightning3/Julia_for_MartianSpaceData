@@ -6,8 +6,21 @@ using FortranFiles
 using LinearAlgebra
 using Statistics
 
+# 通用坐标 / 磁场分量坐标变换的**权威**在 common 层（MarsCommon 的 marscommon/geometry.jl）。
+# 这里只做必要依赖绑定，不保留本地副本、不做兼容转发。两档复用：
+#   ① 父模块已有 MarsCommon → `const` 复用父实例。注册表 `:IGRF_calculate` 的 deps 已补
+#      `:MarsCommon`（真实依赖），载入器会先备好规范实例，故**注册表载入路径同样走本档**，
+#      实测 `IGRF_calculate.MarsCommon === MarsData.MarsCommon`、B 系列函数对象亦同一；
+#   ② 否则（脚本直接 include 且父级没有该绑定）→ 自包含 include，保证独立可运行。
+if isdefined(parentmodule(@__MODULE__), :MarsCommon)
+    const MarsCommon = parentmodule(@__MODULE__).MarsCommon
+else
+    include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+end
+using .MarsCommon: Bsphere2pc, Bpc2sphere
+
 # -----------------export part -----------------------
-export pc2sphere, sphere2pc, Bsphere2pc, Bpc2sphere
+export pc2sphere, sphere2pc   # Bsphere2pc / Bpc2sphere 权威已迁 MarsCommon（经 using 绑定，本模块不再导出）
 export IGRF_pc,IGRF_sphere
 export trace_mag_line
 #返回nT
@@ -73,66 +86,6 @@ function sphere2pc(r::Real, θ::Real, ϕ::Real)
     y = r * sinθ * sinϕ
     z = r * cosθ
     return x, y, z
-end
-"""
-    Bsphere2pc(r, θ, ϕ, Br, Bθ, Bϕ) -> (Bx, By, Bz)
-
-将球坐标系下的磁场分量转换为笛卡尔分量（纯旋转变换，不改变大小）。
-
-# 功能与算法概述
-以球基矢量 `(r̂, θ̂, ϕ̂)` 到 `(x̂, ŷ, ẑ)` 的方向余弦作正交旋转变换，故磁场大小不变。
-
-# 参数说明
-- `r`: 径向距离（仅用于保持接口一致，不参与公式）。
-- `θ`: 天顶角/余纬（**弧度**）。
-- `ϕ`: 经度（**弧度**）。
-- `Br`: 径向磁场分量。
-- `Bθ`: 天顶角方向磁场分量（指向 θ 增大方向）。
-- `Bϕ`: 经度方向磁场分量（指向 ϕ 增大方向）。
-
-# 返回值
-- `(Bx, By, Bz)`: 笛卡尔坐标系下的磁场分量元组。
-"""
-function Bsphere2pc(r::Real, θ::Real, ϕ::Real, Br::Real, Bθ::Real, Bϕ::Real)
-    sinθ = sin(θ)
-    cosθ = cos(θ)
-    sinϕ = sin(ϕ)
-    cosϕ = cos(ϕ)
-    Bx = sinθ * cosϕ * Br + cosθ * cosϕ * Bθ - sinϕ * Bϕ
-    By = sinθ * sinϕ * Br + cosθ * sinϕ * Bθ + cosϕ * Bϕ
-    Bz = cosθ * Br - sinθ * Bθ
-    return Bx, By, Bz
-end
-"""
-    Bpc2sphere(x, y, z, bx, by, bz) -> (Br, Bθ, Bϕ)
-
-将笛卡尔坐标系下的磁场分量转换为球坐标分量，是 `Bsphere2pc` 的逆变换。
-
-# 功能与算法概述
-由观测点位置求出球基矢量 `(r̂, θ̂, ϕ̂)`，再与笛卡尔分量做点积投影；变换为正交旋转，`‖B‖` 不变。
-
-# 参数说明
-- `x`, `y`, `z`: 观测点的笛卡尔坐标。
-- `bx`, `by`, `bz`: 笛卡尔坐标系下的磁场分量。
-
-# 返回值
-- `(Br, Bθ, Bϕ)`: 球坐标系下的磁场分量元组（旋转不改变 `‖B‖`）。
-"""
-function Bpc2sphere(x::Real, y::Real, z::Real, bx::Real, by::Real, bz::Real)
-    r = hypot(x, y, z)
-    θ = acos(z / r)
-    ϕ = atan(y, x)
-
-    sinθ = sin(θ)
-    cosθ = cos(θ)
-    sinϕ = sin(ϕ)
-    cosϕ = cos(ϕ)
-
-    Br = sinθ * cosϕ * bx + sinθ * sinϕ * by + cosθ * bz
-    Bθ = cosθ * cosϕ * bx + cosθ * sinϕ * by - sinθ * bz
-    Bϕ = -sinϕ * bx + cosϕ * by
-
-    return Br, Bθ, Bϕ
 end
 ###########
 """

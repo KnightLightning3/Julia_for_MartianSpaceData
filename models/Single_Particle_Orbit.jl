@@ -9,7 +9,7 @@ using StaticArrays
 export solve_orbit, cyclotron_radius, solve_orbit_ode
 
 """
-    TimeFormat(time1, time2) -> String
+    TimeFormatMMSS(time1, time2) -> String
 
 把两个时间点之差格式化为 `MM:SS.mmm` 字符串，用于进度日志。
 
@@ -27,7 +27,7 @@ export solve_orbit, cyclotron_radius, solve_orbit_ode
 - 不对小时/天数做进位展开：超过 59 分钟时分钟字段会大于 2 位。
 - 仅用于**展示**，不参与数值计算。
 """
-function TimeFormat(time1, time2)
+function TimeFormatMMSS(time1, time2)
     elapsed_time_ms = Dates.value(time2 - time1)
     minutes = div(mod(elapsed_time_ms, 3600000), 60000)
     seconds = div(mod(elapsed_time_ms, 60000), 1000)
@@ -214,7 +214,7 @@ function solve_orbit(v0::AbstractVector, x0::AbstractVector, E, B, t, dt; AMU=1,
     # end
     if !hide_progress
         time02 = Dates.now()
-        total_time = TimeFormat(time01, time02)
+        total_time = TimeFormatMMSS(time01, time02)
         println("\033[42mEnd Tarcing\033[0m at (\033[33m$time02\033[0m) Step = \033[36m $dt\033[0m, Total_Time = \033[36m$total_time\033[0m")
     end
 
@@ -316,7 +316,7 @@ function solve_orbit_ode(v0::AbstractVector, x0::AbstractVector, E, B, tspan, dt
     end
     if !hide_progress
         time02 = Dates.now()
-        total_time = TimeFormat(time01, time02)
+        total_time = TimeFormatMMSS(time01, time02)
         println("\033[42mEnd Tarcing\033[0m at (\033[33m$time02\033[0m) Step = \033[36m $dt\033[0m, Total_Time = \033[36m$total_time\033[0m")
     end
 

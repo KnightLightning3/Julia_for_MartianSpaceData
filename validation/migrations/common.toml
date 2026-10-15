@@ -1,0 +1,157 @@
+schema_version = 1
+
+# validation/migrations/common.toml
+# MarsCommon 能力子文件迁入清单（团队 static-small-change / t9）
+#
+# schema：`[[moves]]` 每行含 from / to / name / status / source_hash
+#   from        —— 源位置：5f225db 中的源文件（仓库相对 POSIX 路径）
+#   to          —— 目标位置：迁入后的能力子文件
+#   name        —— 迁入后在 MarsCommon 中的函数名
+#   status      —— pending：源实现与调用方切换尚未清理，由最终集成单元完成
+#   source_hash —— 该函数块全文（含 docstring）在 5f225db 下的 SHA-256 前 16 位（大写十六进制）
+#   source_name —— 仅“改名迁入”的行出现：5f225db 中的原函数名（未出现时等于 name）
+#
+# 取界口径（与 test/common_migration_test.jl::extract_old_function 一致）：
+#   自紧邻的 docstring 起始行起、到该函数自身的 `end`/`end;` 行为止，去除尾部空行与游离注释。
+#   源文件为 CRLF，按原样（不做行尾归一）计算哈希。清单由测试逐行重算核对。
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/statistics.jl"
+name        = "safe_log_mean"
+status = "finalized"
+target_hash = "bb022d6d8cbe296e6610f83b759e45fd45b10d7ebd79db8fe2559333a44e92f6"
+source_revision = "5f225db"
+source_hash = "372B280DA64669F1"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/statistics.jl"
+name        = "skipnan"
+status = "finalized"
+target_hash = "5db3c5506b1beae8b38bcdccc5ce95062119eab42d1d65f5e84a4b5b017cc856"
+source_revision = "5f225db"
+source_hash = "00E0003ECA7316AA"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/statistics.jl"
+name        = "nozeros"
+status = "finalized"
+target_hash = "9e6345ee607ad670e35a5772f208d9616611266bdba4f6d3e50e48e857e11592"
+source_revision = "5f225db"
+source_hash = "D81A0A057D5A6DFD"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/statistics.jl"
+name        = "geomean"
+status = "finalized"
+target_hash = "59844bf580b94902dea9731309913f80cb864b30bf6e7ec283b47480d198e1b6"
+source_revision = "5f225db"
+source_hash = "B363DBB8AB297D45"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/statistics.jl"
+name        = "find_range"
+status = "finalized"
+target_hash = "44ed5433453dffd403439445256d313d4de4ff74ec13a0fafe00bf57ee58539f"
+source_revision = "5f225db"
+source_hash = "661D4D87F3830BF3"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/geometry.jl"
+name        = "get_normal_plane"
+status = "finalized"
+target_hash = "a2b6bacb66a847d1a305091a9668b5c1b09ba2f14e5bdee0ac36e74806a52f23"
+source_revision = "5f225db"
+source_hash = "7E46872BEE953502"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/geometry.jl"
+name        = "get_angle"
+status = "finalized"
+target_hash = "193818b0377f47934b46d0d86e43cc2e910c0c3b3c0a5cab2a4287375eda172c"
+source_revision = "5f225db"
+source_hash = "2B8AF46FBA428949"
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_plot.jl"
+to          = "common/marscommon/geometry.jl"
+name        = "vector_angle"
+status = "finalized"
+target_hash = "9035b642fd76806b4879e2e39e1ff182eeb2c4ddd022d08e57f934c65e900183"
+source_hash = "B23A7DDB080CE71F"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "common/marscommon/numerics.jl"
+name        = "solve_func"
+status = "finalized"
+target_hash = "3054bb9ab00091ac54845c0d234d9f519fe2af6e228092c8ba6dd47def8fa1f2"
+source_revision = "5f225db"
+source_hash = "18C47F0EE8C3FF4F"
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_plot.jl"
+to          = "common/marscommon/numerics.jl"
+name        = "Vandermonde"
+status = "finalized"
+target_hash = "3855ae35d3e964b1977d14d433486946f42bdf260b90c4c4b7912a8de858d3f5"
+source_hash = "DCD786C148C47322"
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_plot.jl"
+to          = "common/marscommon/numerics.jl"
+name        = "polynomial_fit"
+status = "finalized"
+target_hash = "13a715e4cfca98c6424e1088419b09b1b79bc4d9a764db88ccb25f57de8d37cd"
+source_hash = "A03ED9780AECBCE5"
+
+[[moves]]
+from        = "calculate/calculate_models.jl"
+to          = "common/marscommon/numerics.jl"
+name        = "Linear_fit"
+status = "finalized"
+target_hash = "6f85188256111ae2c4648c781c39fffd62b84e2ac18419b13e74fc2e15483b9b"
+source_revision = "5f225db"
+source_hash = "B6BB50D4EA66866A"
+
+[[moves]]
+from        = "calculate/calculate_models.jl"
+to          = "common/marscommon/cyclotron.jl"
+name        = "cyclotron_radius"
+status = "finalized"
+target_hash = "c82621536194c034eba1ad93714bd9b0ea77268360d67e6ee4048f0ccd17645f"
+source_revision = "5f225db"
+source_hash = "EC8EB0985D1CD3A4"
+
+[[moves]]
+from        = "calculate/calculate_models.jl"
+to          = "common/marscommon/cyclotron.jl"
+name        = "cyclotron_frequency"
+status = "finalized"
+target_hash = "bdd402e7a83e710012d3f0600e1f60b2a4526a98b443cc9a761f961853212209"
+source_revision = "5f225db"
+source_hash = "DA10321ACC76A0E0"
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_load.jl"
+to          = "common/marscommon/cyclotron.jl"
+name        = "cyclotron_frequency_kg"
+source_name = "cyclone_frequency"
+status = "finalized"
+target_hash = "5a0561aa94eea81472a1a73f8413938f1ef6466ddc9b6011b42ea2ebb35e7c99"
+source_hash = "4217EBD26D701769"
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_load.jl"
+to          = "common/marscommon/cyclotron.jl"
+name        = "cyclotron_radius_velocity"
+source_name = "cyclone_R"
+status = "finalized"
+target_hash = "0c4bc610dea33e15da154f6c9f239dfbef76ee16f19f9c014d061283b08320a6"
+source_hash = "5379C5E4E929C865"

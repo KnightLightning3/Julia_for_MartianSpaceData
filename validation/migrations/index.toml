@@ -1,0 +1,569 @@
+# validation/migrations/index.toml
+# t33 建立、t42 修正生成口径的集成汇总：由脚本**遍历 validation/migrations 下实际含 moves/retained 的清单**解析生成
+# （排除输出自身 index.toml；当前发现 7 份：callsite_plan、common、coordinate、coordinate_variants、environment、igrf、swea）。
+# 三个桶分开：index.units（moves/已迁移）· index.retained（保留例外，非迁移单元）· unknown（校验器动态点）。
+# 口径：source_hash 仅旧源溯源（kind/revision）；target_hash 为目标规范 AST 64 位，独立可验证。
+# 该文件不是迁移记录（moves 为空），索引内容置于未知顶层键 index.* 下（仅非阻塞 REC_UNKNOWN_TOP_KEY）。
+
+schema_version = 1
+moves = []
+
+[index.summary]
+manifests          = 7
+units_total        = 39
+finalized_rows     = 39
+pending_rows       = 0
+retained_rows      = 3
+finalized_without_valid_target_hash = 0
+checker_ok         = 28
+checker_fail       = 0
+checker_pending    = 0
+checker_unknown    = 11
+checker_unknown_note = "unknown 为动态/无法静态解析点（DYNAMIC_*），不计通过"
+
+[index.overall]
+overall_refactor_complete = false
+scope_of_this_index = "仅覆盖 validation/migrations 下 6 份清单的单元；不代表整个仓库重构完成"
+remaining_note = "pending 归零只说明本索引内的 moves 已全部终化，不等于整体重构完成：保留例外 1 项（mean_SWEA_pad_pa，见 index.retained）、unknown 动态点、文档/README 同步、未决 Extras 与 IGRF :adaptive 缺符号等仍属未完成范围。"
+
+[[index.manifests]]
+stem           = "callsite_plan"
+path           = "validation/migrations/callsite_plan.toml"
+sha256         = "9db2efb05ddaa2b25c40e7fd2dd286b5bec75390493a0071926d99baa73dba5a"
+schema_version = 1
+units          = 0
+finalized      = 0
+pending        = 0
+retained       = 0
+
+[[index.manifests]]
+stem           = "common"
+path           = "validation/migrations/common.toml"
+sha256         = "46c461fee14d99b5d45ba8465b80f88659c7e46b060d168da55f08fbaffb7dad"
+schema_version = 1
+units          = 16
+finalized      = 16
+pending        = 0
+retained       = 0
+
+[[index.manifests]]
+stem           = "coordinate"
+path           = "validation/migrations/coordinate.toml"
+sha256         = "5ab8abc7fa38d57287973b43703ed851b43ae631000f21eb582cb85c4635cada"
+schema_version = 1
+units          = 3
+finalized      = 3
+pending        = 0
+retained       = 0
+
+[[index.manifests]]
+stem           = "coordinate_variants"
+path           = "validation/migrations/coordinate_variants.toml"
+sha256         = "96155dd74643f9ae18b49dddcc7a6cd4b4bb43660654bffaf8747164a86f9e4e"
+schema_version = 1
+units          = 4
+finalized      = 4
+pending        = 0
+retained       = 2
+
+[[index.manifests]]
+stem           = "environment"
+path           = "validation/migrations/environment.toml"
+sha256         = "d8f189936575580cf91ec8694ac371c21604050a8734e32bf7449c373c6af902"
+schema_version = 1
+units          = 8
+finalized      = 8
+pending        = 0
+retained       = 0
+
+[[index.manifests]]
+stem           = "igrf"
+path           = "validation/migrations/igrf.toml"
+sha256         = "be6fa9cd092dd97867b5f39daee2a957429acb860315208ed1d3a9ff9229c781"
+schema_version = 1
+units          = 1
+finalized      = 1
+pending        = 0
+retained       = 0
+
+[[index.manifests]]
+stem           = "swea"
+path           = "validation/migrations/swea.toml"
+sha256         = "d9e65d732461a9ead3001b9f7740f3b931fcd6915faa921d8394994c32b2918a"
+schema_version = 1
+units          = 7
+finalized      = 7
+pending        = 0
+retained       = 1
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "safe_log_mean"
+from                = "common/head.jl"
+to                  = "common/marscommon/statistics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "skipnan"
+from                = "common/head.jl"
+to                  = "common/marscommon/statistics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "nozeros"
+from                = "common/head.jl"
+to                  = "common/marscommon/statistics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "geomean"
+from                = "common/head.jl"
+to                  = "common/marscommon/statistics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "find_range"
+from                = "common/head.jl"
+to                  = "common/marscommon/statistics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "get_normal_plane"
+from                = "common/head.jl"
+to                  = "common/marscommon/geometry.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "get_angle"
+from                = "common/head.jl"
+to                  = "common/marscommon/geometry.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "vector_angle"
+from                = "MAVEN_data/MAVEN_plot.jl"
+to                  = "common/marscommon/geometry.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "solve_func"
+from                = "common/head.jl"
+to                  = "common/marscommon/numerics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "Vandermonde"
+from                = "MAVEN_data/MAVEN_plot.jl"
+to                  = "common/marscommon/numerics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "polynomial_fit"
+from                = "MAVEN_data/MAVEN_plot.jl"
+to                  = "common/marscommon/numerics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "Linear_fit"
+from                = "calculate/calculate_models.jl"
+to                  = "common/marscommon/numerics.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "cyclotron_radius"
+from                = "calculate/calculate_models.jl"
+to                  = "common/marscommon/cyclotron.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "cyclotron_frequency"
+from                = "calculate/calculate_models.jl"
+to                  = "common/marscommon/cyclotron.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "cyclotron_frequency_kg"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "common/marscommon/cyclotron.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "common"
+name                = "cyclotron_radius_velocity"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "common/marscommon/cyclotron.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate"
+name                = "rotation_matrix"
+from                = "calculate/calculate_models.jl"
+to                  = "common/function_coordinate.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate"
+name                = "Quaternion_Rot"
+from                = "calculate/calculate_models.jl"
+to                  = "common/function_coordinate.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate"
+name                = "Quaternion_Rot_reverse"
+from                = "calculate/calculate_models.jl"
+to                  = "common/function_coordinate.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate_variants"
+name                = "Bsphere2pc"
+from                = "models/IGRF_calculate.jl"
+to                  = "common/marscommon/geometry.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate_variants"
+name                = "Bpc2sphere"
+from                = "models/IGRF_calculate.jl"
+to                  = "common/marscommon/geometry.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate_variants"
+name                = "Bpc2sphere_naive"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "common/marscommon/geometry.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "coordinate_variants"
+name                = "slice2d_cal_rot_matrix"
+from                = "TW_data/TW_MINPA.jl"
+to                  = "TW_data/TW_MINPA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "mars_sun_dist_phys"
+from                = "common/head.jl"
+to                  = "models/Mars_Environment.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "bowshock"
+from                = "common/head.jl"
+to                  = "models/Mars_Environment.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "magnetopause"
+from                = "common/head.jl"
+to                  = "models/Mars_Environment.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "get_bowshock_normal"
+from                = "common/head.jl"
+to                  = "models/Mars_Environment.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "bowshock_zero"
+from                = "common/function_coordinate.jl"
+to                  = "models/Mars_Environment.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "escape_energy"
+from                = "calculate/calculate_models.jl"
+to                  = "models/Mars_Environment.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "bowshock_plot_nan64"
+from                = "MAVEN_data/MAVEN_plot.jl"
+to                  = "MAVEN_data/MAVEN_plot.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "environment"
+name                = "magnetopause_plot_nan64"
+from                = "MAVEN_data/MAVEN_plot.jl"
+to                  = "MAVEN_data/MAVEN_plot.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "igrf"
+name                = "IGRF_calculate"
+from                = "Magnetic_Model/IGRF_calculate.jl"
+to                  = "models/IGRF_calculate.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "SWEA_N_ENERGY_BINS"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "SWEA_SHAPE_FIRST_BIN"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "SWEA_SHAPE_LAST_BIN"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "SWEA_SHAPE_NBINS"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "SWEA_calc_shape_arr"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "SWEA_calc_shape_arr_mars_towrads"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.units]]
+bucket              = "migrated"
+manifest            = "swea"
+name                = "carclu_SWEA_pad"
+from                = "MAVEN_data/MAVEN_load.jl"
+to                  = "MAVEN_data/MAVEN_SWEA.jl"
+status              = "finalized"
+target_hash_hex64   = true
+target_hash_len     = 64
+source_hash_kind    = "sha256-source-block-first16"
+source_revision     = "5f225db"
+
+[[index.retained]]
+bucket        = "retained"
+manifest      = "coordinate_variants"
+name          = "slice2d_cal_rot"
+from          = "common/function_coordinate.jl"
+planned_target = ""
+status        = "retained"
+sole_caller   = "models/Pickup_ion.jl:418 FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)"
+reason        = "返回 RotMatrix3{Float64}，共线/近共线/极小输入抛 ErrorException（阈值 norm_c < 1e-8），与 TW 版（SMatrix，共线行为不同）非等价；按“不等价不同名保留”授权保留原名与实现，本轮不改名不合并"
+has_target_hash = false
+
+[[index.retained]]
+bucket        = "retained"
+manifest      = "coordinate_variants"
+name          = "slice2d_cal_rot"
+from          = "MAVEN_data/MAVEN_plot.jl"
+planned_target = ""
+status        = "retained"
+sole_caller   = "MAVEN_plot 文件内函数作用域的嵌套局部实现（非顶层定义）"
+reason        = "位于函数体内的嵌套局部同名实现，属模块内部细节；本轮明确不动，待后续统一坐标实现时再评估"
+has_target_hash = false
+
+[[index.retained]]
+bucket        = "retained"
+manifest      = "swea"
+name          = "mean_SWEA_pad_pa"
+from          = "MAVEN_data/MAVEN_load.jl"
+planned_target = "MAVEN_data/MAVEN_SWEA.jl"
+status        = "retained"
+sole_caller   = "MAVEN_data/MAVEN_load.jl 的 load_swea_pad(file; mean_PA=true)（默认 true）：MAVEN_data/MAVEN_data_format.json 的 SWEA_pad_arc/SWEA_pad_svy => LOADER_FUNCS[\"load_swea_pad\"] => load_MAVEN_data(function_name) 直分发调用"
+reason        = "loader 层 CDF 字典变换（键名绑定 :diff_en_fluxes/:pa/:g_pa），与唯一调用者 load_swea_pad 及 JSON 驱动的 LOADER_FUNCS 同层；迁入 MAVEN_SWEA 需要 MAVEN_load→MAVEN_SWEA 逆层依赖，或把俯仰角平均上提到不存在高层挂点的调用方，两者都会越过本轮的架构与科学边界"
+has_target_hash = false
+
+[index.not_pass]
+note = "以下条目未达 finalized（保留例外 / 未完成），不得在交付中被当作通过："
+items = ["coordinate_variants/slice2d_cal_rot [from=MAVEN_data/MAVEN_plot.jl] (retained: 架构例外, 未迁移)", "coordinate_variants/slice2d_cal_rot [from=common/function_coordinate.jl] (retained: 架构例外, 未迁移)", "swea/mean_SWEA_pad_pa [from=MAVEN_data/MAVEN_load.jl] (retained: 架构例外, 未迁移)"]
+retained_note = "保留例外共 3 项（status=retained，均无 target_hash，不计入 finalized）"
+unknown_note = "校验器 unknown = 11 条为动态/无法静态解析点（DYNAMIC_*），不计通过"

@@ -1,0 +1,59 @@
+# validation/migrations/igrf.toml
+# IGRF 源码模块 + 同目录资源（系数 gh_gao、动态库 IGRF_DLL.dll）整批迁入 models/（t16）
+#
+# schema：[[moves]] 为 AST 口径的“定义迁移”单元（finalized 需 64 位 target_hash）；
+#         资源类文件无顶层定义，故另用 [[asset_moves]]（sha256 取证，非 [[moves]] 单元），
+#         调用点用 [[callsites]] 记录。source_hash 仅旧源溯源、target_hash 为目标核验。
+
+schema_version = 1
+
+[[moves]]
+from             = "Magnetic_Model/IGRF_calculate.jl"
+to               = "models/IGRF_calculate.jl"
+name             = "IGRF_calculate"
+status           = "finalized"
+source_revision  = "5f225db"
+source_hash_kind = "sha256-source-block-first16"
+target_hash      = "d7a92ef3c0cef2f3c9b7fd144d9d5b9d748723d7a0cd8130177df1f9686ad9ea"
+notes            = "整个源文件与其同目录资源（gh_gao / IGRF_DLL.dll）同批移入 models/；资源定位保持 dirname(@__FILE__)，未做通用 DLL 目录统一；无旧路径兼容层。target_hash 于 t36 因授权函数迁出更新（Bsphere2pc/Bpc2sphere 权威移入 MarsCommon.marscommon/geometry.jl，IGRF 仅经 using 绑定并从 export 移除）；source_hash/source_revision 保留不动。"
+
+[[asset_moves]]
+path      = "Magnetic_Model/gh_gao"
+target    = "models/gh_gao"
+sha256    = "efaebe934b4e084192c93a263b95cf7df6533d941b38ecc17c0dbb5ec1b9d6ab"
+bytes     = 197152
+kind      = "fortran-unformatted-coefficients"
+notes     = "二进制逐字节复制（非重写），移动前后 sha256 一致；文本备份 Magnetic_Model/gh_gao.txt 原位保留不动。"
+
+[[asset_moves]]
+path      = "Magnetic_Model/IGRF_DLL.dll"
+target    = "models/IGRF_DLL.dll"
+sha256    = "6ffb3f3b66916ba280fc892452608898893c42784b05dacf837eabac56b5ad2b"
+bytes     = 27136
+kind      = "fortran-shared-library"
+notes     = "二进制逐字节复制（非重写），移动前后 sha256 一致；缺 MAIN_mp_ADAPTIVE_STEP_TRACE 符号为既有开放项，未伪造通过。"
+
+[[callsites]]
+consumer = "src/modules.jl"
+anchor   = ":IGRF_calculate, \"models/IGRF_calculate.jl\""
+
+[[callsites]]
+consumer = "example/MAVEN_plot_sample/MAVEN_overview_cases.jl"
+anchor   = "include(\"../../models/IGRF_calculate.jl\")"
+
+[[callsites]]
+consumer = "example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl"
+anchor   = "include(\"../../models/IGRF_calculate.jl\")"
+
+[[callsites]]
+consumer = "models/Pickup_ion.jl"
+anchor   = "include(pkg_path*\"models/IGRF_calculate.jl\")"
+
+[[callsites]]
+consumer = "test/igrf_move_test.jl"
+anchor   = "MarsData.load_module(:IGRF_calculate)"
+
+[[asset_moves.unchanged]]
+path   = "Magnetic_Model/gh_gao.txt"
+sha256 = "ae2c981eb73ee6805ef692dce26a35e5fe5f169e8f64d8da3198b75c17e36b65"
+notes  = "文本备份原位保留（禁止移动/改写）。"

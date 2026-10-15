@@ -19,7 +19,7 @@ function _linear_growth_rate_dll_path()
     (p2 != p1) && isfile(p2) && return p2
     p3 = joinpath(LEGACY_FORTRAN_DLL_DIR, "linear_growth_rate.dll")
     if isfile(p3)
-        @warn "使用旧硬编码 DLL 路径 $p3；建议在 config/settings.toml 配置 paths.fortran_dll_dir 或将 DLL 放到仓库根目录。"
+        @warn "使用旧硬编码 DLL 路径 $(p3)；建议在 config/settings.toml 配置 paths.fortran_dll_dir 或将 DLL 放到仓库根目录。"
         return p3
     end
     error("未找到 linear_growth_rate.dll。已尝试：\n  $p1\n  $p2\n  $p3\n" *

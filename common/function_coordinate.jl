@@ -1,8 +1,23 @@
 """通用坐标系转换、向量旋转及球/笛卡尔坐标工具。"""
 
+module FunctionCoordinate
+
 using LinearAlgebra
 using StaticArrays
 using Rotations
+
+# 导出既有公开函数名：调用方 `using .FunctionCoordinate` 即可恢复迁入前的裸名用法
+# （include 本文件后裸名不再自动可见——这属 module 包装的必然结果，见 coordinate.toml 说明）。
+export slice2d_cal_rot, pa_xyz2sphere, pa_sphere2xyz,
+       MINPA_sphere2xyz, MINPA_xyz2sphere,
+       rotation_matrix, Quaternion_Rot, Quaternion_Rot_reverse
+
+if !isdefined(@__MODULE__, :constants)
+    include(joinpath(@__DIR__, "..", "common", "constants.jl"))
+end
+if !isdefined(@__MODULE__, :MarsCommon)
+    include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+end
 
 # 和坐标系变换有关的函数
 """
@@ -226,40 +241,68 @@ function MINPA_xyz2sphere(p::SVector{3,T}) where T <: Real # 转换为仪器坐�
 
 end
 
+# bowshock_zero 已迁出：权威落点为 models/Mars_Environment.jl（迁入前后逐位一致，
+# 见 validation/migrations/environment.toml 与 test/environment_migration_test.jl）。
+# 本文件不再保留副本，调用方请改用 MarsEnvironment.bowshock_zero。
 """
-    bowshock_zero(xshock) -> Float64
+    rotation_matrix(θ, φ) -> Matrix{Float64}
 
-求解火星**弓激波曲面**在给定 Sun-Mars 轴向坐标处的圆柱半径，并把"曲面外"的输入钳制为 `0.0`。
+由天顶角与方位角生成坐标旋转矩阵。
 
 # 功能与算法概述
-与 `head.bowshock` 同用 Edberg et al. (2008) 的二次曲线模型，但把无定义的输入区域**钳制为 `0.0`**，以便外层做数值迭代/求根。
+先绕 Y 轴旋转 θ、再绕 Z 轴旋转 φ，返回组合矩阵 `Rz(φ)·Ry(θ)`。
 
 # 参数说明
-- `xshock`: 日火连线方向（通常为 MSO/MSE 的 X 轴）坐标，单位 **火星半径 `R_Mars`**。
+- `θ`: 绕 Y 轴转角（弧度）。
+- `φ`: 绕 Z 轴转角（弧度）。
 
 # 返回值
-- `Float64`: 弓激波圆柱半径 `√(y²+z²)`（单位 `R_Mars`）；
-- `0.0`: 当该 `x` 处曲面无定义（`temp < 0`）时返回。
-
-# 参考文献
-- Edberg N J T, Lester M, Cowley S W H, et al., 2008. *Statistical analysis of the location of the
-  Martian magnetic pileup boundary and bow shock and the influence of crustal magnetic fields* [J].
-  Journal of Geophysical Research: Space Physics, 113(A8).
+- `Matrix{Float64}`: 3×3 旋转矩阵。
 """
-function bowshock_zero(xshock)
-    xF = 0.55 # R_Mars
-    ϵ = 1.05
-    L = 2.10 # R_Mars
-    rSD = 1.58
-    temp = (ϵ^2-1.0)*(xshock-xF)^2-2ϵ*L*(xshock-xF)+L^2
-    if temp>=0 
-        return sqrt(temp)
-    else
-        return 0.0
-    end
+function rotation_matrix(θ, φ)
+    # 创建绕z轴旋转φ的旋转矩阵
+    Rz = [cos(φ) -sin(φ) 0;
+          sin(φ)  cos(φ) 0;
+          0       0      1]
+
+    # 创建绕y轴旋转θ的旋转矩阵
+    Ry = [cos(θ)  0  sin(θ);
+          0       1  0;
+         -sin(θ)  0  cos(θ)]
+
+    # 计算总旋转矩阵，先绕y轴旋转，然后绕z轴旋转
+    return Rz * Ry
 end
-# include(Package_path * "TW_data/TW_MINPA.jl");import .TW_MINPA; #已经验证反变换的可靠性
-# x1,y1,z1 = 1,10,-12
-# r,t,p = TW_MINPA.MINPA_xyz2sphere(x1,y1,z1)
-# x,y,z = TW_MINPA.MINPA_sphere2xyz(r,t,p)
-# @show norm([x,y,z] .- [x1,y1,z1])
+"""
+    Quaternion_Rot(u::AbstractVector, q::QuatRotation) -> AbstractVector
+
+用旋转四元数对向量做正向坐标变换（等价 `q*u*conj(q)`）。
+
+# 参数说明
+- `u`: 待旋转向量。
+- `q`: `Rotations.QuatRotation` 四元数。
+
+# 返回值
+- 旋转后的向量。
+"""
+function Quaternion_Rot(u::AbstractVector, q::QuatRotation)
+    return q * u
+end
+
+"""
+    Quaternion_Rot_reverse(u::AbstractVector, q::QuatRotation) -> AbstractVector
+
+用旋转四元数对向量做逆向坐标变换（等价 `inv(q)*u`）。
+
+# 参数说明
+- `u`: 待旋转向量。
+- `q`: `Rotations.QuatRotation` 四元数。
+
+# 返回值
+- 旋转后的向量。
+"""
+function Quaternion_Rot_reverse(u::AbstractVector, q::QuatRotation)
+    return inv(q) * u
+end
+
+end # module FunctionCoordinate

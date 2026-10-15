@@ -171,7 +171,7 @@ MarsData.@load MAVEN_SWEA
 
     @testset "combina_two_dir_trace to_pc=true（C2）" begin
         MarsData.load_module(:IGRF_calculate)
-        IGRF = MarsData.IGRF_calculate
+        IGRF = MarsData.load_module(:IGRF_calculate)
         B1 = [1.0 0.5 0.2 10.0 1.0 0.5; 1.1 0.6 0.3 9.0 0.9 0.4]
         B2 = [0.9 0.4 0.1 11.0 1.1 0.6; 0.85 0.35 0.05 12.0 1.2 0.7]
         # to_pc=false 不应抛错
@@ -189,7 +189,7 @@ MarsData.@load MAVEN_SWEA
     end
 
     @testset "trace_mag_line method kwarg（C1）" begin
-        IGRF = MarsData.IGRF_calculate
+        IGRF = MarsData.load_module(:IGRF_calculate)
         Rm = IGRF.constants.R_Mars
         p = IGRF.sphere2pc(Rm, π / 2, 0.0)
 
@@ -418,3 +418,6 @@ MarsData.@load MAVEN_SWEA
         @test MarsData.load_module(:MAVEN_load) === m
     end
 end
+
+# STATIC 质量基准局部回归（dat[:mass] → constants.mp_eV_per_km_s2）
+include(joinpath(@__DIR__, "static_mass_regression.jl"))

@@ -1,0 +1,101 @@
+schema_version = 1
+
+# t25 小块迁移：SWEA shape 闭包自 MAVEN_data/MAVEN_load.jl 迁入 MAVEN_data/MAVEN_SWEA.jl。
+#
+# 哈希口径（两种语义分离，禁止混用）：
+#   source_hash = 5f225db 旧源块（含 docstring）SHA-256 前 16 位，仅作旧源溯源；
+#   target_hash = 目标定义规范 AST SHA-256（validation/check_migrations.jl --print-hash 产出，64 位）。
+# status：finalized = 源已删且调用已更新；pending = 待迁入（阻塞原因见 notes）；
+#         retained（仅出现在 [[retained]]，见文末）= 明确不迁移的架构例外，**不计入 moves**。
+
+[[moves]]
+name = "SWEA_N_ENERGY_BINS"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+source_hash = "12D98AFAABF1EB75"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+target_hash = "ed53ed584b5311c2e98cb1614524c98d1cf3d02a4a96aeaa0da5a0565de792e2"
+notes = "常量（const）；SWEA shape 能量道基准，随 SWEA_calc_shape_arr 整块迁入"
+
+[[moves]]
+name = "SWEA_SHAPE_FIRST_BIN"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+source_hash = "BB0535FCC1C1B858"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+target_hash = "8d4d77580baa0de9fb61c710f10200a9d3dfc002c77520f98c2b4338314c6c2b"
+notes = "常量（const）"
+
+[[moves]]
+name = "SWEA_SHAPE_LAST_BIN"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+source_hash = "09FEB04A70B4520A"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+target_hash = "5a12b1048be450d5790b338a5f9ec9a9922e14678a73ddc33c9434748194e66f"
+notes = "常量（const）；值 = SWEA_N_ENERGY_BINS"
+
+[[moves]]
+name = "SWEA_SHAPE_NBINS"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+source_hash = "427CD67359D16756"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+target_hash = "8696d2b2c217adaabc3ff82a5dc3d86e2b63c03ae16ce08a4166c84d9daaef66"
+notes = "常量（const）；值 = LAST - FIRST + 1 = 52"
+
+[[moves]]
+name = "SWEA_calc_shape_arr"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+source_hash = "403C7D2FE8B0D454"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+target_hash = "acb6e38dc22ef3667c390219fb67387c359c74da8d06616f5f479303ba6cd34e"
+notes = "整块迁入：含两层私有嵌套 helper mvn_swe_calc_shape_arr → deriv（嵌套定义不满足模块级目标定义，故不单列清单行，随父函数同块搬入）"
+
+[[moves]]
+name = "SWEA_calc_shape_arr_mars_towrads"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+source_hash = "54D0EDA4B607C734"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+target_hash = "65678a50f9cc4fc8f62ee8e94f38f62eda05c4e774a194f9a88f74243499a980"
+notes = "组合入口；依赖 MarsCommon.searchsortednearest（common 层，向下依赖）→ MAVEN_SWEA.jl 自包含 include common/MarsCommon.jl；src/modules.jl 中 :MAVEN_SWEA 的 deps 已于 t13 补齐为 [:constants, :MarsCommon]（此处原“仍为 [:constants]”的注释已过期，t33 更正）"
+
+[[moves]]
+name = "carclu_SWEA_pad"
+from = "MAVEN_data/MAVEN_load.jl"
+to = "MAVEN_data/MAVEN_SWEA.jl"
+status = "finalized"
+target_hash = "73f72b441d9bd4d1a1b25daab635a5278016f17bea6610b730f1bdb623556a33"
+source_hash = "BB40C29851B81A0A"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+notes = "t13 已完成：整块（含 docstring）迁入 MAVEN_SWEA.jl；example/MAVEN_overview_cases.jl:176-177 与 MAVEN_overview_plot_sample.jl:165-166 已改限定名 MAVEN_SWEA.carclu_SWEA_pad；MAVEN_load.jl 已删本地定义且 export 行不再列该名"
+
+# ---------------------------------------------------------------------------
+# 保留例外（Retained：**不是迁移单元**，不计入 [[moves]]、不标 finalized、不声称完成原迁移目标）
+# t33 采纳 t32 的最小方案 M1。该键会产生一条非阻塞 REC_UNKNOWN_TOP_KEY 告警（同 callsite_plan.toml 的 [plan] 先例）。
+[[retained]]
+name            = "mean_SWEA_pad_pa"
+from            = "MAVEN_data/MAVEN_load.jl"
+planned_target  = "MAVEN_data/MAVEN_SWEA.jl"
+status          = "retained"
+sole_caller     = "MAVEN_data/MAVEN_load.jl 的 load_swea_pad(file; mean_PA=true)（默认 true）：MAVEN_data/MAVEN_data_format.json 的 SWEA_pad_arc/SWEA_pad_svy => LOADER_FUNCS[\"load_swea_pad\"] => load_MAVEN_data(function_name) 直分发调用"
+reason          = "loader 层 CDF 字典变换（键名绑定 :diff_en_fluxes/:pa/:g_pa），与唯一调用者 load_swea_pad 及 JSON 驱动的 LOADER_FUNCS 同层；迁入 MAVEN_SWEA 需要 MAVEN_load→MAVEN_SWEA 逆层依赖，或把俯仰角平均上提到不存在高层挂点的调用方，两者都会越过本轮的架构与科学边界"
+source_hash     = "95C111322B5AB122"
+source_hash_kind = "sha256-source-block-first16"
+source_revision = "5f225db"
+notes           = "本轮架构例外：源码、默认 mean_PA=true、NaN 互填平均公式与返回结构均零改动；未标 finalized、不声称完成原迁移目标。将来若要迁，前置条件 = 同批调整数据模型层的 loader 分发口径（MAVEN_data_format.json/LOADER_FUNCS）与 src/modules.jl deps，并走科学审查。"

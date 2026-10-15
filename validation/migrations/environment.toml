@@ -1,0 +1,111 @@
+schema_version = 1
+
+# validation/migrations/environment.toml
+# MarsEnvironment 权威文件迁入清单（团队 static-small-change / t7）
+#
+# schema：`[[moves]]` 每行含 from / to / name / status / source_hash
+#   from        —— 旧定义位置：5f225db 中的源文件（仓库相对 POSIX 路径）
+#   to          —— 迁入目标：MarsEnvironment 权威文件
+#   name        —— 迁入后在 MarsEnvironment 中的函数名
+#   status      —— pending：旧定义与旧文件仍在，由最终任务删除源并更新调用点
+#   source_hash —— 5f225db 旧定义的 AST 规范化 SHA-256（validation/ast 同口径，大写十六进制）
+#
+# 口径：source_hash 由 validation/ast/ASTMigrate.jl 的 canonical_hash 计算
+#   （去 LineNumberNode 的结构化序列化，与行号/缩进/换行无关）。
+#   **注意：canonical_hash 只覆盖 AST 结构，不包含 docstring。** 因此 target_hash 相等
+#   不能推断文档一致，反之文档增删也不会改变该哈希；文档保真必须另以「整块原文文本对照」
+#   佐证（见 test/environment_migration_test.jl 的 bowshock_zero docstring 逐字比对断言）。
+#   source_hash 仅用于溯源旧定义，目标侧校验用 target_hash（独立字段），二者不混用。
+#   清单由 test/environment_migration_test.jl 逐行重算核对。
+#
+# 说明：solve_func 不在此登记为迁入项——权威文件已改为复用 MarsCommon 的实现
+#   （common/marscommon/numerics.jl，经 `using .MarsCommon: solve_func` 引入，reused_from=MarsCommon），
+#   该函数自身的迁移由 common.toml 负责，避免同一函数在两份清单重复登记目的端。
+#
+# bowshock_zero 源自 common/function_coordinate.jl（非 head.jl），归入同一权威文件。
+
+[[moves]]
+from        = "common/head.jl"
+to          = "models/Mars_Environment.jl"
+name        = "mars_sun_dist_phys"
+status = "finalized"
+target_hash = "7badb459a0db2e162591e781d27fe6ef26a9a58e6a352089a0d968ac17cadd03"
+source_revision = "5f225db"
+source_hash = "7BADB459A0DB2E162591E781D27FE6EF26A9A58E6A352089A0D968AC17CADD03"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "models/Mars_Environment.jl"
+name        = "bowshock"
+status = "finalized"
+target_hash = "94a87f1b7cdc8154baddbbefd2f3ad567a037da408896eac459731eed5ee3fc8"
+source_revision = "5f225db"
+source_hash = "94A87F1B7CDC8154BADDBBEFD2F3AD567A037DA408896EAC459731EED5EE3FC8"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "models/Mars_Environment.jl"
+name        = "magnetopause"
+status = "finalized"
+target_hash = "14c81e3a445b64d27e0c939d5f5ad401b4a30ae094d8d8ed0d315caf4be6bdeb"
+source_revision = "5f225db"
+source_hash = "14C81E3A445B64D27E0C939D5F5AD401B4A30AE094D8D8ED0D315CAF4BE6BDEB"
+
+[[moves]]
+from        = "common/head.jl"
+to          = "models/Mars_Environment.jl"
+name        = "get_bowshock_normal"
+status = "finalized"
+target_hash = "00ef6f221b8068dfaf4b9eca7f45636f572b0797aaaf41239bdd2f26d5dbd267"
+source_revision = "5f225db"
+source_hash = "00EF6F221B8068DFAF4B9ECA7F45636F572B0797AAAF41239BDD2F26D5DBD267"
+
+# solve_func 是 get_bowshock_normal 的必要依赖，但**不是**本权威文件的迁入项：
+# MarsCommon 自 t9 起已提供权威实现（common/marscommon/numerics.jl），本文件经
+# `using .MarsCommon: solve_func` 复用该绑定，不再持有副本。故此处不写 [[moves]] 条目，
+# 以免与 common.toml 重复登记同一函数的目的端。留此注释备查（reused_from=MarsCommon）。
+
+[[moves]]
+from        = "common/function_coordinate.jl"
+to          = "models/Mars_Environment.jl"
+name        = "bowshock_zero"
+status = "finalized"
+target_hash = "71f5b2762a635a0a9a54ef53b4a9d4c490295e3f108e42db67cdfd57a41c8d89"
+source_hash = "71F5B2762A635A0A9A54EF53B4A9D4C490295E3F108E42DB67CDFD57A41C8D89"
+
+[[moves]]
+from        = "calculate/calculate_models.jl"
+to          = "models/Mars_Environment.jl"
+name        = "escape_energy"
+status = "finalized"
+target_hash = "c02140c4a4175dac1950cea27de9bf0f5c5245244fc4ccbed7e9fba54fc098ca"
+source_revision = "5f225db"
+source_hash = "C02140C4A4175DAC1950CEA27DE9BF0F5C5245244FC4CCBED7E9FBA54FC098CA"
+
+# 同名两副本：只在 MAVEN_plot 内部使用，本次只做 exact 比对，不改动、不迁入。
+# 记录在此以便最终任务核对「两副本是否仍与权威定义一致」。
+# t13 已按已批准口径为两处**不等价变体**取独立名（有效区与权威逐位相同；仅无定义分支
+# 返回 Float64 的 NaN64，权威为 Float32 的 NaN32；docstring 不同），故以 name=新名 +
+# source_name=旧名 登记。t28/t33 更正过期注释：消费者（MAVEN_plot 内部实现 + Orbit 调用）已全部
+# 指向新名，两行已置 finalized 并各带 64 位 target_hash（原“status 保持 pending、待后续单元切换”
+# 的说法已不成立）。
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_plot.jl"
+to          = "MAVEN_data/MAVEN_plot.jl"
+name        = "bowshock_plot_nan64"
+source_name = "bowshock"
+status = "finalized"
+target_hash = "5b08193bf39931bce9a846cd2f37f877131a8fcee8a43fea91a3869c6b6e034a"
+source_hash = "A6A9747AEE13F565D4ABAA91BA04C75423AB03F490CD665DB494A0DF9BA45006"
+notes       = "不等价变体（NaN64/Float64 vs 权威 NaN32/Float32）；MAVEN_plot.Orbit 内部按原行为使用；权威名 bowshock 已指向 models/Mars_Environment.jl"
+
+[[moves]]
+from        = "MAVEN_data/MAVEN_plot.jl"
+to          = "MAVEN_data/MAVEN_plot.jl"
+name        = "magnetopause_plot_nan64"
+source_name = "magnetopause"
+status = "finalized"
+target_hash = "8e490419d3451f283380aed54dbb797da8803fe0d0bd2bd1601b1f08f87fef57"
+source_hash = "4A4805B9BAC5FD2E00CB38D9EEE8D8D3080F3EA166D765891A25D1BC7664E72C"
+notes       = "不等价变体（NaN64/Float64 vs 权威 NaN32/Float32）；权威名 magnetopause 已指向 models/Mars_Environment.jl"

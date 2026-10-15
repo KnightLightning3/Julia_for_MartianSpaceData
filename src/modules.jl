@@ -59,8 +59,15 @@ _spec(name, path, note; deps = Symbol[], kind = :module, allow = Symbol[]) =
 const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     :constants => _spec(:constants, "common/constants.jl", "共享物理常量"),
     :MarsCommon => _spec(
-        :MarsCommon, "common/MarsCommon.jl", "通用坐标与科学计算函数";
-        deps = [:constants], allow = [:searchsortednearest, :e_energy2v, :ion_energy2v],
+        :MarsCommon, "common/MarsCommon.jl",
+        "通用坐标与科学计算函数（策略 P：已随包预装，规范实例 = MAVEN_plot 内实例）";
+        deps = [:constants], kind = :preloaded,
+        allow = [:searchsortednearest, :e_energy2v, :ion_energy2v],
+    ),
+    :MarsEnvironment => _spec(
+        :MarsEnvironment, "models/Mars_Environment.jl",
+        "火星环境几何（策略 P：已随包预装，规范实例 = MAVEN_plot 内实例）";
+        deps = [:constants, :MarsCommon], kind = :preloaded,
     ),
     :Paths => _spec(:Paths, "common/paths.jl", "配置与路径解析（已随包预装）"; kind = :preloaded),
     :DataKeys => _spec(:DataKeys, "common/data_keys.jl", "数据键契约常量（已随包预装）"; kind = :preloaded),
@@ -78,15 +85,16 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     ),
     :MAVEN_SWEA => _spec(
         :MAVEN_SWEA, "MAVEN_data/MAVEN_SWEA.jl", "SWEA 仪器数据处理";
-        deps = [:constants],
+        deps = [:constants, :MarsCommon],
     ),
     :MAVEN_plot => _spec(
         :MAVEN_plot, "MAVEN_data/MAVEN_plot.jl", "绘图基元（已随包预装）";
-        deps = [:constants, :MarsCommon], kind = :preloaded,
+        deps = [:constants, :MarsCommon, :MarsEnvironment], kind = :preloaded,
     ),
     :IGRF_calculate => _spec(
-        :IGRF_calculate, "Magnetic_Model/IGRF_calculate.jl", "IGRF 磁场模型（依赖 Fortran DLL）";
-        deps = [:constants], allow = [:IGRF_pc, :pc2sphere, :sphere2pc],
+        :IGRF_calculate, "models/IGRF_calculate.jl", "IGRF 磁场模型（依赖 Fortran DLL；资源由 dirname(@__FILE__) 同目录定位）";
+        # t38：真实依赖补齐 —— 模块内 Bsphere2pc/Bpc2sphere 权威来自 MarsCommon（禁止自造第二实例）
+        deps = [:constants, :MarsCommon], allow = [:IGRF_pc, :pc2sphere, :sphere2pc],
     ),
     :Cold_Plasma_Dispersion_Relation => _spec(
         :Cold_Plasma_Dispersion_Relation, "models/Cold_Plasma_Dispersion_Relation.jl",
@@ -99,10 +107,6 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     :Single_Particle_Orbit => _spec(
         :Single_Particle_Orbit, "models/Single_Particle_Orbit.jl", "单粒子轨道追踪";
         deps = [:constants],
-    ),
-    :calculate_models => _spec(
-        :calculate_models, "calculate/calculate_models.jl", "模型组合计算入口";
-        deps = [:constants, :MarsCommon],
     ),
     :MGS_load => _spec(
         :MGS_load, "MGS_data/MGS_load.jl", "MGS 数据读取";

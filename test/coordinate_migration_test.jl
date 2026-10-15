@@ -1,0 +1,279 @@
+# ============================================================================
+# test/coordinate_migration_test.jl
+# FunctionCoordinate 坐标模块迁入回归：以 5f225db 旧定义为**独立 oracle** 比对
+#
+# 运行：julia --project=. test/coordinate_migration_test.jl
+#
+# 原则：
+#   * oracle 一律按 5f225db 原文重放，**不用新输出自证**；
+#   * 比较用 === / 逐位 == ，不设容差；
+#   * canonical_hash 只覆盖 AST、不含 docstring，故文档保真另做「整块原文逐字对照」；
+#   * 本文件不修复调用面：models/Pickup_ion.jl 的裸名调用需由调用点迁移单元显式接线
+#     （见 validation/migrations/coordinate.toml 的 module 包装副作用说明）。
+#
+# 对应迁移清单：validation/migrations/coordinate.toml（3 旋转函数 finalized）
+# ============================================================================
+
+using Test
+using TOML
+using StaticArrays
+using Rotations
+using LinearAlgebra: norm, normalize, cross, I
+
+include(joinpath(@__DIR__, "..", "common", "function_coordinate.jl"))
+const FC = FunctionCoordinate
+
+const COORD_TOML = joinpath(@__DIR__, "..", "validation", "migrations", "coordinate.toml")
+
+# ---------------------------------------------------------------------------
+# 独立 oracle：5f225db 原文重放（与迁移后代码无共享实现）
+# ---------------------------------------------------------------------------
+function o_rotation_matrix(θ, φ)
+    Rz = [cos(φ) -sin(φ) 0;
+          sin(φ)  cos(φ) 0;
+          0       0      1]
+    Ry = [cos(θ)  0  sin(θ);
+          0       1  0;
+         -sin(θ)  0  cos(θ)]
+    return Rz * Ry
+end
+
+o_quaternion_rot(u, q) = q * u
+o_quaternion_rot_reverse(u, q) = inv(q) * u
+
+# 5f225db 中 slice2d_cal_rot 的原文重放（保留项，证明未被包装改动）
+function o_slice2d_cal_rot(v1, v2)
+    a = normalize(v1)
+    cross_av = cross(a, v2)
+    norm_c = norm(cross_av)
+    if norm_c < 1e-8
+        error("v1 与 v2 共线，无法唯一定义切片平面的法向量！")
+    end
+    c = cross_av / norm_c
+    b = cross(c, a)
+    R_static = SMatrix{3,3,Float64,9}(
+        a[1], b[1], c[1],
+        a[2], b[2], c[2],
+        a[3], b[3], c[3],
+    )
+    return RotMatrix(R_static)
+end
+
+# 5f225db 中 pa_xyz2sphere 的原文重放（保留项）
+function o_pa_xyz2sphere(p::SVector{3,T}) where T <: Real
+    r = norm(p)
+    if iszero(r)
+        return SVector{3,T}(zero(T), zero(T), zero(T))
+    else
+        theta = acosd(p[1]/r)
+        phi = atand(p[3], p[2])
+        return SVector{3}(r, theta, phi)
+    end
+end
+
+"""抓取文件中 name 定义紧邻上方的 `\"\"\"` docstring 块（含两端三引号行）。"""
+function grab_docstring(lines, name)
+    i = findfirst(l -> occursin(Regex("^\\s*function\\s+" * name * "\\s*[\\(;]"), l), lines)
+    i === nothing && return String[]
+    j = i - 1
+    j >= 1 || return String[]
+    strip(lines[j]) == "\"\"\"" || return String[]
+    k = j - 1
+    while k >= 1 && strip(lines[k]) != "\"\"\""
+        k -= 1
+    end
+    return k >= 1 ? lines[k:j] : String[]
+end
+
+@testset "FunctionCoordinate 坐标模块迁入回归（5f225db 独立 oracle）" begin
+
+    @testset "module 包装：加载、导出、依赖绑定" begin
+        @test FC isa Module
+        @test String(nameof(FC)) == "FunctionCoordinate"
+        # 三个迁入的旋转函数 + 五个保留函数均在模块内
+        for n in (:rotation_matrix, :Quaternion_Rot, :Quaternion_Rot_reverse,
+                  :slice2d_cal_rot, :pa_xyz2sphere, :pa_sphere2xyz,
+                  :MINPA_sphere2xyz, :MINPA_xyz2sphere)
+            @test isdefined(FC, n)
+        end
+        # 迁入前的坐标文件并**无** module 包装；包装后 bowshock_zero 已移出到环境权威
+        @test !isdefined(FC, :bowshock_zero)
+        # 父已有则复用（constants/MarsCommon 绑定在模块内可见）
+        @test isdefined(FC, :constants) && isdefined(FC, :MarsCommon)
+        # 全部公开名都已 export（供调用方 using .FunctionCoordinate 恢复裸名用法）
+        exported = Set(names(FC))
+        for n in (:rotation_matrix, :Quaternion_Rot, :Quaternion_Rot_reverse,
+                  :slice2d_cal_rot, :pa_xyz2sphere, :pa_sphere2xyz,
+                  :MINPA_sphere2xyz, :MINPA_xyz2sphere)
+            @test n in exported
+        end
+    end
+
+    @testset "rotation_matrix：5 组 (θ,φ) 逐位一致" begin
+        for (θ, φ) in [(0.0, 0.0), (0.3, 0.7), (-1.2, 2.5), (π/2, π), (1.0, -0.5)]
+            a = FC.rotation_matrix(θ, φ)
+            b = o_rotation_matrix(θ, φ)
+            @test a == b
+            @test typeof(a) == typeof(b)
+        end
+        @test size(FC.rotation_matrix(0.3, 0.7)) == (3, 3)
+        # 正交性自检（结构性事实，非 oracle 比对）
+        R = FC.rotation_matrix(0.3, 0.7)
+        @test R * R' ≈ Matrix(I, 3, 3) atol = 1e-12
+    end
+
+    @testset "Quaternion_Rot / Quaternion_Rot_reverse：逐位一致（含 SVector/Vector）" begin
+        qs = (QuatRotation(1.0, 0.0, 0.0, 0.0),
+              QuatRotation(0.5, 0.5, 0.5, 0.5),
+              QuatRotation(0.2, -0.3, 0.4, 0.1))
+        for (u, q) in ((SVector(1.0, 2.0, 3.0), qs[1]),
+                       (SVector(0.0, 0.0, 1.0), qs[2]),
+                       ([1.0, -2.0, 0.5], qs[3]),
+                       (SVector(1.0, 2.0, 3.0), qs[3]))
+            @test FC.Quaternion_Rot(u, q) == o_quaternion_rot(u, q)
+            @test FC.Quaternion_Rot_reverse(u, q) == o_quaternion_rot_reverse(u, q)
+        end
+        # 往返一致：reverse(rot(u)) == u
+        u = SVector(1.0, 2.0, 3.0)
+        q = QuatRotation(0.2, -0.3, 0.4, 0.1)
+        @test FC.Quaternion_Rot_reverse(FC.Quaternion_Rot(u, q), q) ≈ u
+        # 单位四元数是恒等变换
+        @test FC.Quaternion_Rot(u, qs[1]) == u
+        @test FC.Quaternion_Rot_reverse(u, qs[1]) == u
+    end
+
+    @testset "保留项：slice2d_cal_rot 与 pa_xyz2sphere 接口与行为未变" begin
+        for (v1, v2) in ((SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0)),
+                         (SVector(1.0, 1.0, 0.0), SVector(0.0, 1.0, 1.0)),
+                         (SVector(2.0, -1.0, 0.5), SVector(1.0, 3.0, -2.0)))
+            a = FC.slice2d_cal_rot(v1, v2)
+            b = o_slice2d_cal_rot(v1, v2)
+            @test a == b
+            @test typeof(a) == typeof(b)
+        end
+        for p in (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0), SVector(1.0, 2.0, 3.0),
+                  SVector(0.0, 0.0, 0.0))
+            @test FC.pa_xyz2sphere(p) == o_pa_xyz2sphere(p)
+        end
+        # 零向量特例仍返回零（避免 0/0）
+        @test FC.pa_xyz2sphere(SVector(0.0, 0.0, 0.0)) == SVector(0.0, 0.0, 0.0)
+        # 共线输入 → 抛错（保留项的既有防护，不得随包装丢失）
+        @test_throws ErrorException FC.slice2d_cal_rot(SVector(1.0, 0.0, 0.0),
+                                                       SVector(2.0, 0.0, 0.0))
+        @test_throws ErrorException o_slice2d_cal_rot(SVector(1.0, 0.0, 0.0),
+                                                      SVector(2.0, 0.0, 0.0))
+        # 其余保留函数仍存在且可调用（接口未变）
+        @test FC.pa_sphere2xyz(SVector(1.0, 0.0, 0.0)) isa SVector
+        @test FC.MINPA_xyz2sphere(FC.MINPA_sphere2xyz(SVector(1.0, 30.0, 45.0))) isa SVector
+    end
+
+    @testset "calculate_models：三个旋转函数源定义已删除（t28 真删；旧源以 5f225db 取证）" begin
+        repo = normpath(joinpath(@__DIR__, ".."))
+        # 工作区该文件已物理删除（存在性断言）
+        @test !isfile(joinpath(repo, "calculate", "calculate_models.jl"))
+        # oracle 一律取自 5f225db（不可用新实现自证）：旧源确有这三个顶层定义
+        src = split(String(read(`git -C $repo show 5f225db:calculate/calculate_models.jl`)), '\n')
+        for n in ("rotation_matrix", "Quaternion_Rot", "Quaternion_Rot_reverse")
+            @test any(l -> occursin(Regex("^\\s*function\\s+" * n * "\\s*[\\(;]"), l), src)
+        end
+        # 目标侧权威已就位
+        @test isdefined(FC, :rotation_matrix) && isdefined(FC, :Quaternion_Rot) &&
+              isdefined(FC, :Quaternion_Rot_reverse)
+    end
+
+    @testset "环境权威已在：bowshock_zero 可从 MarsEnvironment 取用" begin
+        # 删除旧源的前提条件：环境权威必须已就位且行为一致
+        include(joinpath(@__DIR__, "..", "models", "Mars_Environment.jl"))
+        ME = MarsEnvironment
+        @test isdefined(ME, :bowshock_zero)
+        for x in (-10.0, -2.0, 0.55, 1.0, 1.57)
+            # 与 head.bowshock 同模型：有效区一致
+            @test ME.bowshock_zero(x) === ME.bowshock(x)
+        end
+        for x in (2.0, 2.1, 3.0, 5.0)
+            @test ME.bowshock_zero(x) === 0.0
+        end
+        @test ME.bowshock_zero(1.0) === 1.5640512299793765
+    end
+
+    @testset "迁移清单：3 行 finalized，source_hash/target_hash 分离且与源侧重算一致" begin
+        @test isfile(COORD_TOML)
+        doc = TOML.parsefile(COORD_TOML)
+        moves = doc["moves"]
+        @test length(moves) == 3
+        expected = Dict(
+            "rotation_matrix" => ("A72CCBF83598F1B3740D361F981C9AED265E60B9C6483BDE85A3054DA087DF6E", "5f225db"),
+            "Quaternion_Rot" => ("5BE99640F110CACCEDC547D2EBD29B72A7C4CA2CCC25E86946AF16462D0C64E8", "5f225db"),
+            "Quaternion_Rot_reverse" => ("DF1143FB1C784547F1FB231D69C7FEE58E2B6E712B38F04B2DFE0197C014C400", "5f225db"),
+        )
+        seen = Set{String}()
+        for m in moves
+            n = String(m["name"])
+            push!(seen, n)
+            @test String(m["status"]) == "finalized"
+            @test String(m["from"]) == "calculate/calculate_models.jl"
+            @test String(m["to"]) == "common/function_coordinate.jl"
+            @test String(m["source_revision"]) == expected[n][2]   # t28：字段名规范化
+            @test uppercase(String(m["source_hash"])) == expected[n][1]
+            @test uppercase(String(m["target_hash"])) == expected[n][1]  # 结构一致
+        end
+        @test seen == Set(keys(expected))
+    end
+
+    @testset "清单哈希：由 5f225db 抽取副本独立重算（非自证）" begin
+        repo = normpath(joinpath(@__DIR__, ".."))
+        has_git = success(`git -C $repo cat-file -e 5f225db`)
+        if !has_git
+            @info "基线提交 5f225db 不在本地，跳过重算"
+            @test_skip true
+        else
+            oracle = mktempdir()
+            mkpath(joinpath(oracle, "calculate"))
+            open(joinpath(oracle, "calculate", "calculate_models.jl"), "w") do io
+                run(pipeline(`git -C $repo show 5f225db:calculate/calculate_models.jl`, stdout = io))
+            end
+            include(joinpath(repo, "validation", "ast", "ASTMigrate.jl"))
+            A = ASTMigrate
+            names = Set(["rotation_matrix", "Quaternion_Rot", "Quaternion_Rot_reverse"])
+            idx = A.build_index(oracle; files = ["calculate/calculate_models.jl"], names = names)
+            sc = idx.scans["calculate/calculate_models.jl"]
+            doc = TOML.parsefile(COORD_TOML)
+            for m in doc["moves"]
+                n = String(m["name"])
+                defs = A.top_defs(sc, n)
+                @test !isempty(defs)
+                if !isempty(defs)
+                    @test uppercase(defs[1].hash) == uppercase(String(m["source_hash"]))
+                end
+            end
+            rm(oracle; recursive = true, force = true)
+        end
+    end
+
+    @testset "文档保真：三旋转函数 docstring 与 5f225db 原文逐字一致" begin
+        repo = normpath(joinpath(@__DIR__, ".."))
+        # 源：5f225db 的 calculate 文件（临时抽取）；目标：迁移后的坐标文件
+        has_git = success(`git -C $repo cat-file -e 5f225db`)
+        if !has_git
+            @info "基线提交 5f225db 不在本地，跳过 docstring 对照"
+            @test_skip true
+        else
+            tmp = mktempdir()
+            srcfile = joinpath(tmp, "calc.jl")
+            open(srcfile, "w") do io
+                run(pipeline(`git -C $repo show 5f225db:calculate/calculate_models.jl`, stdout = io))
+            end
+            src_lines = readlines(srcfile)
+            dst_lines = readlines(joinpath(repo, "common", "function_coordinate.jl"))
+            for n in ("rotation_matrix", "Quaternion_Rot", "Quaternion_Rot_reverse")
+                sb = grab_docstring(src_lines, n)
+                db = grab_docstring(dst_lines, n)
+                @test !isempty(sb)
+                @test !isempty(db)
+                @test length(sb) == length(db)
+                @test all(sb .== db)          # 逐行（逐字节）一致，未改写
+            end
+            rm(tmp; recursive = true, force = true)
+        end
+    end
+end

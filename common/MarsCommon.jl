@@ -3,6 +3,22 @@ include(joinpath(@__DIR__, "constants.jl"))
 using .constants
 using StaticArrays
 
+# ---------------------------------------------------------------------------
+# 能力子文件（纯迁入，按能力拆分；仅各自声明必需的标准库）
+#
+# 迁入来源（源实现本次保留未删，调用方切换与源清理由最终集成单元处理）：
+#   common/marscommon/statistics.jl  <- common/head.jl
+#   common/marscommon/geometry.jl    <- common/head.jl、MAVEN_data/MAVEN_plot.jl
+#   common/marscommon/numerics.jl    <- common/head.jl、MAVEN_data/MAVEN_plot.jl、calculate/calculate_models.jl
+#   common/marscommon/cyclotron.jl   <- calculate/calculate_models.jl、MAVEN_data/MAVEN_load.jl
+# 逐函数 from/to/name/status/source_hash 清单见 validation/migrations/common.toml。
+# `constants` 与 `StaticArrays` 由本模块提供（constants 仍为非预装模块，注册表不改）。
+# ---------------------------------------------------------------------------
+include(joinpath(@__DIR__, "marscommon", "statistics.jl"))
+include(joinpath(@__DIR__, "marscommon", "geometry.jl"))
+include(joinpath(@__DIR__, "marscommon", "numerics.jl"))
+include(joinpath(@__DIR__, "marscommon", "cyclotron.jl"))
+
 # ============================================================================
 # 标量约定（与 Julia 官方函数一致）
 #
@@ -44,7 +60,10 @@ export instrument_sphere_to_cartesian,
     eflux_to_df!,
     doppler_shift,
     searchsortednearest,
-    searchsortednearest_range
+    searchsortednearest_range,
+    Bsphere2pc,
+    Bpc2sphere,
+    Bpc2sphere_naive
 
 """
     instrument_sphere_to_cartesian(r::Real, theta::Real, phi::Real) -> SVector{3}

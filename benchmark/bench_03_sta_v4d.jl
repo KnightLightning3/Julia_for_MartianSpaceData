@@ -1,156 +1,133 @@
 # ============================================================================
-# benchmark/bench_03_sta_v4d.jl — sta_v_4d vs sta_v_4d_new 等价性测试
-# 
-# 目的：为 TASK-044 提供等价性门证据
-# 判据：rel ≤ 1e-9 才允许收编（删除旧版）
-# 用法：julia --project=benchmark benchmark/bench_03_sta_v4d.jl
+# benchmark/bench_03_sta_v4d.jl — `sta_v_4d` 单函数有效合成夹具基准
+#
+# 目的：用一次性构建的**有效** STATIC 单时刻切片，检查 `sta_v_4d` 数值输出有限性，
+#       并用 Base 计时给出小性能测量。
+#
+# 与旧版的差异（历史）：旧脚本用缺键夹具 + try/catch + `exit(0)` 构成“伪通过”，
+#       并对比已删除的 `sta_v_4d_new`。旧版已整体重写：只保留单函数有效夹具，
+#       不保留 `isdefined` 兼容分支，不引入 BenchmarkTools/JSON 等新依赖（仅 Base 计时）。
+#
+# 用法：julia --project=. benchmark/bench_03_sta_v4d.jl
+# 失败即非零退出（不吞异常）。
 # ============================================================================
 
-using Pkg
-Pkg.activate(@__DIR__)
-
-using BenchmarkTools
 using Dates
-using Random
-using LinearAlgebra
-using JSON
-
-const BENCH_SEED = 12345
-const EQUIV_THRESHOLD = 1e-9
-
-println("=" ^ 60)
-println("bench_03_sta_v4d.jl — sta_v_4d 等价性门测试")
-println("=" ^ 60)
-
-# 加载 MarsData
-push!(LOAD_PATH, joinpath(@__DIR__, ".."))
 using MarsData
 
-# 加载 STATIC 模块
-println("\n加载 MAVEN_STATIC 模块...")
 MarsData.load_module(:MAVEN_STATIC)
-sta = MarsData.MAVEN_STATIC
+const STA = MarsData.MAVEN_STATIC
 
-# 检查两个函数是否存在
-has_old = isdefined(sta, :sta_v_4d)
-has_new = isdefined(sta, :sta_v_4d_new)
+println("=" ^ 60)
+println("bench_03_sta_v4d.jl — sta_v_4d 单函数基准（Base 计时）")
+println("=" ^ 60)
 
-println("  sta_v_4d 存在: $has_old")
-println("  sta_v_4d_new 存在: $has_new")
+# ---------------------------------------------------------------------------
+# 确定性有效合成夹具（Float32 数组，模拟 STATIC d1/c6 单时刻切片）
+# ---------------------------------------------------------------------------
+const NMASS, NBINS, NENERGY = 4, 8, 48
+const MASS_NUMBERS = Float32[1.0, 4.0, 16.0, 32.0]
 
-if !has_old || !has_new
-    println("\n警告：双版本未全部存在，等价性测试无法进行")
-    println("  等待 TASK-044 修复后再运行")
-    exit(0)
+det3(f, d1, d2, d3) = [f(i, j, k) for i in 1:d1, j in 1:d2, k in 1:d3]
+
+function sta_slice_raw(; mass_basis = Float64(STA.constants.mp_eV_per_km_s2))
+    return Dict{Symbol,Any}(
+        :nbins        => Int16(NBINS),
+        :nenergy      => Int16(NENERGY),
+        :nmass        => NMASS,
+        # mass_arr = 逐道质量数（不是质量基准）
+        :mass_arr     => Float32.(det3((i, j, k) -> MASS_NUMBERS[i], NMASS, NBINS, NENERGY)),
+        :energy       => Float32.(det3((i, j, k) -> 10.0 * k + j, NMASS, NBINS, NENERGY)),
+        :denergy      => Float32.(det3((i, j, k) -> 1.0 + 0.1 * k, NMASS, NBINS, NENERGY)),
+        :theta        => Float32.(det3((i, j, k) -> 15.0 + 7.0 * j, NMASS, NBINS, NENERGY)),
+        :phi          => Float32.(det3((i, j, k) -> 25.0 + 11.0 * j, NMASS, NBINS, NENERGY)),
+        :dtheta       => Float32.(det3((i, j, k) -> 5.0 + 0.5 * j, NMASS, NBINS, NENERGY)),
+        :dphi         => Float32.(det3((i, j, k) -> 6.0 + 0.25 * j, NMASS, NBINS, NENERGY)),
+        :gf           => Float32.(det3((i, j, k) -> 0.5 + 0.05 * j, 1, NBINS, NENERGY)),
+        :eff          => Float32.(det3((i, j, k) -> 0.6 + 0.01 * i, NMASS, NBINS, NENERGY)),
+        :geom_factor  => 0.02,
+        :time_integ   => 4.0,
+        :dead         => Float32.(det3((i, j, k) -> 1.0 + 0.001 * k, NMASS, NBINS, NENERGY)),
+        :bkg          => Float32.(det3((i, j, k) -> 0.05 * k, NMASS, NBINS, NENERGY)),
+        :data         => Float32.(det3((i, j, k) -> 100.0 + 10.0 * k + i, NMASS, NBINS, NENERGY)),
+        :sc_pot       => 1.5,
+        :valid        => 1,
+        :mass         => mass_basis,
+    )
 end
 
-# 生成合成数据
-println("\n生成合成数据...")
-rng = MersenneTwister(BENCH_SEED)
+# 生产链（同 MAVEN_data/Build_data/STATIC_VD.jl）：切片 → STA_count2df → sta_v_4d(unit_cover=false)
+# 夹具同样先过一次 STA_count2df，使 unit_cover=false 分支拿到与计数同量级的 df_mass_mass。
+sta_slice_fixture(; kwargs...) = STA.STA_count2df(sta_slice_raw(; kwargs...))
 
-ntime = 50
-nenergy = 48
-nmass = 4
+const KW = (; energy_range = [0, 1e5], mass_range = [14, 20], m_int = 16)
 
-# d1 切片格式
-epoch = collect(DateTime(2020, 1, 1, 0, 0, 0) .+ Second.(0:ntime-1))
-energy = Float32.(exp10.(range(log10(1.0), log10(20000.0), length = nenergy)))
-mass_arr = Float32.([1.0, 4.0, 16.0, 32.0])
-counts_3d = Float32.(rand(rng, ntime, nenergy, nmass) .* 10 .+ 0.1)
-eff = Float32.(rand(rng, nenergy) .* 0.3 .+ 0.7)
+println("\n夹具：nmass=$NMASS nbins=$NBINS nenergy=$NENERGY  (Float32 数组, 有效切片 valid=1)")
+println("  :mass_arr = $MASS_NUMBERS（逐道质量数）")
+println("  数据包 :mass 键（改动后不再被读取）= ", repr(Float64(STA.constants.mp_eV_per_km_s2)))
 
-# v_4d 需要的数据键
-# 参考 MAVEN_STATIC.jl 中 sta_v_4d 的实际签名
-# 这里创建最小必要数据结构
+# ---------------------------------------------------------------------------
+# 正确性：两条分支都必须给出有限结果；行为不得依赖数据包 :mass
+# ---------------------------------------------------------------------------
+dat = sta_slice_fixture()
+vel, flux, density = STA.sta_v_4d(dat; KW...)
+println("\nsta_v_4d(unit_cover=true)")
+println("  vel     = ", vel)
+println("  flux    = ", flux)
+println("  density = ", density)
 
-d1_dat = Dict{Symbol,Any}(
-    :epoch => epoch,
-    :energy => energy,
-    :mass_arr => mass_arr,
-    :counts_3d => counts_3d,
-    :eff => eff,
-    :data_load_flag => true,
-)
+vel_nc, flux_nc, density_nc = STA.sta_v_4d(sta_slice_fixture(); KW..., unit_cover = false)
+println("sta_v_4d(unit_cover=false)")
+println("  vel     = ", vel_nc)
+println("  flux    = ", flux_nc)
+println("  density = ", density_nc)
 
-println("数据形状：")
-println("  counts_3d: $(size(counts_3d))")
-println("  epoch: $(length(epoch))")
+isfinite_tuple((v, f, d)) = all(isfinite, v) && all(isfinite, f) && isfinite(d)
 
-# 等价性测试
-println("\n" * "-" ^ 40)
-println("等价性测试：sta_v_4d vs sta_v_4d_new")
-println("-" ^ 40)
+@assert isfinite_tuple((vel, flux, density)) "sta_v_4d(unit_cover=true) 输出非有限"
+@assert isfinite_tuple((vel_nc, flux_nc, density_nc)) "sta_v_4d(unit_cover=false) 输出非有限"
 
-# 尝试调用两个版本
-result_old = try
-    sta.sta_v_4d(d1_dat)
-catch e
-    println("  sta_v_4d 调用失败: $e")
-    nothing
-end
+# 两条分支在 m_int 与掩膜选中的 mass_arr 一致时应逐位一致（夹具取 m_int=16、mass_arr=16 的道）
+@assert isequal(vel, vel_nc) && isequal(flux, flux_nc) && isequal(density, density_nc) "两条分支结果不一致"
+println("\n检查通过：两条分支在 m_int=mass_arr 时结果逐位一致")
 
-result_new = try
-    sta.sta_v_4d_new(d1_dat)
-catch e
-    println("  sta_v_4d_new 调用失败: $e")
-    nothing
-end
+# 改动后不再读取数据包 :mass：键缺失/异值必须给出相同结果
+dat_nomass = sta_slice_fixture()
+delete!(dat_nomass, :mass)
+vel_nm, flux_nm, density_nm = STA.sta_v_4d(dat_nomass; KW...)
+@assert isequal(vel_nm, vel) && isequal(flux_nm, flux) && isequal(density_nm, density) "缺失 :mass 时输出变化"
 
-if result_old === nothing || result_new === nothing
-    println("\n警告：无法获取双版本结果")
-    println("  需要检查函数签名和数据格式")
-else
-    # 比较结果
-    println("\n结果类型：")
-    println("  old: $(typeof(result_old))")
-    println("  new: $(typeof(result_new))")
-    
-    # 如果是字典，比较数值
-    if result_old isa Dict && result_new isa Dict
-        # 找出共同的键
-        common_keys = intersect(keys(result_old), keys(result_new))
-        println("\n共同键: $common_keys")
-        
-        max_rel_err = 0.0
-        for k in common_keys
-            v_old = result_old[k]
-            v_new = result_new[k]
-            if v_old isa AbstractArray{<:Real} && v_new isa AbstractArray{<:Real}
-                rel_err = maximum(abs.(v_old .- v_new) ./ max.(abs.(v_old), 1e-10))
-                max_rel_err = max(max_rel_err, rel_err)
-                println("  $k: rel_err = $rel_err")
-            end
+dat_shift = sta_slice_fixture(; mass_basis = Float64(STA.constants.mp_eV_per_km_s2) * 1.5)
+vel_sh, flux_sh, density_sh = STA.sta_v_4d(dat_shift; KW...)
+@assert isequal(vel_sh, vel) && isequal(flux_sh, flux) && isequal(density_sh, density) "异值 :mass 改变了输出"
+println("\n检查通过：输出有限；缺失/异值 :mass 结果逐位一致（质量基准取自 Float64 常量）")
+
+# ---------------------------------------------------------------------------
+# 小性能测量（Base 计时：先预热，再取 5 批 × 100 次的最小值与分配量）
+# ---------------------------------------------------------------------------
+function bench(f; batches = 5, evals = 100)
+    f()                                    # 预热（编译）
+    best = Inf
+    for _ in 1:batches
+        t = @elapsed for _ in 1:evals
+            f()
         end
-        
-        println("\n" * "=" ^ 60)
-        if max_rel_err <= EQUIV_THRESHOLD
-            println("✓ 等价性测试通过: max_rel_err = $max_rel_err ≤ $EQUIV_THRESHOLD")
-            println("  TASK-044 门条件满足，可以收编删除旧版")
-        else
-            println("✗ 等价性测试未通过: max_rel_err = $max_rel_err > $EQUIV_THRESHOLD")
-            println("  必须保留双版本，记录差异并上报")
-        end
-        println("=" ^ 60)
+        best = min(best, t)
     end
+    alloc = @allocated f()
+    return best / evals, alloc
 end
 
-# Benchmark
+dat_cover = sta_slice_fixture()
+dat_nocover = sta_slice_fixture()
+t_cover, a_cover = bench(() -> STA.sta_v_4d(dat_cover; KW...))
+t_nocov, a_nocov = bench(() -> STA.sta_v_4d(dat_nocover; KW..., unit_cover = false))
+
 println("\n" * "-" ^ 40)
-println("性能基准")
+println("性能（Base @elapsed，最佳批次平均；@allocated 为单次调用）")
 println("-" ^ 40)
-
-if result_old !== nothing
-    b_old = @benchmark sta.sta_v_4d($d1_dat) samples = 5 evals = 2
-    println("sta_v_4d:")
-    println("  min: $(minimum(b_old))")
-    println("  median: $(median(b_old))")
-end
-
-if result_new !== nothing
-    b_new = @benchmark sta.sta_v_4d_new($d1_dat) samples = 5 evals = 2
-    println("sta_v_4d_new:")
-    println("  min: $(minimum(b_new))")
-    println("  median: $(median(b_new))")
-end
-
-println("\n基准完成")
+println("unit_cover=true  : ", round(t_cover * 1e6; digits = 2), " µs/call,  ",
+        round(a_cover / 1024; digits = 1), " KiB")
+println("unit_cover=false : ", round(t_nocov * 1e6; digits = 2), " µs/call,  ",
+        round(a_nocov / 1024; digits = 1), " KiB")
+println("\n基准完成（单函数 sta_v_4d；sta_v_4d_new 已删除，不再做双版本对比）")

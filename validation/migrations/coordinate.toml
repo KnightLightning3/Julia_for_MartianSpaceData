@@ -1,0 +1,59 @@
+schema_version = 1
+
+# validation/migrations/coordinate.toml
+# FunctionCoordinate 坐标模块迁入清单（团队 static-small-change / t24）
+#
+# schema：`[[moves]]` 每行含 name / from / to / status / source_hash / target_hash / revision
+#   from        —— 旧定义位置：5f225db 中的源文件（仓库相对 POSIX 路径）
+#   to          —— 迁入目标：common/function_coordinate.jl 的 module FunctionCoordinate
+#   name        —— 迁入后在 FunctionCoordinate 中的函数名
+#   status      —— finalized：旧定义已删除；pending：旧定义仍在
+#   source_hash —— 旧定义在**源侧**的 AST 规范化 SHA-256（validation/ast canonical_hash 口径）
+#   target_hash —— 迁入后定义在**目标侧**的 AST 规范化 SHA-256（与 source_hash 独立字段）
+#   revision    —— 源侧修订锚点（本批统一为 5f225db）
+#
+# ⚠ 口径更正（沿用 t22 的裁定）：canonical_hash **只覆盖 AST 结构、不含 docstring**。
+#   故 target_hash == source_hash 只能证明结构一致，**不能**推断文档保真；文档保真另以
+#   test/coordinate_migration_test.jl 中「整块原文逐字文本对照」佐证。
+#
+# ⚠ module 包装的副作用（重要，供调用点迁移单元核对）：
+#   common/function_coordinate.jl 在 5f225db 下**无** module 包装，include 后函数以裸名
+#   落进宿主作用域。本批加了 `module FunctionCoordinate` 包装，故 include 之后裸名**不再**
+#   自动可见，宿主需显式 `using .FunctionCoordinate`（模块已 export 全部公开名）。
+#   已知受影响调用方（本任务不改，按 scope 留给调用点迁移单元）：
+#     models/Pickup_ion.jl:4   include("../common/function_coordinate.jl")
+#     models/Pickup_ion.jl:291 裸名 bowshock_zero(...)   ← 该名本次已迁往 Mars_Environment
+#     models/Pickup_ion.jl:413 裸名 slice2d_cal_rot(...)
+#
+# bowshock_zero 的迁出（源侧删除）记录在 environment.toml，不在本清单重复登记目的端。
+
+[[moves]]
+name        = "rotation_matrix"
+from        = "calculate/calculate_models.jl"
+to          = "common/function_coordinate.jl"
+status      = "finalized"
+source_revision = "5f225db"
+source_hash = "A72CCBF83598F1B3740D361F981C9AED265E60B9C6483BDE85A3054DA087DF6E"
+target_hash = "A72CCBF83598F1B3740D361F981C9AED265E60B9C6483BDE85A3054DA087DF6E"
+
+[[moves]]
+name        = "Quaternion_Rot"
+from        = "calculate/calculate_models.jl"
+to          = "common/function_coordinate.jl"
+status      = "finalized"
+source_revision = "5f225db"
+source_hash = "5BE99640F110CACCEDC547D2EBD29B72A7C4CA2CCC25E86946AF16462D0C64E8"
+target_hash = "5BE99640F110CACCEDC547D2EBD29B72A7C4CA2CCC25E86946AF16462D0C64E8"
+
+[[moves]]
+name        = "Quaternion_Rot_reverse"
+from        = "calculate/calculate_models.jl"
+to          = "common/function_coordinate.jl"
+status      = "finalized"
+source_revision = "5f225db"
+source_hash = "DF1143FB1C784547F1FB231D69C7FEE58E2B6E712B38F04B2DFE0197C014C400"
+target_hash = "DF1143FB1C784547F1FB231D69C7FEE58E2B6E712B38F04B2DFE0197C014C400"
+
+# 保留项（未迁移、未删除，登记以便最终核对「不应消失」）：
+#   slice2d_cal_rot / pa_xyz2sphere / pa_sphere2xyz / MINPA_sphere2xyz / MINPA_xyz2sphere
+#   仍留在 common/function_coordinate.jl 的 FunctionCoordinate 内，接口未变。

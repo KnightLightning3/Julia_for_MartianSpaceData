@@ -215,7 +215,8 @@ end
 并额外输出乘上 `mass_arr²` 的按质量归一的相空间密度。
 
 # 参数说明
-- `dat`: STATIC 单时刻切片字典，需含 `:nbins`、`:nenergy`、`:energy`、`:gf`、`:eff`、`:geom_factor`、`:time_integ`、`:mass`、`:mass_arr`、`:dead`、`:bkg`、`:data`。
+- `dat`: STATIC 单时刻切片字典，需含 `:nbins`、`:nenergy`、`:energy`、`:gf`、`:eff`、`:geom_factor`、`:time_integ`、`:mass_arr`、`:dead`、`:bkg`、`:data`。
+  质量基准取自 `constants.mp_eV_per_km_s2`，**不再需要**数据包 `:mass` 键。
 
 # 返回值
 - `Dict{Symbol, Any}`: 已注入 `:df_mass_mass`（未乘 `mass_arr²`）与 `:df` 的同一字典。
@@ -234,7 +235,8 @@ function STA_count2df(dat) #计算df,需要导入static_slip取得的切片
     local geom = dat[:geom_factor]
     # local G = dat[:geom_factor].*eff.*gf
     local dt = dat[:time_integ]
-    local mass = dat[:mass]
+    # 质量基准：物理上与数据包 dat[:mass] 等效，但改用 Float64 质子常量精度更高，且不再依赖该键
+    local mass = constants.mp_eV_per_km_s2
     local mass_arr = dat[:mass_arr]
     local dead = dat[:dead]						# dead time array usec for STATIC
     local bkg = dat[:bkg]					# background array usec for STATIC
@@ -271,6 +273,7 @@ end
 
 # 注意事项
 - 作者注释提示本函数**开销极大**，大规模数据建议改用新的批量实现。
+- 质量基准取自 `constants.mp_eV_per_km_s2`，不读数据包 `:mass`（两个维度分支与 `:332` 的基准²同源）。
 """
 function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程序开销极大，考虑替换掉
     local dat = deepcopy(dat0)
@@ -298,7 +301,7 @@ function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程�
             local eff_ind = dat[:eff_ind][i]
             gf[i,:,:]   = dat[:gf][att_ind+1,:,swp_ind+1]
             eff[i,:,:]  = dat[:eff][:,:,eff_ind+1]
-            mass[i,:,:] = dat[:mass].*dat[:mass_arr][:,:,swp_ind+1]
+            mass[i,:,:] = constants.mp_eV_per_km_s2 .* dat[:mass_arr][:,:,swp_ind+1]   # 只换质量基准，保留 mass_arr 与乘法次序
             energy[i,:,:] = dat[:energy][:,:,swp_ind+1]
         end
     else
@@ -318,7 +321,7 @@ function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程�
             local eff_ind = dat[:eff_ind][i]
             gf[i,:,:,:]   = dat[:gf][att_ind+1,:,:,swp_ind+1]
             eff[i,:,:,:]  = dat[:eff][:,:,:,eff_ind+1]
-            mass[i,:,:,:] = dat[:mass].*dat[:mass_arr][:,:,:,swp_ind+1]
+            mass[i,:,:,:] = constants.mp_eV_per_km_s2 .* dat[:mass_arr][:,:,:,swp_ind+1]   # 只换质量基准，保留 mass_arr 与乘法次序
             energy[i,:,:,:] = dat[:energy][:,:,:,swp_ind+1]
         end
     end
@@ -329,7 +332,7 @@ function STA_count2df_all(dat0) #计算df,对非时间切片数据，此处程�
     # scale = 1 ./(dt.* G .* energy.^2 .* 2 ./mass./mass.*1e5)
     local scale = 1 ./(dt.* G .* energy.^2 .* 2 .*1e5)
     dat[:df] = scale .* tmp .* mass.^2
-    dat[:df_mass_mass] = scale .* tmp .* dat[:mass]^2
+    dat[:df_mass_mass] = scale .* tmp .* constants.mp_eV_per_km_s2^2   # 基准²同源替换，不用数据包 dat[:mass]
     return dat
 end
 """
@@ -428,7 +431,7 @@ end
 按 `df = eflux/(E²·2/m²·1e5)`（`m = mass·m_int`）逐元素换算并写入 `:df`。
 
 # 参数说明
-- `dat`: STATIC 单时刻切片字典，需含 `:energy`、`:mass`、`:eflux`。
+- `dat`: STATIC 单时刻切片字典，需含 `:energy`、`:eflux`；质量基准取自 `constants.mp_eV_per_km_s2`，**不再需要** `:mass`。
 - `m_int`: 比荷/质量数，用于修正质量。必须按离子种类显式传值（H⁺=1、O⁺=16 等，见 ion_mass_range）。
 
 # 返回值
@@ -439,7 +442,7 @@ end
 """
 function STA_eflux2df(dat; m_int::Real=16)
     local energy = dat[:energy]
-    local mass = dat[:mass].*m_int
+    local mass = constants.mp_eV_per_km_s2 .* m_int   # 质量基准改用 Float64 常量，不用数据包 dat[:mass]
     local scale = 1 ./(energy.^2 .* 2 ./mass./mass.*1e5)
     dat[:df] = scale .* dat[:eflux]
     return dat
@@ -572,7 +575,8 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     local mass_arr = dat[:mass_arr]
     local pot = dat[:sc_pot]
 
-    local mass=dat[:mass]*m_int
+    # 矩计算的质量基准：不用数据包 dat[:mass]，改用 Float64 质子常量（物理等效、精度更高，且该键可缺失）
+    local mass=constants.mp_eV_per_km_s2*m_int
     
     local Const = 2.0/mass/mass*1e5
     local energy=copy(dat[:energy]) .+ pot		# energy/charge analyzer, require positive energy
@@ -593,98 +597,6 @@ function sta_v_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit ="
     local vel = 1e-5 .* flux ./(density .+ 1e-10)
     #units are km/s
     return vel,flux,density
-end
-"""
-    sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=true)
-
-`sta_v_4d` 的优化实现：单次遍历计算离子速度矩与密度。
-
-# 功能与算法概述
-用 `@views`+类型标注消除复制并把通量/密度的公共因子提到循环外，在单层 `@inbounds` 循环中
-累加密度与通量三分量，减少掩膜数组与中间分配，避免全数组广播。
-
-# 参数说明
-- `dat`: `static_slip` 产生的单时刻切片。
-- `energy_range` / `mass_range` / `m_int` / `unit_cover`: 同 `sta_v_4d`。
-
-# 返回值
-- `(vel, flux, density)`: 速度（km/s）、通量（cm⁻²s⁻¹）、密度（cm⁻³）。
-
-# 注意事项
-- 与 `sta_v_4d` 数值等价，但假定 `dat[:energy]` 等为 `Float32` 三维数组。
-- `dat[:valid] == 0` 时返回全 `NaN`。
-"""
-function sta_v_4d_new(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=true)
-    # 1. 快速非法检查
-    dat[:valid] == 0 && return SVector(NaN, NaN, NaN), SVector(NaN, NaN, NaN), NaN
-
-    # 2. 提取数据并显式转换类型 (Type Anchoring)
-    # 使用 @views 配合类型声明，确保后续索引不产生拷贝且编译器已知类型
-    @views begin
-        data0    = (unit_cover ? dat[:df] : dat[:df_mass_mass] .* (m_int^2))::AbstractArray{Float64, 3}
-        energy   = dat[:energy]::AbstractArray{Float32, 3}
-        denergy  = dat[:denergy]::AbstractArray{Float32, 3}
-        theta    = dat[:theta]::AbstractArray{Float32, 3}
-        phi      = dat[:phi]::AbstractArray{Float32, 3}
-        dtheta   = dat[:dtheta]::AbstractArray{Float32, 3}
-        dphi     = dat[:dphi]::AbstractArray{Float32, 3}
-        mass_arr = dat[:mass_arr]::AbstractArray{Float32, 3}
-        pot      = dat[:sc_pot]::Float32
-        mass     = (dat[:mass] * m_int)::Float32
-    end
-
-    # 3. 预计算常数 (减少循环内除法和乘法)
-    const_flux = 2.0 / (mass * mass) * 1e5
-    const_den  = (mass^(-1.5)) * (2.0^(0.5))
-
-    # 4. 初始化累加器
-    density = 0.0
-    f3dx = 0.0
-    f3dy = 0.0
-    f3dz = 0.0
-
-    # 5. 单次循环：这是 Threadripper 最喜欢的“高计算密度”模式
-    @inbounds for i in eachindex(data0)
-        # 直接读取，避免创建 Mask 数组
-        m_val = mass_arr[i]
-        e_val = energy[i]
-        e_corr = max(0.0, e_val + pot)
-        
-        # 过滤条件
-        if (mass_range[1] <= m_val <= mass_range[2]) && (energy_range[1] <= e_corr <= energy_range[2])
-            
-            # --- 物理计算部分 ---
-            
-            t_val  = theta[i] * constants.inv_RADG
-            p_val  = phi[i] * constants.inv_RADG
-            dt_val = dtheta[i] * constants.inv_RADG
-            dp_val = dphi[i] * constants.inv_RADG
-            
-            # 公共中间项：data * denergy * dphi
-            # 提取公共项可以减少 CPU 乘法指令次数
-            common_term = data0[i] * denergy[i] * dp_val
-            
-            # 密度累加 (Density contribution)
-            # 公式: Const * denergy * sqrt(energy) * data * 2.0 * cos(theta) * sin(dtheta/2.0) * dphi
-            density += const_den * sqrt(e_corr) * common_term * 2.0 * cos(t_val) * sin(dt_val / 2.0)
-            
-            # 通量公共项 (Flux contribution)
-            # 公式: Const * denergy * energy * data * theta0
-            # theta0 = (dtheta/2.0 + cos(2.0*theta)*sin(dtheta)/2.0) * 2.0*sin(dphi/2.0)
-            theta0 = (dt_val / 2.0 + cos(2.0 * t_val) * sin(dt_val) / 2.0) * 2.0 * sin(dp_val / 2.0)
-            flux_val = const_flux * e_corr * data0[i] * denergy[i] * theta0
-            
-            f3dx += flux_val * cos(p_val)
-            f3dy += flux_val * sin(p_val)
-            f3dz += const_flux * e_corr * common_term * (2.0 * sin(t_val) * cos(t_val) * sin(dt_val / 2.0) * cos(dt_val / 2.0))
-        end
-    end
-
-    # 6. 计算最终速度
-    flux = SVector(f3dx, f3dy, f3dz)
-    vel  = 1e-5 .* flux ./ (density + 1e-10)
-
-    return vel, flux, density
 end
 """
     sta_n_4d(dat; energy_range=[0,1e5], mass_range=[10,20], m_int=16, unit_cover=false)
@@ -729,7 +641,8 @@ function sta_n_4d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16,unit_co
 
     
     
-    local mass=dat[:mass]*m_int
+    # 矩计算的质量基准：不用数据包 dat[:mass]，改用 Float64 质子常量（物理等效、精度更高，且该键可缺失）
+    local mass=constants.mp_eV_per_km_s2*m_int
     
     local energy=copy(dat[:energy]) .+ pot		# energy/charge analyzer, require positive energy
     local energy[energy .< 0.0] .=0.0
@@ -885,7 +798,7 @@ end
 并输出乘 `mass_arr²` 的 `:df`。
 
 # 参数说明
-- `dat`: c6 数据字典，需含 `:num_dists`、`:nenergy`、`:nmass`、`:swp_ind`、`:att_ind`、`:eff_ind`、`:energy`、`:denergy`、`:mass_arr`、`:phi`、`:dphi`、`:theta`、`:dtheta`、`:eff`、`:gf`、`:geom_factor`、`:time_integ`、`:dead`、`:bkg`、`:data`、`:mass`。
+- `dat`: c6 数据字典，需含 `:num_dists`、`:nenergy`、`:nmass`、`:swp_ind`、`:att_ind`、`:eff_ind`、`:energy`、`:denergy`、`:mass_arr`、`:phi`、`:dphi`、`:theta`、`:dtheta`、`:eff`、`:gf`、`:geom_factor`、`:time_integ`、`:dead`、`:bkg`、`:data`（质量基准取自 `constants.mp_eV_per_km_s2`，不需要 `:mass`）。
 
 # 返回值
 - `Dict{Symbol, Any}`: 已注入 `:energy3d`、`:theta3d` 等对齐字段及 `:df`、`:df_mass_mass`。
@@ -946,7 +859,7 @@ function STA_count3df(dat) #计算c6数据的df,必须有时间轴
     bkg = dat[:bkg]					# background array usec for STATIC
     tmp = dat[:data]
 
-    scale = dat[:mass]^2*5e-6
+    scale = constants.mp_eV_per_km_s2^2*5e-6   # 基准²改用 Float64 常量，不用数据包 dat[:mass]
     dat[:df_mass_mass] = @.scale *(tmp - bkg) * dead / (dt * G * dat[:energy3d]^2)# 没有乘以质量数的平方
     dat[:df] = @. dat[:df_mass_mass] *dat[:mass_arr3d]^2
 
@@ -987,7 +900,8 @@ function sta_v_1d(dat;energy_range=[0,1e5],mass_range=[10,20],m_int = 16)#使用
     local mass_arr = dat[:mass_arr3d]
     local pot = reshape(dat[:sc_pot],ntime,1,1)
     
-    local mass=dat[:mass]*m_int
+    # 矩计算的质量基准：不用数据包 dat[:mass]，改用 Float64 质子常量（物理等效、精度更高，且该键可缺失）
+    local mass=constants.mp_eV_per_km_s2*m_int
     
     local Const = 2.0/mass/mass*1e5
     local energy=copy(dat[:energy3d]) .+ pot		# energy/charge analyzer, require positive energy

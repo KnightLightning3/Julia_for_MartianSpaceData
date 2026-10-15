@@ -3,6 +3,17 @@
 module MAVEN_plot
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+# 火星环境几何（弓激波/磁堆积边界/日火距离/反射法向）的权威落点：
+# 由本模块 include，MarsEnvironment 经 G-include 护栏复用本模块已建立的 constants/MarsCommon
+# 实例；src/MarsData.jl 再把 `MarsEnvironment` 绑定到同一实例（registry kind=:preloaded）。
+include(joinpath(@__DIR__, "..", "models", "Mars_Environment.jl"))
+# 纯数学工具（Vandermonde/polynomial_fit）权威已迁至 MarsCommon（common/marscommon/numerics.jl）；
+# 本模块不再保留本地副本，改为显式限定导入（无裸 alias、无转发 wrapper）。
+using .MarsCommon: Vandermonde, polynomial_fit
+# 环境边界模型：权威名 bowshock/magnetopause 指向 MarsEnvironment（Edberg 2008）。
+# 本模块另保留**不等价变体** bowshock_plot_nan64/magnetopause_plot_nan64（仅无定义分支
+# 返回 Float64 NaN64，权威返回 Float32 NaN32；有效区逐位相同），供绘图内部按原行为使用。
+using .MarsEnvironment: bowshock, magnetopause
 using ColorTypes, CairoMakie
 using Makie.GeometryBasics
 using LaTeXStrings
@@ -1030,8 +1041,8 @@ function Orbit(ax;pos_ss=[], shadowed=true, frame="x-yz",line_krawg_bow=Dict(:li
 
     # bowshock
     x = -10:0.005:2
-    yb = bowshock.(x)
-    ym = magnetopause.(x)
+    yb = bowshock_plot_nan64.(x)
+    ym = magnetopause_plot_nan64.(x)
     x1 = vcat(x, reverse(x))
     yb1 = vcat(yb, reverse(-yb))
     ym1 = vcat(ym, reverse(-ym))
@@ -1425,80 +1436,10 @@ end
 #     ax.xticks = xticks
 #     return ax
 # end
-"""
-    vector_angle(a, b) -> Float64
-
-计算两个向量之间的夹角（度）。
-
-# 功能与算法概述
-对两向量归一化后取点积的反余弦。
-
-# 参数说明
-- `a`, `b`: 输入向量。
-
-# 返回值
-- `Float64`: 夹角（度，`0`–`180`）。
-"""
-function vector_angle(a, b)
-    a1 = normalize(a)
-    b1 = normalize(b)
-    return acosd(dot(a1, b1))
-end
-"""
-    Vandermonde(x, n) -> Matrix{Float64}
-
-构造指定阶数的 Vandermonde 矩阵。
-
-# 功能与算法概述
-把 `x` 的 `0:n` 次幂按列拼接成设计矩阵，用于多项式拟合。
-
-# 参数说明
-- `x`: 自变量数组。
-- `n`: 最高阶数。
-
-# 返回值
-- `Matrix{Float64}`: `length(x)×(n+1)` 的 Vandermonde 矩阵。
-"""
-function Vandermonde(x, n)
-    return hcat([x .^ i for i in 0:n]...)
-end
-"""
-    polynomial_fit(x, y, n) -> Vector{Float64}
-
-对 `y` 的对数用 n 阶多项式拟合 `x`。
-
-# 功能与算法概述
-先对 `y` 取自然对数并剔除 `NaN`/`Inf`，用 Vandermonde 最小二乘求解系数
-（用于拟合指数衰减形式的谱）。
-
-# 参数说明
-- `x`: 自变量。
-- `y`: 因变量（正值）。
-- `n`: 多项式阶数。
-
-# 返回值
-- `Vector{Float64}`: `n+1` 个多项式系数。
-
-# 注意事项
-- 有效点数不超过 `n` 时抛错。
-"""
-function polynomial_fit(x, y, n)
-    log_y = log.(y)
-    mask = .!isnan.(log_y) .& .!isinf.(log_y) # 创建一个布尔掩码,其中x不是NaN的位置为true
-    filtered_x = x[mask]
-    filtered_y = log_y[mask]
-
-    if length(filtered_y) <= n
-        return error("Not enough data for a good fit.")
-    end
-    V = hcat([filtered_x .^ i for i in 0:n]...)
-    coefficients = V \ filtered_y
-    return coefficients
-end
 # Edberg, N. J. T., M. Lester, S. W. H. Cowley, and A. I. Eriksson (2008), Statistical analysis of the location of the Martian magnetic pileup boundary and bow shock and the influence of crustal magnetic fields, J. Geophys. Res., 113, A08206, doi:10.1029/2008JA013096.
 #bow-shock model
 """
-    bowshock(xshock) -> Float64
+    bowshock_plot_nan64(xshock) -> Float64
 
 返回绘图用弓形激波模型边界（Edberg 2008）的纵坐标。
 
@@ -1511,7 +1452,7 @@ end
 # 返回值
 - `Float64`: 边界纵坐标（`R_Mars`）或 `NaN`。
 """
-function bowshock(xshock)
+function bowshock_plot_nan64(xshock)
     xF = 0.55 # R_Mars
     ϵ = 1.05
     L = 2.10 # R_Mars
@@ -1525,7 +1466,7 @@ function bowshock(xshock)
 end
 #magnetopause model
 """
-    magnetopause(xmp) -> Float64
+    magnetopause_plot_nan64(xmp) -> Float64
 
 返回绘图用磁层顶模型边界的纵坐标。
 
@@ -1538,7 +1479,7 @@ end
 # 返回值
 - `Float64`: 边界纵坐标（`R_Mars`）或 `NaN`。
 """
-function magnetopause(xmp)
+function magnetopause_plot_nan64(xmp)
     rSD = 1.33
 	xF = 0.86
 	ϵ = 0.92
@@ -1549,6 +1490,124 @@ function magnetopause(xmp)
     else
         return NaN64
     end
+end
+
+# ---------------------------------------------------------------------------
+# 由 common/head.jl 迁入的通用工具（head.jl 删除前这些能力必须先有新归宿；已论证落点为本模块）
+#   color_mapping → color_mapping_lut（改名：本模块 STA_2d_slip / VDF_2d_slip 内部另有同名
+#                   嵌套局部实现，顶层若沿用同名会被其遮蔽，故取独立名）
+#   print_f / norm2 / label_data / get_log_ticks → 同名迁入（仓内暂无消费者，属科研可用 API）
+# 逐函数来源/状态见 validation/migrations/common.toml。
+# ---------------------------------------------------------------------------
+"""
+    color_mapping_lut(vars, color_range; scaler=nothing) -> Array{Int}
+
+把连续数值场**线性量化**为 `1–256` 的整数索引，用于自定义色标查找表（colormap LUT）或
+逐点着色的散点/等值线渲染。
+
+（迁入自 `common/head.jl` 的 `color_mapping`，仅改名以避免与本模块内部嵌套同名函数相互遮蔽。）
+
+# 功能与算法概述
+把数值线性（或按 `log10`）归一化后量化为 `1–256` 的整数 LUT 索引；`0`/`NaN` 统一替换为 `1e-20` 以兼容对数标度。
+
+# 参数说明
+- `vars`: 待映射的数值数组（任意维）。
+- `color_range::Tuple` 或 `Vector`: 色标对应区间 `(vmin, vmax)`，与 `scaler` 同一量纲。
+- `scaler`: `"log10"` 表示对数映射；其它值（含 `nothing`）表示线性映射。
+
+# 返回值
+- `Array{Int}`: 与 `vars` 同形状的整数索引数组，取值范围 `[1, 256]`。
+
+# 备注
+- 该函数**不返回颜色本身**，仅返回索引；由调用方用 `colors[idx]` 查表取色。
+"""
+function color_mapping_lut(vars, color_range; scaler=nothing)
+    vars_no_zero = copy(vars)
+    vars_no_zero[vars_no_zero.==0] .= 1e-20
+    vars_no_zero[isnan.(vars_no_zero)] .= 1e-20
+    if scaler == "log10"
+        color_range_in = log10.(color_range)
+        vars_in = log10.(vars_no_zero)
+    else
+        color_range_in = color_range
+        vars_in = vars_no_zero
+    end
+    vars_mapped = round.(Int, ((vars_in .- color_range_in[1]) ./ (color_range_in[2] - color_range_in[1])) .* 255 .+ 1)
+    vars_mapped[vars_mapped.>256] .= 256
+    vars_mapped[vars_mapped.<1] .= 1
+    return vars_mapped
+end
+
+# print_f / norm2 / label_data：迁入自 common/head.jl（原为脚本层散落定义，逐字复制）
+print_f = x -> "$(round(x,digits=3))"
+norm2 = x-> [norm(xx) for xx in eachrow(x)]
+
+label_data = (
+    C_obs = rich("C",font = :italic,rich(subscript("obs"),font = :regular)),
+    energy = rich("E",font =:italic,subscript("k", font = :regular)," ",rich("(eV)",font = :regular)),
+    time_s = rich("t",font =:italic," ",rich("(s)",font = :regular)),
+    dt = rich(rich("Δ",font = :regular),"t",font =:italic," ",rich("(s)",font = :regular)),
+    O2 = rich("O",superscript("+"),subscript("2",offset=(-0.6,0))),
+    eflux_e=rich("J",font =:italic,subscript("e", font = :regular)),
+    eflux_i=rich("J",font =:italic,subscript("i", font = :regular)),
+    O = rich("O",superscript("+")),
+    H = rich("H",superscript("+")),
+    He = rich("He",superscript("2+")),
+    p = rich("p",superscript("+")),
+    i = rich("i",superscript("+")),
+    v =  rich(rich("v",font =:italic), " (km/s)"),
+    vpara =  rich(rich("v",font =:italic), subscript("||",offset=(0,0)), " (km/s)"),
+    vperp =  rich(rich("v",font =:italic), subscript("⊥",offset=(0,0)), " (km/s)"),
+    den_ion = rich("N",font =:italic,subscript("i", font = :regular)," ",rich("(cm",superscript("-3"),")",font = :regular)),
+    den_e = rich("N",font =:italic,subscript("e", font = :regular)," ",rich("(cm",superscript("-3"),")",font = :regular)),
+    den = rich("N",font =:italic," ",rich("(cm",superscript("-3"),")",font = :regular)),
+    flux = rich("F",font=:italic,rich(" (cm",font=:regular,superscript("-2"),"s",superscript("-1"),")")),
+    den_pu = rich(
+        rich("N", font = :italic),
+        subscript("PH"), " ",
+        rich("(cm", superscript("-3"), ")", font = :regular)),
+    flux_pu = rich(
+        rich("F", font = :italic),
+        subscript("PH"), " ",
+        rich("(cm", superscript("-2"), " s", superscript("-1"), ")", font = :regular)),
+    msoX_v =  rich(rich("v",font =:italic), subscript("x,MSO"), " (km/s)"),
+    msoY_v =  rich(rich("v",font =:italic), subscript("y,MSO"), " (km/s)"),
+    msoZ_v =  rich(rich("v",font =:italic), subscript("z,MSO"), " (km/s)"),
+    mseX_v =  rich(rich("v",font =:italic), subscript("x,MSE"), " (km/s)"),
+    mseY_v =  rich(rich("v",font =:italic), subscript("y,MSE"), " (km/s)"),
+    mseZ_v =  rich(rich("v",font =:italic), subscript("z,MSE"), " (km/s)"),
+    PSD = rich("F",font =:italic," ",rich("(s",superscript("3")," cm",superscript("-3")," km",superscript("-3")," sr",superscript("-1"),")",font = :regular)),
+    PSD_IS = rich("F",font =:italic," ",rich("(s",superscript("3")," m",superscript("-6"),")",font = :regular)),
+    x_mso = rich("X",subscript("MSO")," (",rich("R",font = :italic),subscript("M"),")"),
+    z_mso = rich("Z",subscript("MSO")," (",rich("R",font = :italic),subscript("M"),")"),
+    x_mse = rich("X",subscript("MSE")," (",rich("R",font = :italic),subscript("M"),")"),
+    z_mse = rich("Z",subscript("MSE")," (",rich("R",font = :italic),subscript("M"),")"),
+)
+
+"""
+    get_log_ticks(p_min, p_max; step=2) -> (Vector, Vector)
+
+为**对数坐标轴**生成刻度位置与对应的富文本标签（如 `10ⁿ` 形式）。
+
+# 功能与算法概述
+按指数步长生成幂次序列 `p_min:step:p_max`，以指数值作为对数轴刻度位置，并用 Makie 富文本生成 `10ⁿ` 标签。
+
+# 参数说明
+- `p_min`: 指数下限（如 `-12` 表示 `1e-12`）。
+- `p_max`: 指数上限（如 `0` 表示 `1`）。
+- `step`: 指数步长，默认 `2`（即每隔两个数量级一个刻度）。
+
+# 返回值
+- `(tick_values, tick_labels)`: 刻度位置向量与等长的 Makie 富文本标签向量，可直接传给 `yticks`。
+
+# 备注
+- 依赖 Makie/Fugue 的富文本能力，主要用于绘图模块。
+"""
+function get_log_ticks(p_min::Real, p_max::Real; step=2) # 获取对数轴的label对应
+    powers = p_min:step:p_max
+    tick_values = Float64.(powers)
+    tick_labels = [rich("10", superscript(string(p))) for p in powers]
+    return (tick_values, tick_labels)
 end
 
 end

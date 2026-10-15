@@ -62,9 +62,16 @@ using Statistics
 using CairoMakie
 using Makie
 
-# 绘图基元：子模块 MAVEN_plot（其内部自带 constants / MarsCommon）
+# 绘图基元：子模块 MAVEN_plot（其内部自带 constants / MarsCommon，并 include 了 Mars_Environment）
 include(joinpath(@__DIR__, "..", "MAVEN_data", "MAVEN_plot.jl"))
 using .MAVEN_plot
+
+# ==================== 策略 P：规范实例绑定（不新建副本） ====================
+# MAVEN_plot 已在包内建立 constants / MarsCommon / MarsEnvironment 的实例；此处把
+# MarsData 的公共名指向**同一实例**，registry 中 :MarsCommon 与 :MarsEnvironment 标记
+# kind=:preloaded，load_module 直接返回这些绑定（不会经载体再造第二份）。
+const MarsCommon = MAVEN_plot.MarsCommon
+const MarsEnvironment = MAVEN_plot.MarsEnvironment
 
 # 概览绘图合成：TimeFormat / remove_0_point! / plot_module
 include(joinpath(@__DIR__, "plotting.jl"))

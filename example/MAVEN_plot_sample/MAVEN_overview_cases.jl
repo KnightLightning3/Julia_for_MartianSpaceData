@@ -12,13 +12,14 @@ using LinearAlgebra
 using JLD2
 include("../../MAVEN_data/MAVEN_load.jl");import .MAVEN_load;
 include("../../MAVEN_data/MAVEN_STATIC.jl");import .MAVEN_STATIC;
-include("../../Magnetic_Model/IGRF_calculate.jl");import .IGRF_calculate;
+include("../../models/IGRF_calculate.jl");import .IGRF_calculate;
 
 @inline function mag2sphere(data_dict)
     """将 MAVEN 磁场分量转换为球坐标并写回数据字典。"""
     position = data_dict["MAG_ss1s_cdf"][:position]
     b = data_dict["MAG_ss1s_cdf"][:B]
-    data = MAVEN_load.Bpc2sphere.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
+    # 权威在 common 层（MarsCommon.marscommon/geometry.jl）：loader 版 sqrt 算法保留为 Bpc2sphere_naive
+    data = MarsData.MarsCommon.Bpc2sphere_naive.(position[:, 1], position[:, 2], position[:, 3], b[:, 1], b[:, 2], b[:, 3])
     br = [x[1] for x in data]
     bθ = [x[2] for x in data]
     bϕ = [x[3] for x in data]
@@ -173,8 +174,8 @@ for day in Days
         data_dict["swea_pad_low"] = Dict(:data_load_flag => false)
         data_dict["swea_pad_high"] = Dict(:data_load_flag => false)
     else
-        data_dict["swea_pad_low"] = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
-        data_dict["swea_pad_high"] = MAVEN_load.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
+        data_dict["swea_pad_low"] = MAVEN_SWEA.carclu_SWEA_pad(swea_pad; energy_range=[20, 30])
+        data_dict["swea_pad_high"] = MAVEN_SWEA.carclu_SWEA_pad(swea_pad; energy_range=[90, 120])
     end
     if data_dict["MAG_pc1s_cdf"][:data_load_flag]
         data_dict = get_B_model_ss(data_dict)

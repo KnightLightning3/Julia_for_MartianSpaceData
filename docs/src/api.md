@@ -116,7 +116,7 @@
 - `STA_count2eflux`、`STA_count2eflux_all`：将 STATIC 计数转换为能量通量，支持切片和整段数据。
 - `STA_eflux2df`：将 STATIC 能量通量转换为相空间密度。
 - `static_slip`：提取指定时刻的 STATIC 数据切片。
-- `sta_v_4d`、`sta_v_4d_new`：由 STATIC 四维分布计算速度、流速和密度。
+- `sta_v_4d`：由 STATIC 四维分布计算速度、流速和密度。
 - `sta_n_4d`：由 STATIC 四维分布计算数密度。
 - `static_rotation`：将 STATIC 三维切片旋转到指定坐标系；内部 `sphere2xyz_for_static_rotation`、`xyz2sphere_for_static_rotation` 处理球坐标与笛卡尔坐标互转。
 - `static_slip_2_V`：结合切片、质量范围和航天器速度求离子速度量。

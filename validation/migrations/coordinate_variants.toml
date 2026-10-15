@@ -1,0 +1,69 @@
+# validation/migrations/coordinate_variants.toml
+# t36：非等价坐标/磁场坐标函数按“不同显式名保留”，权威归 common 层（MarsCommon.marscommon/geometry.jl）。
+# 口径：source_hash = 5f225db 旧源块（含 docstring）SHA-256 前 16 位，仅溯源；
+#       target_hash = 目标定义规范 AST 64 位（validation/check_migrations.jl --print-hash 产出）。
+schema_version = 1
+
+[[moves]]
+name             = "Bsphere2pc"
+from             = "models/IGRF_calculate.jl"
+to               = "common/marscommon/geometry.jl"
+status           = "finalized"
+source_hash      = "8B3AA30AB3BB11C5"
+source_hash_kind = "sha256-source-block-first16"
+source_revision  = "5f225db"
+target_hash      = "a4e30c641cc5adeabcf911df92c52ce8e0f118d65f0d2a494d6ddedf304daf7f"
+notes            = "仓内唯一一份，整块（含 docstring）逐字迁入；IGRF 侧改为 `using .MarsCommon: Bsphere2pc` 绑定，无本地定义、无兼容转发，并从其 export 列表移除（原 5f225db 位置 Magnetic_Model/IGRF_calculate.jl）。"
+
+[[moves]]
+name             = "Bpc2sphere"
+from             = "models/IGRF_calculate.jl"
+to               = "common/marscommon/geometry.jl"
+status           = "finalized"
+source_hash      = "BD610053E6D9D011"
+source_hash_kind = "sha256-source-block-first16"
+source_revision  = "5f225db"
+target_hash      = "e0e315d7c834ecbf24f193813a399c5a8db59d03e8d602cf25493a3163113526"
+notes            = "数值稳健版（r = hypot）：函数体与 ::Real 标注逐字保留，未改为 sqrt；IGRF 内部经绑定调用，export 清理。"
+
+[[moves]]
+name             = "Bpc2sphere_naive"
+source_name      = "Bpc2sphere"
+from             = "MAVEN_data/MAVEN_load.jl"
+to               = "common/marscommon/geometry.jl"
+status           = "finalized"
+source_hash      = "D9C3A8A5C33DDE63"
+source_hash_kind = "sha256-source-block-first16"
+source_revision  = "5f225db"
+target_hash      = "d7ad0c5f198d0b1cdd1dcaafdf7d11f2df9cc75247c69af225f4d4a459bb201c"
+notes            = "loader 层 sqrt 版：显式改名 Bpc2sphere_naive（与 hypot 版实测 |坐标| ≤ 1e153 逐位相同、≥ 1e154 分歧，属真实数值差异）；签名无类型标注、溢出/零坐标行为均保留，未改算法。两示例真实调用点已改 MarsData.MarsCommon.Bpc2sphere_naive。旧源定义已从 MAVEN_load.jl 删除，未保留兼容别名。"
+
+[[moves]]
+name             = "slice2d_cal_rot_matrix"
+source_name      = "slice2d_cal_rot"
+from             = "TW_data/TW_MINPA.jl"
+to               = "TW_data/TW_MINPA.jl"
+status           = "finalized"
+source_hash      = "658966A6C14763BE"
+source_hash_kind = "sha256-source-block-first16"
+source_revision  = "5f225db"
+target_hash      = "7c3f1e6192d772305b47c68a05637bf4e816fea5096181d59733f6b7f62210f8"
+notes            = "模块私有副本就地改名：slice2d_cal_rot → slice2d_cal_rot_matrix，显式表明返回 SMatrix{3,3,Float64,9} 与共线/零向量行为；函数体与 docstring 事实逐字保留（仅补非等价说明），注释调用点同步。未删除该科研函数（本轮无活跃调用亦保留）。"
+
+# ---------------------------------------------------------------------------
+# 保留例外（非迁移单元，不计入 moves）：与 TW 版非等价的同名函数按授权保留原名不动
+[[retained]]
+name         = "slice2d_cal_rot"
+from         = "common/function_coordinate.jl"
+status       = "retained"
+sole_caller  = "models/Pickup_ion.jl:418 FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)"
+reason       = "返回 RotMatrix3{Float64}，共线/近共线/极小输入抛 ErrorException（阈值 norm_c < 1e-8），与 TW 版（SMatrix，共线行为不同）非等价；按“不等价不同名保留”授权保留原名与实现，本轮不改名不合并"
+source_revision = "5f225db"
+
+[[retained]]
+name         = "slice2d_cal_rot"
+from         = "MAVEN_data/MAVEN_plot.jl"
+status       = "retained"
+sole_caller  = "MAVEN_plot 文件内函数作用域的嵌套局部实现（非顶层定义）"
+reason       = "位于函数体内的嵌套局部同名实现，属模块内部细节；本轮明确不动，待后续统一坐标实现时再评估"
+source_revision = "5f225db"

@@ -546,12 +546,12 @@ function v3d_single(dat,time_ind) # 通过角度，能量，质量数，计算PS
     return vel,flux,den #速度(ntime,nmass,3),km/s,密度(ntime,nmass),cm^-3
 end
 """
-    slice2d_cal_rot(v1, v2)
+    slice2d_cal_rot_matrix(v1, v2)
 
 根据两个方向向量计算二维切片的局部坐标系旋转矩阵。
 
 # 功能与算法概述
-对两向量归一化后叉积得切片法向，再构造右手正交基并组装旋转矩阵，
+对两向量归一化后叉积得切片法向，再构造右手正交基并组装旋转矩阵（经 `inv` 取逆），
 用于把三维数据投影到指定平面。
 
 # 参数说明
@@ -559,13 +559,16 @@ end
 - `v2`: 切片平面的第二参考方向（与 `v1` 不共线）。
 
 # 返回值
-- `Matrix`: 由 `(a, b, c)` 正交基组装的三维旋转矩阵 `rot`。
+- `SMatrix{3,3,Float64,9}`: 由 `(a, b, c)` 正交基组装后取逆得到的三维旋转矩阵 `rot`。
 
 # 注意事项
-- 与 `common/function_coordinate.slice2d_cal_rot` **功能重叠**（本文件内为模块私有副本），
-  统一后建议只保留 common 中的版本。
+- **非等价变体**（t36 由 `slice2d_cal_rot` 显式改名，使类型与异常/NaN 行为一目了然）：
+  本版返回 `SMatrix{3,3,Float64,9}`（`common/function_coordinate.jl` 的 `slice2d_cal_rot` 返回
+  `RotMatrix3{Float64}`），且共线/零向量输入**不抛异常**、返回**全 NaN 矩阵**，而 common 版会抛
+  ErrorException。实测两版在多数良态输入下 `==` 即为 false（末位 1~4 ulp 差），故按团队
+  “不等价不同名保留”的既有授权各留一份，**不做合并**。
 """
-function slice2d_cal_rot(v1, v2)
+function slice2d_cal_rot_matrix(v1, v2)
     a = normalize(v1)
     d = normalize(v2)
     c = cross(a, d)
@@ -660,7 +663,7 @@ end
 # vvec = normalize(vvec_0)# [-1,0,0] #假设太阳风方向为-xmso
 # Evec = normalize(cross(-vvec,bvec)) # 平均上游电场方向
 # E_cross_B = normalize(cross(Evec,bvec)) # 电场与磁场的叉乘
-# rot_bv = TW_MINPA.slice2d_cal_rot(E_cross_B,bvec)
+# rot_bv = TW_MINPA.slice2d_cal_rot_matrix(E_cross_B,bvec)
 
 # #计算旋转矩阵：
 # _,rotspc2mso = TW_load.get_spc2mso_rot_martrix_via_2c(data_mag)

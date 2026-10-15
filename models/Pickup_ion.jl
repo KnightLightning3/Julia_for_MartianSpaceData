@@ -1,13 +1,18 @@
 # 计算并载入单日拾取数据的程序，建议使用include执行，需要预先准备：time_event=DateTime；instrument_mode = "swi" or "sta"，spice_name = "p+"，天问minpa可以以类似方式整合进去
 
-include("../common/head.jl")
-include("../common/function_coordinate.jl")
+# 显式模块载入（原 include("../common/head.jl") 的引导块与 using 面已显式化；head.jl 已删除）。
+# `import MarsData` 刻意不引入导出名：否则 MarsData 的 `@load` 会与 JLD2 的 `@load` 在本脚本作用域冲突。
+import MarsData
+using DataFrames
+using JLD2
+include(joinpath(@__DIR__, "..", "common", "function_coordinate.jl"))  # module FunctionCoordinate（已包化）
 if !isdefined(@__MODULE__, :constants)
     include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 end
-if !isdefined(@__MODULE__, :MarsCommon)
-    include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
-end
+# 策略 P 规范实例：与 MAVEN_plot 内实例为**同一对象**，不在本文件再造第二份 MarsCommon。
+const MarsCommon = MarsData.MarsCommon
+const MarsEnvironment = MarsData.MarsEnvironment
+MarsData.@load MAVEN_load MAVEN_plot MAVEN_STATIC MAVEN_SWIA IGRF_calculate
 
 
 # E in keV, σ in cm^2，lindsayChargeTransferCross2005 电荷交换电离率
@@ -275,7 +280,7 @@ if !(current_date_str == date_str)
             include(pkg_path*"MAVEN_data/MAVEN_plot.jl");import .MAVEN_plot;
             include(pkg_path*"MAVEN_data/MAVEN_STATIC.jl");import .MAVEN_STATIC;
             include(pkg_path*"MAVEN_data/MAVEN_SWIA.jl");import .MAVEN_SWIA;
-            include(pkg_path*"Magnetic_Model/IGRF_calculate.jl");import .IGRF_calculate;
+            include(pkg_path*"models/IGRF_calculate.jl");import .IGRF_calculate;
         end
         global swi_mom_data = MAVEN_load.load_MAVEN_data(time_event, model_index=["SWIA_mom"], show_filename=false)["SWIA_mom"]
 
@@ -288,7 +293,7 @@ if !(current_date_str == date_str)
         global is_in_sw_bool_all_day = false# 一整天的数据存在出太阳风的部分
         @inbounds for i in eachindex(KP_data[:time])
             local P_mso = (KP_data[:vars][:var_190][i],KP_data[:vars][:var_191][i],KP_data[:vars][:var_192][i])
-            local is_in_sw_bool = bowshock_zero(P_mso[1] / constants.R_Mars) < sqrt(P_mso[3]^2 + P_mso[2]^2) / constants.R_Mars
+            local is_in_sw_bool = MarsEnvironment.bowshock_zero(P_mso[1] / constants.R_Mars) < sqrt(P_mso[3]^2 + P_mso[2]^2) / constants.R_Mars
             if is_in_sw_bool
                 global is_in_sw_bool_all_day = true
                 break
@@ -337,10 +342,10 @@ B_ss_filtered = MAVEN_data["MAG_ss1s_cdf"][:B_filtered]
 P_ss = MAVEN_data["MAG_ss1s_cdf"][:position]
 Mars_distance = MAVEN_data["KP_l3"][:vars][:var_213][1]
 
-time_range_d1 = searchsortednearest_range(d1_data[:epoch],time_range)
-time_range_b = searchsortednearest_range(time_B_ss,time_range.+[-Minute(1),Minute(1)])
-time_range_swi = searchsortednearest_range(swi3d_data[:epoch],time_range.+[-Minute(1),Minute(1)])
-time_range_mom =searchsortednearest_range(swi_mom_data[:epoch],time_range)
+time_range_d1 = MarsCommon.searchsortednearest_range(d1_data[:epoch],time_range)
+time_range_b = MarsCommon.searchsortednearest_range(time_B_ss,time_range.+[-Minute(1),Minute(1)])
+time_range_swi = MarsCommon.searchsortednearest_range(swi3d_data[:epoch],time_range.+[-Minute(1),Minute(1)])
+time_range_mom =MarsCommon.searchsortednearest_range(swi_mom_data[:epoch],time_range)
 x_range_unix = datetime2unix.(time_range)
 xtimes, x_i = MAVEN_plot.time_ticks(time_range;step=Minute(10), format="HH:MM")
 
@@ -397,8 +402,8 @@ points_data_df = DataFrame(  # 数据集
 @inbounds @showprogress for (itime,time_index) in enumerate(time_range_i)
     local local_result = get_3d_slip_data_from_ins(data1, time_index; mode = instrument_mode, m_int = m_int, mass_range = mass_range) # 返回局地的数据结果
     local time0_unix = time_data1_unix[time_index]
-    local it_mom = time_range_mom[searchsortednearest(time_mom_unix[time_range_mom],time0_unix)]
-    local it_ss = time_range_b[searchsortednearest(time_ss_unix[time_range_b],time0_unix)]
+    local it_mom = time_range_mom[MarsCommon.searchsortednearest(time_mom_unix[time_range_mom],time0_unix)]
+    local it_ss = time_range_b[MarsCommon.searchsortednearest(time_ss_unix[time_range_b],time0_unix)]
     local V_mso = swi_mom_data[:velocity_mso][it_mom,:]
     local N0 = swi_mom_data[:density][it_mom,:]
     # local B_mso = B_ss[it_ss,:]
@@ -410,10 +415,10 @@ points_data_df = DataFrame(  # 数据集
     local X_vec = SVector{3}(local_result.quat_mso' * [1.0,0.0,0.0])# 仪器坐标系方向的MSO X方向
     local B_vec = SVector{3}(local_result.quat_mso' * B_mso)# 仪器坐标系方向的磁场
     local E_vec = normalize(cross(-normalize(V_vec_sw),normalize(B_vec))) # 仪器坐标下太阳风电场方向
-    local rot_bv = slice2d_cal_rot(B_vec,E_vec)# 从仪器坐标系旋转到平行坐标系下
+    local rot_bv = FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)# 从仪器坐标系旋转到平行坐标系下
 
     local v_n = norm(V_vec_sw) # 速度模
-    local bv_angle = get_angle(B_vec,V_vec_sw)
+    local bv_angle = MarsCommon.get_angle(B_vec,V_vec_sw)
     local pickup_point_bv = SVector{2}(π-deg2rad(bv_angle), v_n) # bv参考系下的拾取位置
 
     local x1 ,y1 = -v_n*cosd(bv_angle),v_n*sind(bv_angle);
