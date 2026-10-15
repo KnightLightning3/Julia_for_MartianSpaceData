@@ -424,7 +424,7 @@ points_data_df = DataFrame(  # 数据集
     local x1 ,y1 = -v_n*cosd(bv_angle),v_n*sind(bv_angle);
     local pick_points_instrument = [SVector{3}(rot_bv'*[x1,y1*cos(i),y1*sin(i)].+V_vec_sw) for i in pickup_circle]; # 仪器坐标系下的拾取速度分布圆环
 
-    local v0_sphere_pick_points = [MarsCommon.instrument_cartesian_to_sphere(p...) for p in pick_points_instrument]
+    local v0_sphere_pick_points = [FunctionCoordinate.MAVEN_xyz2sphere(p) for p in pick_points_instrument]
     local v0_pick_points = [p[1] for p in v0_sphere_pick_points] #球坐标的第一维度为模长
     local energy_pick_points = MarsCommon.ion_speed_to_energy.(v0_pick_points .* 1e3, m_int)
     local pick_points_sphere = [SVector{3}(r,pp[2],pp[3]) for (r,pp) in zip(energy_pick_points,v0_sphere_pick_points)] # 仪器球坐标系Energy-theta-phi下的拾取分布

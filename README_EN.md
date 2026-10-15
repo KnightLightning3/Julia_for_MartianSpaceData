@@ -1,381 +1,186 @@
-<!-- <div align="center"> -->
-<!-- <img src="./docs/images/icon.svg" alt="icon"/> -->
+<div align="center">
 
-<h1 align="center">Julia Pkg for Mars</h1>
+# Mars Space Data Processing & Scientific Computing Toolkit
 
-# Breaking Changes (Read First)
+</div>
 
-> ### ⚠️ `data_get_from_date` has been renamed to `load_MAVEN_data`
->
-> **`MAVEN_load.data_get_from_date` has been removed, with no alias kept.**
-> Any external script still using the old name now fails with
-> `UndefVarError: data_get_from_date not defined`.
-> **The signature, arguments and return value are unchanged** — a global rename is all you need:
->
-> | Old name (removed) | New name |
-> | --- | --- |
-> | `MAVEN_load.data_get_from_date` | **`MAVEN_load.load_MAVEN_data`** |
-> | `MarsCommon.electron_energy_to_speed` | **`MarsCommon.e_energy2v`** |
-> | `MarsCommon.ion_energy_to_speed` | **`MarsCommon.ion_energy2v`** |
->
-> ```diff
-> - Data_Dict = MAVEN_load.data_get_from_date(date; model_index = ["MAG_pc1s", "LPW_wave"])
-> + Data_Dict = MAVEN_load.load_MAVEN_data(date; model_index = ["MAG_pc1s", "LPW_wave"])
-> ```
->
-> Migration steps and scope: see the [breaking-change entry in the changelog](CHANGELOG.md) (top of the file).
+[简体中文](README.md) · [Documenter docs](docs/src/index.md)
 
-> ### ⚠️ `MarsCommon` element-wise functions are now **pure scalar**: add `.` at the call site for arrays
->
-> These 10 functions no longer broadcast internally and now take `::Real`, aligning with Julia's
-> `sin`/`log` convention:
->
-> `ion_energy2v`, `ion_speed_to_energy`, `e_energy2v`, `electron_eflux_to_psd`,
-> `ion_eflux_to_psd`, `ion_eflux_to_psd_approx`, `doppler_shift`,
-> `instrument_sphere_to_cartesian`, `instrument_cartesian_to_sphere`, `spherical_to_cartesian`
->
-> ```diff
-> - v = MarsCommon.ion_energy2v(energy_array, 16)
-> + v = MarsCommon.ion_energy2v.(energy_array, 16)      # add the dot
->
->   v = MarsCommon.ion_energy2v(energy_scalar, 16)      # scalar calls unchanged
-> ```
->
-> Passing an array without the dot now fails immediately with `MethodError` (no more silently
-> meaningless results). Numerics are bit-for-bit identical to before.
-> `position_altitude` / `position_local_time` / `position_latitude` / `rotate_vector` /
-> `eflux_to_df!` / `searchsortednearest(_range)` are **unaffected** (array/matrix by design).
+This repository contains download, reading, and processing tools for MAVEN, MGS, and Tianwen-1 data, together with Mars space-environment and plasma calculations. Julia is used for data processing, scientific computing, and plotting; Python is used for MAVEN downloads and local file maintenance. See the directory map and documentation links below for current entry points.
 
-# Table of Contents
-- [Breaking Changes (Read First)](#breaking-changes-read-first)
-- [Introduction](#introduction)
-- [Project Structure](#project-structure)
-- [Project Execution Flow](#project-execution-flow)
-- [Downloading Data](#downloading-data)
-- [Reading Data](#reading-data)
-- [Mars Magnetic Field Model](#mars-magnetic-field-model)
-- [Custom Data Description](#custom-data-description)
-- [MAVEN Data Tips](#maven-data-tips)
-- [Plotting](#plotting)
-- [Module Loading](#module-loading)
-- [Program and Function Index](#program-and-function-index)
-- [Documentation Build](#documentation-build)
-- [ToDo List](#todo-list)
+## Current layout
 
-# Introduction
-
-English / [简体中文](README.md)
-
-This project provides tools for downloading, reading, processing, and visualizing Mars space science data, as well as calculating physical models. Data processing and scientific computing are primarily written in Julia; Python is mainly used for downloads and file maintenance, with a Fortran shared library accelerating selected magnetic-field calculations.
-
-## Project Structure
-
-| Directory/file | Purpose |
+| Path | Contents |
 | --- | --- |
-| `MAVEN_data/` | MAVEN readers, instrument processing, plotting, and data-format definitions |
-| `MGS_data/`, `TW_data/` | MGS and Tianwen-1 data readers and instrument processing |
-| `download_data/` | MAVEN downloading, integrity checks, compression, and cleanup |
-| `config/` | Single configuration layer: `settings.example.toml` template + `config.py`/`paths.py`/`utils.py` |
-| `martian_pipeline/` | Packaged entry point and unified CLI (`python -m martian_pipeline`) |
-| `tools/` | Config migration `migrate_config.py`, scan/index `scan_and_index.py` |
-| `tests/` | Regression tests on temporary directories / synthetic files (P0–P3 + packaging) |
-| `models/`, `Magnetic_Model/` | Plasma, particle-orbit, magnetic-field, and related calculations |
-| `common/`, `support_data/` | Shared coordinate/physics utilities and external support-data readers |
-| `calculate/` | Model calculation workflows and composition entry points |
-| `example/` | Plotting and data-analysis examples |
-| `src/`, `Project.toml` | Julia package `MarsData`: lightweight public API + packaged plotting (`plot_module`, …) |
-| `pyproject.toml` | Python runtime and optional dependency manifest |
-| `docs/` | Single documentation root: [sources](docs/src/index.md) (Documenter pages) + [GitLab Wiki](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home), [references](docs/references), [historical reports](docs/reports) |
+| `src/`, `Project.toml` | Julia package `MarsData`: path/index API, plotting, and module loader |
+| `MAVEN_data/` | MAVEN readers, STATIC/SWIA/SWEA processing, plotting primitives, and product registry |
+| `MGS_data/`, `TW_data/` | MGS and Tianwen-1 readers and instrument processing |
+| `common/` | Shared constants, paths, data keys, coordinates, and physics utilities |
+| `models/` | Mars environment, IGRF, dispersion, distribution-fitting, and particle-orbit models |
+| `models/extras/` | Standalone Graham and Octree experimental code |
+| `analysis/` | Event-analysis scripts, including `Pickup_ion.jl` |
+| `support_data/` | Readers for external support data such as OMNI |
+| `download_data/`, `martian_pipeline/` | Python download, scan, index, and file-maintenance tools |
+| `config/`, `tools/` | TOML configuration and migration, scan/API/Wiki tools |
+| `example/` | Examples; some read data, write files, or load DLLs, so inspect script settings before running |
+| `docs/` | Documenter sources, Wiki pages, references, and historical reports |
 
-See the [program and function index](docs/src/api.md) for file responsibilities and function descriptions.
+## Julia package and shared capabilities
 
-## Project Execution Flow
+Julia 1.10 or later is required. `using MarsData` initializes the plotting stack (CairoMakie/Makie) and preloads the plotting submodule. The path, product-registry, and index APIs do not load scientific-data readers and do not require local observation data or the IGRF DLL.
 
-Full flow: [Project Execution Flow](docs/src/pipeline.md). Overview:
+Preloaded package instances include `MarsData.MarsCommon`, `MarsData.MarsEnvironment`, `MarsData.MAVEN_plot`, `MarsData.Paths`, and `MarsData.DataKeys`. Package initialization creates these instances, and the loader reuses them. The package does not re-export every API name as a bare identifier; prefer explicit qualification such as `MarsData.project_root()` and `MarsData.DataKeys.ENERGY`.
 
-```
-[0] Env setup  ->  [1] Config (TOML)  ->  [2] Download  ->  [3] Scan & Index
-                                                                |
-                        [6] Read & Compute  <-  [5] Derived Build -+
-                                                                |
-                        [7] Tests & Docs    <-  [4] Check & Maintain
-```
+`common/MarsCommon.jl` splits shared capabilities into `common/marscommon/`:
 
-Key commands:
+| File | Capability |
+| --- | --- |
+| `statistics.jl` | Statistics and distribution calculations |
+| `geometry.jl` | Coordinate transforms, positions, and magnetic-field geometry |
+| `numerics.jl` | Numerical fitting and general numerical utilities |
+| `cyclotron.jl` | Cyclotron and wave-particle calculations |
 
-```bash
-python tools/migrate_config.py --apply      # config: INI -> TOML (dry-run by default)
-python -m martian_pipeline scan             # scan local files and refresh the index
-python -m martian_pipeline check            # file integrity check (report-only by default)
-python -m martian_pipeline clean            # clean incomplete downloads (dry-run by default)
-julia --project=docs docs/make.jl           # Documenter: build HTML into docs/build/
-python tools/push_wiki.py --dry-run         # GitLab Wiki: preview generated pages
-python tools/push_wiki.py --push            # GitLab Wiki: publish
-```
+`common/constants.jl` provides shared physical constants; `common/paths.jl` resolves repository and data paths; `common/data_keys.jl` centralizes Symbol-key contracts for data dictionaries. `DataKeys.MASS` is the shared proton rest-mass reference in STATIC/SWIA data packages, in `eV/(km/s)^2`; it is distinct from the mass axis `MASS_ARR` and the mass-to-charge parameter `m_int`.
 
-# Downloading Data
+Element-wise mathematical functions in MarsCommon take scalar inputs. Use Julia's broadcast dot for arrays, for example `MarsData.MarsCommon.ion_energy2v.(energy, 16)`. Position batching, matrix rotation, in-place dictionary processing, and time-axis nearest-neighbor lookup are array or matrix interfaces; see the [API index](docs/src/api.md) for signatures.
 
-Use the Python scripts to download and maintain MAVEN data. Create a virtual environment and install the runtime dependencies (manifest: `pyproject.toml`, with runtime and optional dependencies separated):
+### 3D points and coordinate rotations
 
-```
-pip install -e .            # runtime: requests / beautifulsoup4 / tqdm / numpy / pandas / cdflib
-pip install -e ".[build]"   # optional: derived CDF building needs spacepy (NASA CDF library)
-```
-
-
-For the first download, **you need to generate the initial configuration file**:
-
-Run `download_data\initialize_download_parameters.py`.
-
-After initialization, configure the server, save directory, date range, and data products for your environment. The downloader reads `download_data/MAVEN_download_config.ini`; this is a local runtime configuration and may not be present in the repository.
-
-`download_data/MAVEN_download.py` downloads data from the configured server. After downloading, use the `martian_pipeline` CLI or the standalone scripts to maintain data:
-
-```bash
-python -m martian_pipeline scan      # scan local files and refresh the index
-python -m martian_pipeline check     # file integrity check (report-only by default)
-python -m martian_pipeline clean     # clean incomplete downloads (dry-run by default)
-python download_data/compress_cdf.py                        # compress CDF in place (atomic replace)
-python download_data/移除重复文件中的低版本文件.py --apply   # deduplicate old versions (dry-run by default)
-```
-
-Equivalent standalone scripts remain available: `download_data/check_exist_files.py` (scan) and `download_data/get_download_files.py` (index).
-
-## Configuration
-
-The single write end is **TOML** (`config/settings.toml`, not committed); the template is `config/settings.example.toml`, and the legacy INI (`download_data/MAVEN_download_config.ini`) remains a read-only compatible input. Migrate the legacy INI once:
-
-```bash
-python tools/migrate_config.py                    # dry-run: print the TOML that would be written (default)
-python tools/migrate_config.py --apply            # actually write config/settings.toml
-python tools/migrate_config.py --apply --force    # overwrite an existing settings.toml
-```
-
-The migration is idempotent, never moves any data directory, and never modifies the original INI. Read priority: `config/settings.toml` (TOML) -> legacy INI (read-only) -> built-in defaults.
-
-## Requirements
-
-- Python >= 3.11 (config reading relies on the standard-library `tomllib`).
-- Julia >= 1.10 (standard-library `TOML`).
-- On Windows, derived CDF building (`MAVEN_data/Build_data/`) needs the NASA CDF library (`spacepy.pycdf`); the magnetic-field model (`Magnetic_Model/IGRF_calculate.jl`) needs the corresponding C++/Fortran DLL.
-
-Available MAVEN external servers (may require VPN):
-- USTC source, fast on-campus speed, server may not always be running, data may be incomplete: http://222.195.76.155:8000/MAVEN/
-- UCLA source, stable server, no NGIMS data: https://pds-ppi.igpp.ucla.edu/data/
-- LASP source, stable server: https://lasp.colorado.edu/maven/sdc/public/data/sci/
-- Berkeley source, similar format to LASP, default server for SPADES library, requires account credentials for a significant portion of the data, not directly accessible: http://sprg.ssl.berkeley.edu/data/maven/data/sci/
-
-Note that the file structure of https://pds-ppi.igpp.ucla.edu/data/ differs from the latter two, and it does not contain NGIM data.
-
-# Reading Data
-
-## Lightweight public API (Julia package `MarsData`)
-
-`src/MarsData.jl` exposes path resolution, the product registry, and index reading **without loading any scientific-data loader**, so it can be loaded with no local data and no Fortran DLL:
+General point-coordinate conversions live in the unregistered `FunctionCoordinate` module. Include it explicitly and call it by module qualification. Prefer `SVector{3}` for a single point; a length-3 `AbstractVector{<:Real}` is also accepted as an adapter input, and the result is an `SVector{3}`. Batch independent points with `f.(points)`. For row-stored `N×3` points, call the scalar function once per row with `map`; do not broadcast the three coordinates inside a point:
 
 ```julia
-using Pkg; Pkg.instantiate()   # install dependencies from Project.toml + Manifest.toml
+using MarsData, StaticArrays, Rotations
+include(joinpath(MarsData.project_root(), "common", "function_coordinate.jl"))
+FC = FunctionCoordinate
+
+p = SVector(1.0, 2.0, 3.0)
+spherical = FC.pc2sphere(p)       # (r, colatitude θ, azimuth ϕ), angles in radians
+p_back = FC.sphere2pc(spherical)
+FC.pc2sphere([1.0, 2.0, 3.0])     # a regular length-3 vector is accepted too
+FC.MAVEN_sphere2xyz(SVector(1.0, 0.0, 0.0)) # MAVEN angles are degrees: elevation from XY, azimuth from +X toward +Y
+
+points = [SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0)]
+spheres = FC.pc2sphere.(points)   # one scalar call per point
+P = [1.0 0.0 0.0; 0.0 1.0 0.0] # each row is one point
+P_spherical = map(i -> FC.pc2sphere(view(P, i, :)), axes(P, 1))
+
+θ = π / 2
+q = Rotations.QuatRotation(cos(θ / 2), 0.0, 0.0, sin(θ / 2))
+v = SVector(1.0, 0.0, 0.0)
+v_rotated = q * v                # active +90° rotation about +Z
+v_restored = inv(q) * v_rotated
+R = Rotations.RotMatrix(q)       # static 3×3 matrix for the same rotation
+v_matrix = R * v                 # matrix acting on a column vector
+```
+
+`q * v` and `R * v` act on column vectors. A coordinate transformation should state that `R_source_to_target` maps components from the source basis to the target basis; multiplication syntax alone does not establish its direction. For row-stored `N×3` points, if the column-vector relation is `p_target = R_source_to_target * p_source`, then `P_target = P_source * transpose(R_source_to_target)`; the inverse is `P_source = P_target * R_source_to_target` for a real orthogonal rotation. Standard `pc2sphere` uses radian colatitude; MAVEN instrument spherical coordinates use degree elevation. See the [coordinate conversions guide](docs/src/coordinates.md) for all conventions.
+
+The package metadata entry points can be used without loading the MAVEN reader:
+
+```julia
 using MarsData
-MarsData.project_root(); MarsData.maven_data_root(); MarsData.tw_data_root(); MarsData.mgs_data_root()
-MarsData.index_path();   MarsData.data_model();      MarsData.load_index()
+MarsData.project_root()
+MarsData.maven_data_root()
+MarsData.data_model()     # MAVEN product registry
+MarsData.load_index()     # returns an empty dictionary if the index is absent
 ```
 
-## Full reader entry point
+Call these functions with the `MarsData.` qualifier. Data roots come from configuration; the product registry is `MAVEN_data/MAVEN_data_format.json`, and the file index is `MAVEN_data/filename_lists.json`.
 
-```
-Data_Dict = MAVEN_load.load_MAVEN_data(Dates.format.(date, "yyyymmdd"), model_index = ["MAG_pc1s","LPW_wave"])
-```
+## Configuration and data paths
 
-> ⚠️ **This entry point was previously named `data_get_from_date`; it has been removed with no alias.** Rename it globally in older scripts — see [Breaking Changes (Read First)](#breaking-changes-read-first).
+`config/settings.toml` is the sole configuration write target; `config/settings.example.toml` is the template. The legacy `download_data/MAVEN_download_config.ini` is retained as read-only compatibility input. Resolution order is TOML, legacy INI, then built-in defaults. Configure `paths.maven_data_root`, `tw_data_root`, and `mgs_data_root` for the respective data roots; observation data does not need to live inside the source tree.
 
-This program requires a specific file tree structure, which is shared with the download section.
+Python 3.11 or later is required. Python runtime and optional build dependencies are listed in `pyproject.toml`; `spacepy` is optional for derived CDF building. See the [project workflow](docs/src/pipeline.md) for configuration, downloads, and indexing.
 
-To reference in Julia:
+Julia's `Project.toml` lists direct dependencies of the main `MarsData` environment, including the plotting stack. `Pkg.instantiate()` installs dependencies for that project environment; it does not automatically provide every external reader, plugin, or standalone extra dependency. The full MAVEN reader requires its runtime environment to resolve packages such as `CommonDataFormat`, `JLD2`, and `FortranFiles`. Instrument-processing modules also use packages such as `TimesDates`, `DataInterpolations`, and `Rotations`. Prepare dependencies for the modules you use; successful package loading does not imply that every module dependency is installed.
+
+The current `MAVEN_STATIC`, `MAVEN_SWIA`, and `MAVEN_SWEA` sources do not import `CommonDataFormat`; they can process an input data dictionary. The CDF-reading `MAVEN_load` module still needs the relevant CDF and file-format dependencies. `models/extras/Graham.jl` and `Octree.jl` are explicitly included standalone code; their external dependencies are listed in `models/CATALOG.toml` and are not part of the main MarsData dependency list.
+
+## Minimal data-reading example
+
+This example passes one `DateTime` (one day) and a currently registered product name. Before running it, configure the local data root, create or refresh the file index, and make the reader's external dependencies available in the Julia environment. It does not download data or validate a local DLL.
 
 ```julia
-include("path/MAVEN_data/MAVEN_load.jl")
-include("path/Magnetic_Model/IGRF_calculate.jl")
-import .MAVEN_load
-import .IGRF_calculate
+using Dates
+using MarsData
+
+MarsData.@load MAVEN_load
+day = DateTime(2014, 12, 20)
+data = MAVEN_load.load_MAVEN_data(day; model_index = ["MAG_pc1s_cdf"])
+mag = data["MAG_pc1s_cdf"]
+
+if get(mag, :data_load_flag, false)
+    B = mag[:B]          # magnetic-field components, nT; product time axis is epoch
+    t = mag[:epoch]      # DateTime time series
+end
 ```
 
-> Time-axis convention: the time axis of every loaded product is a **sorted time series** unless stated otherwise; nearest-neighbour lookups on the time axis use `MarsCommon.searchsortednearest` (binary search, `O(log N)`) rather than `findmin(abs.(x .- x0))` (linear scan). Non-time axes (energy, colour levels) still use `findmin`.
+The reader returns one dictionary per product, with `:filename` and `:data_load_flag` on success; a missing or failed product has a failure flag. Product names, formats, and dictionary keys are described in the [data-reading guide](docs/src/data_reading.md) and [data-format reference](docs/src/data_format.md). General conventions: time axes are sorted time series; position is in km, magnetic field in nT, energy in eV, and mass axes in AMU. Coordinate frames and special field units follow the product and function; PC products must not be treated as MSO.
 
-For specific reading methods, refer to: [MAVEN Data Format](docs/src/data_format.md)
+## Module loading and whitelists
 
-Reading guide: [MAVEN Data Reading](docs/src/data_reading.md)
+`MarsData.load_module(name)` loads a module from the registry. `MarsData.@load Name...` binds module names at the caller's top level. Ordinary modules are evaluated in a runtime carrier and then bound as aliases into `MarsData` or the caller's namespace; the source file is not directly included into `MarsData`. The loader prepares registered dependencies in order and reuses preloaded instances.
 
-# Plotting
+Only these names are imported into the caller as bare identifiers by the current `@load` whitelist:
 
-Plotting is now **packaged into `MarsData`** — no need to `include MAVEN_plot.jl` manually:
+| Module | Bare-name whitelist |
+| --- | --- |
+| `MarsCommon` | `searchsortednearest`, `e_energy2v`, `ion_energy2v` |
+| `MAVEN_load` | `load_cdf`, `load_MAVEN_data` |
+| `IGRF_calculate` | `IGRF_pc` |
+
+Other modules have an empty whitelist: `@load` binds only the module name. A name being available through a fully qualified submodule path does not mean `@load` imports it as a bare identifier. Use `MarsData.MAVEN_plot.WaveSpectra_heatmap` with its full qualification. Inspect the registry with `MarsData.available_modules()`, `MarsData.module_info(:MAVEN_load)`, and `MarsData.validate_registry()`.
+
+Common entries include `MAVEN_load`, `MAVEN_STATIC`, `MAVEN_SWIA`, `MAVEN_SWEA`, `IGRF_calculate`, `Cold_Plasma_Dispersion_Relation`, `Maxwellian_Distribution`, `Single_Particle_Orbit`, `MGS_load`, `TW_load`, `TW_MINPA`, and `SP_load`. Use `MarsData.available_modules()` as the authoritative list.
+
+## MarsEnvironment, models, and standalone scripts
+
+Mars environment geometry is implemented in `models/Mars_Environment.jl`; its module is `MarsEnvironment`. The canonical package instance is `MarsData.MarsEnvironment`, identical to `MarsData.MAVEN_plot.MarsEnvironment`. IGRF source and bundled resources are in `models/`; the registered module is `IGRF_calculate`. It requires an external Fortran runtime and DLL. The scientific-logic comparison baseline is `a09511aa7b88c874cefe8ca966c98aa267db9365`; this README does not claim that repository-wide behavior has been verified against it. Real-data validation is paused, and the DLL was not validated in this work.
+
+`analysis/Pickup_ion.jl` is the analysis-script entry point. Graham and Octree under `models/extras/` must be included explicitly as described for those standalone sources. They are not part of the general loader whitelist. Standalone scripts may depend on user-defined variables, specialized packages, or local data, so they are not no-side-effect quickstarts.
+
+Removed entry points and renamed APIs are collected in the [migration guide](docs/src/migration.md). `CHANGELOG.md` and `docs/reports/` retain historical records and are not rewritten to follow path or API moves; historical reports are not the current interface specification. See the [architecture guide](docs/src/architecture.md) for module relationships and the [API index](docs/src/api.md) for source entry points.
+
+## Plotting
+
+The overview composition is `MarsData.plot_module`; common formatting helpers are `MarsData.TimeFormat` and `MarsData.remove_0_point!`. Plotting primitives live in `MarsData.MAVEN_plot`; use fully qualified names such as `MarsData.MAVEN_plot.sta_heatmap` and `MarsData.MAVEN_plot.WaveSpectra_heatmap`. Example sources are under `example/MAVEN_plot_sample/`; scripts may read local data and write images, so inspect their settings and side effects before running them.
+
+The plotting API takes Makie figure objects and a loaded data dictionary. `using MarsData` does not re-export CairoMakie's `Figure`, `Axis`, or `save`:
 
 ```julia
-using MarsData          # provides plot_module / TimeFormat / remove_0_point!
-using CairoMakie        # Figure / Axis / save
-
-fig = Figure(; size=(2500, 2500))
-fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
+using MarsData, CairoMakie
+fig = Figure()
+MarsData.plot_module(fig, time_range, data_dict)
 save("overview.png", fig)
 ```
 
-- **Implementation**: `src/plotting.jl` provides the overview composition (`plot_module` / `TimeFormat` / `remove_0_point!`), which `using MarsData` exports directly; the primitives live in `MAVEN_data/MAVEN_plot.jl`, loaded as the submodule `MarsData.MAVEN_plot`.
-- **Accessing the primitives**: `using MarsData` does **not** make the primitives bare names — use `using MarsData.MAVEN_plot`, or qualify them as `MarsData.MAVEN_plot.time2x`. Primitives: `time2x`, `time_ticks`, `x_ticks`, `sta_heatmap`, `STA_2d_slip`, `SWEA_PAD_heatmap`, `WaveSpectra_heatmap`, `Orbit`, `PAD_slice`, `PAD_slice_polar`, `PAD_slice_velocity`.
-- **Examples**: `example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl` (single interval) and `MAVEN_overview_cases.jl` (batch over 2-hour windows; output directory via `MAVEN_OVERVIEW_OUTDIR`).
+This snippet shows the call shape only. The plot requires a data dictionary with the products and keys expected by the function; consult the example source and [API index](docs/src/api.md) first.
 
-# Module Loading
+## Documentation and generation
 
-Heavy modules (`MAVEN_load`, `MAVEN_STATIC`, `MAVEN_SWIA`, `MAVEN_SWEA`, `IGRF_calculate`, `Cold_Plasma_Dispersion_Relation`, …) are **still include-based**, but a packaged loader is available: one call is equivalent to `include(the file)`.
+- [Documentation home](docs/src/index.md): Documenter page navigation.
+- [Project workflow](docs/src/pipeline.md): environment, configuration, downloads, and indexing.
+- [Data reading](docs/src/data_reading.md) · [Data format](docs/src/data_format.md): MAVEN reader and data structures.
+- [Architecture](docs/src/architecture.md) · [Migration](docs/src/migration.md) · [API index](docs/src/api.md): module relationships, breaking migrations, and source entry points.
+- [SWIA electron correction](docs/src/swia_electron.md): topic guide.
 
-```julia
-using MarsData
-
-MarsData.load_module(:MAVEN_load)        # ≡ include("MAVEN_data/MAVEN_load.jl") into MarsData
-MarsData.MAVEN_load.load_MAVEN_data(date, model_index=["MAG_ss1s_cdf"])
-
-MarsData.@load MAVEN_STATIC IGRF_calculate   # load and bind in the caller's scope
-MAVEN_STATIC.static_c6_mass_mean(sta)
-
-MarsData.available_modules()        # what can be loaded
-MarsData.loaded_modules()           # what has been loaded
-MarsData.module_info(:MAVEN_load)   # path / deps / whitelist / state
-MarsData.validate_registry()        # self-check (paths, module names, dependency cycles)
-```
-
-- **Whitelist convention**: `@load` always uses per-name imports (`using .Mod: whitelist…`) and **never** a whole-module `using`. So whether a name becomes bare is decided solely by `ModuleSpec.allow` in the registry, independent of the module's own `export` (Julia's per-name import works for non-exported names too).
-- **Open whitelists**:
-
-  | Module | Bare names granted |
-  | --- | --- |
-  | `MarsCommon` | `searchsortednearest`, `e_energy2v`, `ion_energy2v` |
-  | `MAVEN_load` | `load_cdf`, `load_MAVEN_data` |
-  | `IGRF_calculate` | `IGRF_pc`, `pc2sphere`, `sphere2pc` |
-
-  All other modules stay empty, so `@load` only binds the module name. Usage:
-
-  ```julia
-  MarsData.@load MarsCommon MAVEN_load IGRF_calculate
-  searchsortednearest(time_axis, t)                       # bare name available
-  Data = load_MAVEN_data(date; model_index=["MAG_ss1s_cdf"])
-  x, y, z = pc2sphere(r, theta, phi)
-  ```
-- **Automatic dependency loading**: `ModuleSpec.deps` are loaded recursively into the same carrier **before** the target module, satisfying parent-relative references (`common/MarsCommon.jl` starts with `using ..constants`, so `constants` must already exist in the carrier).
-- **Idempotent**: each module is included only once per process; repeated calls return the **same object**; `:preloaded` entries (`Paths`, `MAVEN_plot`) return the in-package instance.
-- **Carrier mechanism**: modules are actually evaluated in a runtime *carrier* module (`MarsData._carrier()`) and then bound into `MarsData` as a `const` alias. Reason: Julia enforces strict dependency checks for `using` inside **package** modules — including `MAVEN_load.jl` directly into `MarsData` fails with `Package MarsData does not have CommonDataFormat in its dependencies`. A runtime carrier has no pkgid, so its `using` resolves through the `LOAD_PATH` fallback (same as `Main`), which means **none** of CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit need to be declared in this package. Side effect: `parentmodule(MarsData.MAVEN_load)` is the carrier, not `MarsData`.
-
-# Program and Function Index
-
-Browse program responsibilities, primary entry points, and function descriptions in the [program and function index](docs/src/api.md). The [SWIA electron correction notes](docs/src/swia_electron.md) are also available.
-
-# Documentation Build and Publishing
-
-Documentation has a single root, `docs/`; `docs/src/*.md` is the single source of truth:
-
-| Output | Command | Location |
-| --- | --- | --- |
-| Documenter HTML site | `julia --project=docs docs/make.jl` | `docs/build/index.html` (not tracked) |
-| GitLab Wiki | `python tools/push_wiki.py --push` | [Wiki home](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home) |
-
-Documenter pages: home, [Project Execution Flow](docs/src/pipeline.md), [MAVEN Data Reading](docs/src/data_reading.md), [MAVEN Data Format](docs/src/data_format.md), [SWIA Electron Correction](docs/src/swia_electron.md), [Program and Function Index](docs/src/api.md).
-
-The GitLab Wiki is a separate Git repository (`…/Julia_for_MartianSpaceData.wiki.git`). `tools/push_wiki.py` generates its pages from `docs/src/*.md` (rewriting cross-page links to wiki page slugs); the home page and sidebar come from `docs/wiki/`. Use `--dry-run` to preview. See [docs/README.md](docs/README.md) for the layout, page mapping, and conventions.
-
-## Publishing the Wiki
-
-The GitLab Wiki is **not an editable web page but a separate Git repository**:
-
-```
-git@git.ustc.edu.cn:KnightLightning/Julia_for_MartianSpaceData.wiki.git
-```
-
-Page bodies are generated from `docs/src/*.md`, so **do not edit pages in the Wiki web UI** — the next publish overwrites them. Full workflow:
+Documenter HTML and the Python Wiki are two outputs from the same `docs/src/` source set. Build the Documenter HTML with:
 
 ```bash
-# 0. Edit the sources in this repository (single source of truth)
-#    docs/src/*.md          -> page bodies
-#    docs/wiki/home.md      -> wiki home page
-#    docs/wiki/_sidebar.md  -> wiki sidebar
-
-# 1. Preview: generate into a temp dir and self-check internal links
-python tools/push_wiki.py --dry-run
-
-# 2. Publish: clone/update the wiki repo -> write pages -> commit -> push to main
-python tools/push_wiki.py --push
-
-# Optional
-python tools/push_wiki.py --push -m "custom commit message"
-python tools/push_wiki.py --push --workdir D:/tmp/wiki   # local clone directory
-python tools/push_wiki.py --push --prune                 # also delete stale remote pages
+julia --project=docs docs/make.jl
 ```
 
-Write access to that repository (SSH key or access token) is required.
+Generate the API page source with:
 
-Notes:
+```bash
+julia --startup-file=no tools/generate_api.jl
+```
 
-- The script rewrites `](xxx.md)` cross-page links to wiki page names (GitLab resolves relative links by page slug) and aborts without pushing if the internal-link self-check fails.
-- The default remote is **SSH** (same host as the main repo remote, no interactive credential). For HTTPS add `--remote https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData.wiki.git`, which requires Git Credential Manager or an access token.
-- When adding or renaming a page, update three places: the `docs/src/` filename, `pages` in `docs/make.jl`, and `PAGE_MAP` in `tools/push_wiki.py`, plus relative links in other pages.
-- Verify after publishing by opening `https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/<page>` for each page. The source-to-page mapping table is in [docs/README.md](docs/README.md).
+Preview the Python Wiki output without publishing:
 
-# Mars Magnetic Field Model
+```bash
+python3 tools/push_wiki.py --dry-run
+```
 
-`IGRF_calculate.jl` uses the IGRF model to calculate the simulated magnetic field of Mars.
-
-Model source: [A Spherical Harmonic Martian Crustal Magnetic Field Model Combining Data Sets of MAVEN and MGS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2021EA001860)
-
-# Custom Data Description
-
-Some data has been adjusted for ease of use.
-
-## KP_l3 Data
-KP data is saved in JLD2 format as a dictionary, where `epoch` corresponds to time, and variable indices correspond to the numbers in the KP documentation. Additionally, the coordinate transformation matrix is saved as a list of 3x3 matrices.
-
-Saved in `KP/l3/`.
-
-## MAG_l3 Data
-Magnetic field data is saved in Fortran77 unformatted format to reduce storage space and improve reading speed. Saved in `MAG/l3/`.
-
-## VSC Data:
-Spacecraft velocity, which can be calculated using the SPICE toolkit. However, there is a learning curve associated with it.
-
-This dataset is obtained by fitting a quadratic function to the position data from MAG with 1-second precision.
-
-Saved in `MAG/vsc/`, units in km/s.
-
-## STATIC_d1_v4d Data
-Based on the `v_4d` program in the SPEDAS library, using VSC data from MAG and potential corrections from STATIC.
-
-Calculates the velocity `vel` (km/s), density `den` (cm⁻³), and flux for $\textsf H^+$, $\textsf O^+$, and $\textsf O_2^+$ across the full energy and angular range.
-
-Saved in `STATIC/l3/`.
-
-# MAVEN Data Tips
-
-## STATIC Data:
-- STATIC returns a 3D matrix of (azimuth, energy, ion mass) for each time point, corresponding to the `energy`, `phi`, `theta`, and `mass_arr` matrices.
-- Scanning mode: STATIC has multiple scanning modes corresponding to different energy ranges, determined by the `swd_ind` parameter [0-26], which corresponds to the last dimension in the `energy`, `phi`, `theta`, and `mass_arr` matrices. In Julia, which uses 1-based indexing, the `swd_ind` parameter should be incremented by 1.
-- Attenuator: The attenuator adjusts the low-energy STA data (<15eV) by multiplying it by (1., 1/10, 1/100, 1/1000) to prevent saturation. Officially, the attenuator is not changed more frequently than every 5 minutes, but some data suggests temporary saturation and attenuator switching.
-- The `theta` and `phi` returned by STATIC correspond to 90-theta and phi in the spherical coordinate system, in the instrument reference frame. The `quat_mso` and `quat_sc` in the file are quaternions used to project the instrument reference frame to the MSO and SC reference frames.
-- STATIC, SWEA, and SWIA use the spherical coordinate system's 90-theta and phi. Ref: `spedas_6_1\general\science\sphere_to_cart.pro`.
-
-# ToDo List
-
-- [x] Cloud MAVEN data
-- [ ] Use SPEDAS's SPICE kernel to calculate coordinate transformation matrices for each instrument and save them as files
-- [ ] Use SPEDAS's SPICE kernel to calculate spacecraft velocity, acceleration, orbital parameters, etc., and save them as files
-- [ ] Full instrument reading
-- [X] Calculate shape parameter / `projects\maven\swea\mvn_swe_calc_shape_arr.pro`
-- [X] Example of overview event plotting
-- [ ] Optimize CDF reading for instrument-specific modes (write variable lists for each data package, remove unused variable reads and PyObject checks)
-- [X] Modify the download program so that `download_data\get_download_files.py` can automatically read the file directory to generate a list file
-- [X] Download program can check data versions
-- [x] Simple Julia plotting package
-- [x] External file tree reading
-- [ ] More magnetic field models
-- [x] Tianwen data
-- [x] Magnetic field line tracing
-- [x] Adapt file tree to SPEDAS structure
-- [x] MAVEN STATIC
-- [X] Add flowcharts for project initialization and file processing
-- [ ] STATIC processing functions currently only work on 4D data (time, mass, azimuth, energy). Update to reshape all values into the highest-dimensional array before performing array operations.
-
-Updated as per the author's needs.
+See the [documentation maintenance guide](docs/README.md) for the separate documentation environment, generation checks, and publication steps.

@@ -1,7 +1,7 @@
 # validation/migrations/index.toml
 # t33 建立、t42 修正生成口径的集成汇总：由脚本**遍历 validation/migrations 下实际含 moves/retained 的清单**解析生成
 # （排除输出自身 index.toml；当前发现 7 份：callsite_plan、common、coordinate、coordinate_variants、environment、igrf、swea）。
-# 三个桶分开：index.units（moves/已迁移）· index.retained（保留例外，非迁移单元）· unknown（校验器动态点）。
+# 三个桶分开：index.units（move/迁移与 remove/纯删除分列）· index.retained（保留例外，非迁移单元）· unknown（校验器动态点）。
 # 口径：source_hash 仅旧源溯源（kind/revision）；target_hash 为目标规范 AST 64 位，独立可验证。
 # 该文件不是迁移记录（moves 为空），索引内容置于未知顶层键 index.* 下（仅非阻塞 REC_UNKNOWN_TOP_KEY）。
 
@@ -15,6 +15,9 @@ finalized_rows     = 39
 pending_rows       = 0
 retained_rows      = 3
 finalized_without_valid_target_hash = 0
+move_rows = 37
+remove_rows = 2
+# 纯删除不要求 target_hash；上项仅计 action=move。
 checker_ok         = 28
 checker_fail       = 0
 checker_pending    = 0
@@ -23,8 +26,8 @@ checker_unknown_note = "unknown 为动态/无法静态解析点（DYNAMIC_*）�
 
 [index.overall]
 overall_refactor_complete = false
-scope_of_this_index = "仅覆盖 validation/migrations 下 6 份清单的单元；不代表整个仓库重构完成"
-remaining_note = "pending 归零只说明本索引内的 moves 已全部终化，不等于整体重构完成：保留例外 1 项（mean_SWEA_pad_pa，见 index.retained）、unknown 动态点、文档/README 同步、未决 Extras 与 IGRF :adaptive 缺符号等仍属未完成范围。"
+scope_of_this_index = "覆盖 validation/migrations 下 7 份含 moves/retained 清单的 AST 单元；file_moves 单列，不计入 39 个 AST 单元；不代表整个仓库重构完成"
+remaining_note = "pending 归零只说明本索引内的 moves 已全部终化，不等于整体重构完成：仍有 3 项保留例外、11 条 unknown 动态点、registry allow 补全、Pickup 函数化、IGRF :adaptive 缺符号与真实数据验证。Extras/Pickup 物理移动已另列 file_moves；文档仅加迁移说明，旧示例由使用者适配。"
 
 [[index.manifests]]
 stem           = "callsite_plan"
@@ -49,7 +52,7 @@ retained       = 0
 [[index.manifests]]
 stem           = "coordinate"
 path           = "validation/migrations/coordinate.toml"
-sha256         = "5ab8abc7fa38d57287973b43703ed851b43ae631000f21eb582cb85c4635cada"
+sha256         = "287bc1cc5810c0e8db25ff421273a9f033b97af963f9e27363c671db5409a3d3"
 schema_version = 1
 units          = 3
 finalized      = 3
@@ -59,7 +62,7 @@ retained       = 0
 [[index.manifests]]
 stem           = "coordinate_variants"
 path           = "validation/migrations/coordinate_variants.toml"
-sha256         = "96155dd74643f9ae18b49dddcc7a6cd4b4bb43660654bffaf8747164a86f9e4e"
+sha256         = "15daffba81fc53c1c25fc90253e2045250069fbc97a2ae29e7715b158047e649"
 schema_version = 1
 units          = 4
 finalized      = 4
@@ -79,7 +82,7 @@ retained       = 0
 [[index.manifests]]
 stem           = "igrf"
 path           = "validation/migrations/igrf.toml"
-sha256         = "be6fa9cd092dd97867b5f39daee2a957429acb860315208ed1d3a9ff9229c781"
+sha256         = "c73dd7150461f02b759b8aae78faa3bceb02ff8ca4500d053e33299e179196f0"
 schema_version = 1
 units          = 1
 finalized      = 1
@@ -279,26 +282,24 @@ target_hash_len     = 64
 source_revision     = "5f225db"
 
 [[index.units]]
-bucket              = "migrated"
-manifest            = "coordinate"
-name                = "Quaternion_Rot"
-from                = "calculate/calculate_models.jl"
-to                  = "common/function_coordinate.jl"
-status              = "finalized"
-target_hash_hex64   = true
-target_hash_len     = 64
-source_revision     = "5f225db"
+bucket = "removed"
+action = "remove"
+manifest = "coordinate"
+name = "Quaternion_Rot"
+from = "common/function_coordinate.jl"
+status = "finalized"
+source_revision = "d828a6e"
+target_hash_required = false
 
 [[index.units]]
-bucket              = "migrated"
-manifest            = "coordinate"
-name                = "Quaternion_Rot_reverse"
-from                = "calculate/calculate_models.jl"
-to                  = "common/function_coordinate.jl"
-status              = "finalized"
-target_hash_hex64   = true
-target_hash_len     = 64
-source_revision     = "5f225db"
+bucket = "removed"
+action = "remove"
+manifest = "coordinate"
+name = "Quaternion_Rot_reverse"
+from = "common/function_coordinate.jl"
+status = "finalized"
+source_revision = "d828a6e"
+target_hash_required = false
 
 [[index.units]]
 bucket              = "migrated"
@@ -536,7 +537,7 @@ name          = "slice2d_cal_rot"
 from          = "common/function_coordinate.jl"
 planned_target = ""
 status        = "retained"
-sole_caller   = "models/Pickup_ion.jl:418 FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)"
+sole_caller   = "analysis/Pickup_ion.jl:418 FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)"
 reason        = "返回 RotMatrix3{Float64}，共线/近共线/极小输入抛 ErrorException（阈值 norm_c < 1e-8），与 TW 版（SMatrix，共线行为不同）非等价；按“不等价不同名保留”授权保留原名与实现，本轮不改名不合并"
 has_target_hash = false
 
@@ -567,3 +568,70 @@ note = "以下条目未达 finalized（保留例外 / 未完成），不得在�
 items = ["coordinate_variants/slice2d_cal_rot [from=MAVEN_data/MAVEN_plot.jl] (retained: 架构例外, 未迁移)", "coordinate_variants/slice2d_cal_rot [from=common/function_coordinate.jl] (retained: 架构例外, 未迁移)", "swea/mean_SWEA_pad_pa [from=MAVEN_data/MAVEN_load.jl] (retained: 架构例外, 未迁移)"]
 retained_note = "保留例外共 3 项（status=retained，均无 target_hash，不计入 finalized）"
 unknown_note = "校验器 unknown = 11 条为动态/无法静态解析点（DYNAMIC_*），不计通过"
+
+# 文件级物理迁移：字节 SHA-256，不计入函数 AST moves / finalized 统计。
+
+[[index.file_moves]]
+from = "models/Graham.jl"
+to = "models/extras/Graham.jl"
+source_revision = "d828a6e"
+sha256 = "0d2707667384e6ff7396b8679dcc4bd55d1a999290431c85f4b7271935c824e3"
+bytes = 4190
+verification = "byte-identical; scientific execution not implied"
+
+[[index.file_moves]]
+from = "models/Octree.jl"
+to = "models/extras/Octree.jl"
+source_revision = "d828a6e"
+sha256 = "103b92f6dc491985572f5b41317c3b4582648dd7cc24885d491ff2a1ad32c437"
+bytes = 9345
+verification = "byte-identical; scientific execution not implied"
+
+[[index.file_moves]]
+from = "models/Pickup_ion.jl"
+to = "analysis/Pickup_ion.jl"
+source_revision = "d828a6e"
+sha256 = "56ac006dd36c14622e97e8fd7ec20c11df1ef72ebed3a2d12b62a4072fc5dc44"
+bytes = 23072
+verification = "Original relocation was byte-identical; current target has the separately authorized MAVEN coordinate callsite update."
+current_sha256 = "a91083ff229191d48d3861a914a933be6e690e1b39413ea74a4950970ad6351b"
+current_bytes = 23063
+authorized_edit = "MarsCommon.instrument_cartesian_to_sphere(p...) -> FunctionCoordinate.MAVEN_xyz2sphere(p)"
+
+[index.coordinate_api]
+logic_baseline = "a09511aa7b88c874cefe8ca966c98aa267db9365"
+module = "FunctionCoordinate"
+point_dimension = 3
+point_return = "SVector{3}"
+vector_adapter = "AbstractVector{<:Real}, length == 3"
+new_functions = ["pc2sphere", "sphere2pc"]
+removed_wrappers = ["Quaternion_Rot", "Quaternion_Rot_reverse"]
+igrf_allow = ["IGRF_pc"]
+notes = "IGRF 内部两标量函数 AST 与初始基线一致；新通用向量接口在 FunctionCoordinate。本轮授权将 PA/MINPA 点半径及 MINPA YZ 投影改用 hypot；允许末位与极值稳健性变化，旋转共线阈值处保留 norm。矩阵构造器不属于单点向量接口。"
+
+[index.coordinate_api.maven]
+from_file = "common/MarsCommon.jl"
+to_file = "common/function_coordinate.jl"
+logic_baseline = "a09511aa7b88c874cefe8ca966c98aa267db9365"
+input = "SVector{3,<:Real} or AbstractVector{<:Real} of length 3"
+output = "SVector{3}"
+methods_per_function = 2
+names = ["MAVEN_xyz2sphere", "MAVEN_sphere2xyz"]
+merged_with_minpa = false
+reason = "Distinct elevation axes, sight-line signs, and inverse degenerate behavior; forward/inverse counterexamples tested."
+ast_validation = "test/maven_coordinate_ast_test.jl (production definitions, references, adapter methods and ownership); not a generic move row because the current migration checker treats valid overloads as duplicate definitions."
+callers = ["MAVEN_data/MAVEN_STATIC.jl:static_rotation", "MAVEN_data/MAVEN_STATIC.jl:static_slip_2_V", "analysis/Pickup_ion.jl"]
+
+[[index.coordinate_api.maven.methods]]
+name = "MAVEN_sphere2xyz"
+source_name = "instrument_sphere_to_cartesian"
+source_revision = "d828a6e"
+source_ast_hash = "292fc74bc15ccb8729fb0b63e0d09b2788b7be58ee264aaa75d037a216fba76b"
+target_ast_hashes = ["ef8b116b512687fdbcaa502fd0c10f445002907bae45f9b0da3ef87afca9b110", "f518193e5704fadc2737aa1903bf351bb8262284400b9d6be9e82f79b7388750"]
+
+[[index.coordinate_api.maven.methods]]
+name = "MAVEN_xyz2sphere"
+source_name = "instrument_cartesian_to_sphere"
+source_revision = "d828a6e"
+source_ast_hash = "9f5fad5a123f203eb8fd744c3eb33e99cde00a2a61d9f86f6bf4c46c1a470947"
+target_ast_hashes = ["6701264538f1130187b6f3e3763f7014313673756c613498bfb936c67250ff82", "d4beccb78b18b4c8641fbfe7c3d3576e07e6e339aef1d23ece51e2bcec82ea39"]

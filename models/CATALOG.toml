@@ -1,0 +1,19 @@
+[[extra]]
+name = "Graham"
+file = "models/extras/Graham.jl"
+purpose = "二维 Graham 扫描凸包算法与轨道投影边界提取。"
+status = "experimental"
+external_deps = ["Makie"]
+entry = "graham_scan!; graham_scan_for_orbit"
+owner_note = "Standalone Extra; include explicitly when needed. Install external dependencies in a separate or global environment; never add them to this project's deps."
+promotion_candidate = false
+
+[[extra]]
+name = "Octree"
+file = "models/extras/Octree.jl"
+purpose = "基于区域谓词构建空间八叉树及边界包围盒。"
+status = "experimental"
+external_deps = ["GLMakie", "GeometryBasics", "StaticArrays"]
+entry = "OctreeNode; build_octree!; get_min_bounding_box"
+owner_note = "Standalone Extra; include explicitly when needed. Install external dependencies in a separate or global environment; never add them to this project's deps."
+promotion_candidate = false

@@ -1,0 +1,47 @@
+# Shared source, Documenter navigation, and Wiki mapping.
+# An empty Wiki slug keeps index.md as the Documenter home while GitLab Wiki
+# continues to use the manually maintained docs/wiki/home.md.
+[[pages]]
+source = "index.md"
+title = "首页"
+wiki = ""
+
+[[pages]]
+source = "architecture.md"
+title = "项目架构"
+wiki = "项目架构"
+
+[[pages]]
+source = "migration.md"
+title = "迁移指南"
+wiki = "迁移指南"
+
+[[pages]]
+source = "coordinates.md"
+title = "坐标转换"
+wiki = "坐标转换"
+
+[[pages]]
+source = "pipeline.md"
+title = "项目执行流程"
+wiki = "项目执行流程"
+
+[[pages]]
+source = "data_reading.md"
+title = "MAVEN 数据读取"
+wiki = "MAVEN数据读取"
+
+[[pages]]
+source = "data_format.md"
+title = "MAVEN 数据格式"
+wiki = "MAVEN_data_format"
+
+[[pages]]
+source = "swia_electron.md"
+title = "SWIA 电子修正"
+wiki = "swia_electron_correlated"
+
+[[pages]]
+source = "api.md"
+title = "程序与函数索引"
+wiki = "程序与函数Wiki"

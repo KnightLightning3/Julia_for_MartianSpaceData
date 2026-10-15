@@ -18,10 +18,10 @@ using MarsData
 const REPO = normpath(joinpath(@__DIR__, ".."))
 
 const MOVED = Dict(
-    # t36 授权函数迁出（Bsphere2pc/Bpc2sphere 权威移入 MarsCommon）⇒ 整文件字节已变，
+    # 授权坐标迁出及本轮取消内部坐标函数 export ⇒ 整文件字节已变，
     # 故此处只锁授权后的现行 sha256（大小不再锁定）；两个二进制资源仍逐字节锁定。
     "models/IGRF_calculate.jl" => (nothing,
-        "8d77c121c384fef96fd568e005eceb8132d3e9bde541b1315502d27dda7634c7"),
+        "5a3657ac83618435c272367d7c299ba5b91f8f2cefed8e93df1ab6bc92def236"),
     "models/gh_gao" => (197152,
         "efaebe934b4e084192c93a263b95cf7df6533d941b38ecc17c0dbb5ec1b9d6ab"),
     "models/IGRF_DLL.dll" => (27136,
@@ -70,7 +70,7 @@ end
         # 活跃 consumer 里不得再出现旧路径（注释/文档不计）
         for rel in ("src/modules.jl", "example/MAVEN_plot_sample/MAVEN_overview_cases.jl",
                     "example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl",
-                    "models/Pickup_ion.jl")
+                    "analysis/Pickup_ion.jl")
             txt = read(joinpath(REPO, rel), String)
             @test !occursin("Magnetic_Model/IGRF_calculate.jl", txt)
             @test occursin("models/IGRF_calculate.jl", txt)
@@ -155,12 +155,12 @@ end
             @test occursin(sha, t)
         end
         # t36 授权函数迁出 / t38 依赖与实例复用 / t40 去全局第二档 —— 模块 AST 变化，故更新 target_hash；source_revision 保留
-        @test occursin("d7a92ef3c0cef2f3c9b7fd144d9d5b9d748723d7a0cd8130177df1f9686ad9ea", t)
+        @test occursin("eb57082584b99e308159346d3e9b1377d6c128e90360558c7cde297d59be01d5", t)
         @test occursin("source_revision  = \"5f225db\"", t)
         @test occursin("source_revision  = \"5f225db\"", t)
         for consumer in ("src/modules.jl", "example/MAVEN_plot_sample/MAVEN_overview_cases.jl",
                          "example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl",
-                         "models/Pickup_ion.jl")
+                         "analysis/Pickup_ion.jl")
             @test occursin(consumer, t)
         end
         @test occursin("Magnetic_Model/gh_gao.txt", t)

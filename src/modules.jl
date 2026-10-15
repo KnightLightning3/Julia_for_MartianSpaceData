@@ -52,7 +52,7 @@ _spec(name, path, note; deps = Symbol[], kind = :module, allow = Symbol[]) =
 
 - `MarsCommon`：`searchsortednearest`、`e_energy2v`、`ion_energy2v`
 - `MAVEN_load`：`load_cdf`、`load_MAVEN_data`
-- `IGRF_calculate`：`IGRF_pc`、`pc2sphere`、`sphere2pc`
+- `IGRF_calculate`：`IGRF_pc`（`pc2sphere`、`sphere2pc` 为模块内部坐标变换函数，不通过白名单引入）
 
 其余模块的白名单仍留空，待逐个填写。
 """
@@ -94,7 +94,7 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
     :IGRF_calculate => _spec(
         :IGRF_calculate, "models/IGRF_calculate.jl", "IGRF 磁场模型（依赖 Fortran DLL；资源由 dirname(@__FILE__) 同目录定位）";
         # t38：真实依赖补齐 —— 模块内 Bsphere2pc/Bpc2sphere 权威来自 MarsCommon（禁止自造第二实例）
-        deps = [:constants, :MarsCommon], allow = [:IGRF_pc, :pc2sphere, :sphere2pc],
+        deps = [:constants, :MarsCommon], allow = [:IGRF_pc],
     ),
     :Cold_Plasma_Dispersion_Relation => _spec(
         :Cold_Plasma_Dispersion_Relation, "models/Cold_Plasma_Dispersion_Relation.jl",

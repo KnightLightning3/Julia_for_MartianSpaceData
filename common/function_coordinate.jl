@@ -10,14 +10,8 @@ using Rotations
 # （include 本文件后裸名不再自动可见——这属 module 包装的必然结果，见 coordinate.toml 说明）。
 export slice2d_cal_rot, pa_xyz2sphere, pa_sphere2xyz,
        MINPA_sphere2xyz, MINPA_xyz2sphere,
-       rotation_matrix, Quaternion_Rot, Quaternion_Rot_reverse
-
-if !isdefined(@__MODULE__, :constants)
-    include(joinpath(@__DIR__, "..", "common", "constants.jl"))
-end
-if !isdefined(@__MODULE__, :MarsCommon)
-    include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
-end
+       MAVEN_sphere2xyz, MAVEN_xyz2sphere,
+       rotation_matrix, pc2sphere, sphere2pc
 
 # 和坐标系变换有关的函数
 """
@@ -67,6 +61,40 @@ function slice2d_cal_rot(v1, v2)
 
     return RotMatrix(R_static)
 end
+
+"""
+    MAVEN_sphere2xyz(p::SVector{3,<:Real}) -> SVector{3}
+
+将 MAVEN 仪器球坐标 `(r, theta, phi)` 转换为笛卡尔坐标。两个角均为角度制，
+`theta` 是从 X-Y 平面起算的仰角，`phi` 从 +X 轴在 X-Y 平面内量取。
+支持长度为 3 的 `AbstractVector` 适配；批量输入请在单点函数调用处广播。
+"""
+function MAVEN_sphere2xyz(p::SVector{3,T}) where T <: Real
+    r, theta, phi = p
+    x = r * cosd(theta) * cosd(phi)
+    y = r * cosd(theta) * sind(phi)
+    z = r * sind(theta)
+    return SVector(x, y, z)
+end
+
+MAVEN_sphere2xyz(p::AbstractVector{<:Real}) = _as_svector3(MAVEN_sphere2xyz, p)
+
+"""
+    MAVEN_xyz2sphere(p::SVector{3,<:Real}) -> SVector{3}
+
+将 MAVEN 仪器笛卡尔坐标转换为 `(r, theta, phi)`，角度为角度制；原点行为沿用旧公式。
+支持长度为 3 的 `AbstractVector` 适配。
+"""
+function MAVEN_xyz2sphere(p::SVector{3,T}) where T <: Real
+    x, y, z = p
+    r = hypot(x, y, z)
+    theta = 90.0 - acosd(clamp(z / r, -1.0, 1.0))
+    phi = atand(y, x)
+    return SVector(r, theta, phi)
+end
+
+MAVEN_xyz2sphere(p::AbstractVector{<:Real}) = _as_svector3(MAVEN_xyz2sphere, p)
+
 # using LinearAlgebra
 # using StaticArrays
 
@@ -93,9 +121,6 @@ end
 # v_a, v_b = generate_non_collinear_vectors()
 # slice2d_cal_rot(v_a, v_b)
 
-# 四元数向量旋转已统一由 calculate_models.Quaternion_Rot / Quaternion_Rot_reverse 提供
-# （基于 Rotations.QuatRotation，替代原先的 Quaternions 实现）。
-
 """
     pa_xyz2sphere(p::SVector{3,T}) -> SVector{3}
 
@@ -115,7 +140,7 @@ end
 - 与 `MINPA_xyz2sphere` 的差异在于**角度定义与量程约定**完全不同，两者不可混用。
 """
 function pa_xyz2sphere(p::SVector{3,T}) where T <: Real
-    local r = norm(p)
+    local r = hypot(p[1], p[2], p[3])
     if iszero(r)
         return SVector{3,T}(zero(T), zero(T), zero(T))
     else
@@ -125,6 +150,8 @@ function pa_xyz2sphere(p::SVector{3,T}) where T <: Real
         return SVector{3}(r, theta, phi)
     end
 end
+
+pa_xyz2sphere(p::AbstractVector{<:Real}) = _as_svector3(pa_xyz2sphere, p)
 
 """
     pa_sphere2xyz(p::SVector{3,T}) -> SVector{3}
@@ -159,6 +186,8 @@ function pa_sphere2xyz(p::SVector{3,T}) where T <: Real
         return SVector{3}(x,y,z)
     end
 end
+
+pa_sphere2xyz(p::AbstractVector{<:Real}) = _as_svector3(pa_sphere2xyz, p)
 
 """
     MINPA_sphere2xyz(p::SVector{3,T}) -> SVector{3}
@@ -201,6 +230,8 @@ function MINPA_sphere2xyz(p::SVector{3,T}) where T <: Real # 转换为仪器坐�
     return SVector{3}(-x,-y,-z) #反转之匹配速度
 end
 
+MINPA_sphere2xyz(p::AbstractVector{<:Real}) = _as_svector3(MINPA_sphere2xyz, p)
+
 """
     MINPA_xyz2sphere(p::SVector{3,T}) -> SVector{3}
 
@@ -225,8 +256,8 @@ end
 """
 function MINPA_xyz2sphere(p::SVector{3,T}) where T <: Real # 转换为仪器坐标系下的情况/ref: https://www.swl.ac.cn/minpa/#/home/overview
     local p1 = -p # 反转之一
-    local r = norm(p1)
-    local st = norm(p[2:3]) / r
+    local r = hypot(p1[1], p1[2], p1[3])
+    local st = hypot(p[2], p[3]) / r
     local ct = p1[1] / r
     local r_st = r*st
     local cp = -p1[2]/r_st
@@ -240,6 +271,8 @@ function MINPA_xyz2sphere(p::SVector{3,T}) where T <: Real # 转换为仪器坐�
     return SVector{3}(r,θ,ϕ)
 
 end
+
+MINPA_xyz2sphere(p::AbstractVector{<:Real}) = _as_svector3(MINPA_xyz2sphere, p)
 
 # bowshock_zero 已迁出：权威落点为 models/Mars_Environment.jl（迁入前后逐位一致，
 # 见 validation/migrations/environment.toml 与 test/environment_migration_test.jl）。
@@ -273,36 +306,47 @@ function rotation_matrix(θ, φ)
     # 计算总旋转矩阵，先绕y轴旋转，然后绕z轴旋转
     return Rz * Ry
 end
-"""
-    Quaternion_Rot(u::AbstractVector, q::QuatRotation) -> AbstractVector
-
-用旋转四元数对向量做正向坐标变换（等价 `q*u*conj(q)`）。
-
-# 参数说明
-- `u`: 待旋转向量。
-- `q`: `Rotations.QuatRotation` 四元数。
-
-# 返回值
-- 旋转后的向量。
-"""
-function Quaternion_Rot(u::AbstractVector, q::QuatRotation)
-    return q * u
+# 单点坐标接口以静态三维向量为主路径。普通向量仅作长度严格为 3 的适配。
+@inline function _as_svector3(f, p::AbstractVector{<:Real})
+    length(p) == 3 || throw(DimensionMismatch("$(nameof(f)) expects a 3-element vector; got length $(length(p))"))
+    values = promote(p[1], p[2], p[3])
+    return f(SVector(values...))
 end
 
 """
-    Quaternion_Rot_reverse(u::AbstractVector, q::QuatRotation) -> AbstractVector
+    pc2sphere(p::SVector{3,T}) -> SVector{3}
+    pc2sphere(p::AbstractVector{<:Real}) -> SVector{3}
 
-用旋转四元数对向量做逆向坐标变换（等价 `inv(q)*u`）。
-
-# 参数说明
-- `u`: 待旋转向量。
-- `q`: `Rotations.QuatRotation` 四元数。
-
-# 返回值
-- 旋转后的向量。
+将行星笛卡尔坐标 `(x,y,z)` 转为 `(r, θ, ϕ)`：余纬和经度均为弧度。
+半径、acos、atan 的公式和顺序与 `IGRF_calculate.pc2sphere(x,y,z)` 一致；原点保持其 NaN 行为。
 """
-function Quaternion_Rot_reverse(u::AbstractVector, q::QuatRotation)
-    return inv(q) * u
+@inline function pc2sphere(p::SVector{3,T}) where T <: Real
+    x, y, z = p
+    r = hypot(x, y, z)
+    θ = acos(z / r)
+    ϕ = atan(y, x)
+    return SVector(r, θ, ϕ)
 end
+pc2sphere(p::AbstractVector{<:Real}) = _as_svector3(pc2sphere, p)
+
+"""
+    sphere2pc(p::SVector{3,T}) -> SVector{3}
+    sphere2pc(p::AbstractVector{<:Real}) -> SVector{3}
+
+将 `(r, θ, ϕ)` 转为行星笛卡尔坐标；角度均为弧度，计算顺序与
+`IGRF_calculate.sphere2pc(r,θ,ϕ)` 一致。
+"""
+@inline function sphere2pc(p::SVector{3,T}) where T <: Real
+    r, θ, ϕ = p
+    sinθ = sin(θ)
+    cosθ = cos(θ)
+    sinϕ = sin(ϕ)
+    cosϕ = cos(ϕ)
+    x = r * sinθ * cosϕ
+    y = r * sinθ * sinϕ
+    z = r * cosθ
+    return SVector(x, y, z)
+end
+sphere2pc(p::AbstractVector{<:Real}) = _as_svector3(sphere2pc, p)
 
 end # module FunctionCoordinate

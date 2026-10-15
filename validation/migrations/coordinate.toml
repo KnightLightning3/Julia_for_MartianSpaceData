@@ -7,7 +7,7 @@ schema_version = 1
 #   from        —— 旧定义位置：5f225db 中的源文件（仓库相对 POSIX 路径）
 #   to          —— 迁入目标：common/function_coordinate.jl 的 module FunctionCoordinate
 #   name        —— 迁入后在 FunctionCoordinate 中的函数名
-#   status      —— finalized：旧定义已删除；pending：旧定义仍在
+#   status      —— finalized：按 action 完成迁移或纯删除；pending：未完成
 #   source_hash —— 旧定义在**源侧**的 AST 规范化 SHA-256（validation/ast canonical_hash 口径）
 #   target_hash —— 迁入后定义在**目标侧**的 AST 规范化 SHA-256（与 source_hash 独立字段）
 #   revision    —— 源侧修订锚点（本批统一为 5f225db）
@@ -29,6 +29,7 @@ schema_version = 1
 
 [[moves]]
 name        = "rotation_matrix"
+action      = "move"
 from        = "calculate/calculate_models.jl"
 to          = "common/function_coordinate.jl"
 status      = "finalized"
@@ -37,23 +38,23 @@ source_hash = "A72CCBF83598F1B3740D361F981C9AED265E60B9C6483BDE85A3054DA087DF6E"
 target_hash = "A72CCBF83598F1B3740D361F981C9AED265E60B9C6483BDE85A3054DA087DF6E"
 
 [[moves]]
-name        = "Quaternion_Rot"
-from        = "calculate/calculate_models.jl"
-to          = "common/function_coordinate.jl"
-status      = "finalized"
-source_revision = "5f225db"
+name = "Quaternion_Rot"
+action = "remove"
+from = "common/function_coordinate.jl"
+status = "finalized"
+source_revision = "d828a6e"
 source_hash = "5BE99640F110CACCEDC547D2EBD29B72A7C4CA2CCC25E86946AF16462D0C64E8"
-target_hash = "5BE99640F110CACCEDC547D2EBD29B72A7C4CA2CCC25E86946AF16462D0C64E8"
+notes = "用户要求删除四元数旋转包装；直接使用 q * v 或 inv(q) * v，不保留 alias。历史迁入已被本次纯删除取代，无目标定义/target_hash。"
 
 [[moves]]
-name        = "Quaternion_Rot_reverse"
-from        = "calculate/calculate_models.jl"
-to          = "common/function_coordinate.jl"
-status      = "finalized"
-source_revision = "5f225db"
+name = "Quaternion_Rot_reverse"
+action = "remove"
+from = "common/function_coordinate.jl"
+status = "finalized"
+source_revision = "d828a6e"
 source_hash = "DF1143FB1C784547F1FB231D69C7FEE58E2B6E712B38F04B2DFE0197C014C400"
-target_hash = "DF1143FB1C784547F1FB231D69C7FEE58E2B6E712B38F04B2DFE0197C014C400"
+notes = "用户要求删除四元数旋转包装；直接使用 q * v 或 inv(q) * v，不保留 alias。历史迁入已被本次纯删除取代，无目标定义/target_hash。"
 
 # 保留项（未迁移、未删除，登记以便最终核对「不应消失」）：
 #   slice2d_cal_rot / pa_xyz2sphere / pa_sphere2xyz / MINPA_sphere2xyz / MINPA_xyz2sphere
-#   仍留在 common/function_coordinate.jl 的 FunctionCoordinate 内，接口未变。
+#   仍留在 FunctionCoordinate；点转换增加长度3的AbstractVector适配，原SVector公式保留。

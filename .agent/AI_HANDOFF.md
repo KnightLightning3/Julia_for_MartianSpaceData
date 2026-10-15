@@ -1,5 +1,48 @@
 # AI_HANDOFF.md —— 当前唯一接续入口（DeepSeek Flash 整理，2026-10-15 14:15 +08:00）
 
+> **MAVEN 专用坐标归位与 hypot 审查（2026-10-15，当前最新）**
+> - 用户确认原 instrument 两函数未对外使用，要求直接移入 FunctionCoordinate 并命名 `MAVEN_sphere2xyz` / `MAVEN_xyz2sphere`，不在面向用户的迁移指南记录改名。本轮已删除 MarsCommon 旧定义/导出，无 alias；README、坐标定义专题和生成API同步现行名称。
+> - AST 对旧源 d828a6e 的索引确认两定义及四处生产引用：STATIC.static_rotation 两处、static_slip_2_V 一处、Pickup 一处。现行 STATIC 显式 include FunctionCoordinate，并补 `using Rotations: QuatRotation`；分析脚本原已 include FC，本轮严格只改一个调用。FC 清除未使用的 MarsCommon/constants include，避免反向依赖与嵌套副本。
+> - 实测 MAVEN 与 MINPA 不等价：同球坐标 `(1,0°,0°)` 分别得到 +X 与 +Y，反算同一点与退化轴行为也不同。因此分别保留 MAVEN_* / MINPA_*，不创建 ins_* 合并接口。
+> - 按用户新授权逐函数改 hypot：MAVEN_xyz2sphere 的 sqrt 平方和、pa_xyz2sphere 的 norm3、MINPA_xyz2sphere 的 norm3/投影norm2，分别换成 hypot3/hypot2；pc2sphere 原已用 hypot。正算三角公式不改；slice2d_cal_rot 的 norm/normalize 参与 1e-8 共线判断，保持原式。允许末位误差与极大/极小输入稳定性、混合NaN/Inf优先级的明确变化，不能再引用旧的逐位一致表述。
+> - MAVEN 初始公式 oracle 直接从 `a09511aa7b88c874cefe8ca966c98aa267db9365` 提取；普通有限点对照、正逆反例、类型/广播/维度与大/小半径测试通过。STATIC 调用回归包含 Float32 角网格，最大角差 1.56e-6°；Float64仍严格1e-12。
+> - 验证：MAVEN新接口45、生产接线38、专门AST检查103、Pickup22、统一三维接口177、旧坐标迁移117、STATIC质量64，共566项定向检查通过。文档工具8/8、API生成与过期检查通过；Documenter构建无警告、Wiki10页预览自检通过。真实数据挂起、不验证DLL、未提交/未发布。
+> - 专门AST检查使用现有 ASTMigrate 扫描生产定义/引用，并核对两新函数各静态方法+普通向量适配的ASThash及旧源hash。通用move校验器会把合法重载判作重复，故本次额外归属证据放 `index.coordinate_api.maven`，不伪增39个旧AST单元；通用校验仍28 ok/0 fail/11 unknown。Pickup原始物理移动sha保留，新增 current_sha/current_bytes 单列本轮调用替换后字节状态。
+
+> **坐标接口调整（2026-10-15，当前最新）**
+> - 用户要求通用三维静态点接口、移除四元数包装及 IGRF 坐标裸名。FunctionCoordinate 的点转换均为 3→3；`rotation_matrix`（两个角）和 `slice2d_cal_rot`（两个三维向量）是 3×3 矩阵构造器，分别保留 Matrix/RotMatrix 返回，不混作点转换。
+> - 新增 `FunctionCoordinate.pc2sphere(p)`、`sphere2pc(p)`：SVector{3} 主接口、长度3 AbstractVector{<:Real} 适配、SVector{3} 返回，弧度制余纬，计算顺序沿用初始 IGRF 标量公式。原 PA/MINPA 四函数增加同样普通向量适配，不合并角定义或改变零/NaN 边界。MINPA 反算改 `norm(@view p[2:3])` 去临时数组，范数算法保留；Float32/Float64 各 100009 个仓外合成探针未发现逐值差异，静态索引替换会改变部分 Float32 结果，未采用。
+> - `Quaternion_Rot` / `Quaternion_Rot_reverse` 已删除，无 alias，生产调用点未发现依赖；改直接 `q * v` / `inv(q) * v`。IGRF 两个标量函数取消 export 和 allow，仅白名单 `IGRF_pc`，内部函数 AST 与 `a09511aa7b88c874cefe8ca966c98aa267db9365` 一致，未调用 DLL。
+> - 坐标清单记录 1 move + 2 remove；全体仍为39个AST单元（37 move + 2 remove），纯删除不要求 target_hash；校验仍28 ok / 0 fail / 0 pending / 11 unknown。IGRF 模块 AST/源码字节锁及清单 SHA 已同步。
+> - 实际回归：新三维接口131/131、IGRF namespace 8/8、旧坐标迁移116/116；API生成器23/23（新增@inline/@noinline索引保护）；文档工具8/8，9段坐标文档合成示例成功。带输出Ref防消除、预热后，六个静态点函数 Float32/Float64 探针均为0字节堆分配；这不是所有输入类型/调用场景的性能保证。
+> - 中英文README新增坐标专题，详细Wiki源 `docs/src/coordinates.md`，解释主动/被动、q/R列向量、行存N×3转换及批量循环；文档重新生成，Documenter最终构建无警告，Wiki10页预览自检通过。未发布/未提交。真实数据挂起，DLL验证不需要，未执行相关运行验证。
+
+> **最新范围与文档同步（2026-10-15，优先于下文旧待办）**
+> - 用户已指定逻辑溯源初始提交 `a09511aa7b88c874cefe8ca966c98aa267db9365`；真实数据校验暂时挂起，**DLL 验证不需要**。已有中间 oracle `5f225db` 夹具不因此自动变成相对初始提交的完整证明；本轮未改科学实现或重写科学测试断言。
+> - 当前任务为 README/Wiki 配套架构调整。已重写中英文 README，新增 `docs/src/architecture.md`、`migration.md`，同步首页/执行流程/读取说明/数据格式及 Wiki 导航；旧聚合入口与迁移路径不再作为现行示例。读取指南按实际单日 DateTime、error_report、未知产品 KeyError 与惰性索引行为说明；STATIC 示例显式转换 df，按函数区分输入质量基准和输出同名键。
+> - 新增 `tools/generate_api.jl`：标准库静态解析 30 个生产 Julia 文件、索引顶层函数/短定义及模块作用域导出，排除局部函数，绝对源码链接。默认生成 `docs/src/api.md`，`--check` 检查过期，不加载科学依赖/数据/DLL。
+> - 新增 `docs/pages.toml` 为 Documenter/Wiki 共同页面清单；`docs/make.jl` 与 `tools/push_wiki.py` 消费同一清单。Wiki dry-run 保留输出目录里的其他文件。修复 SWIA 数学定界：24 条行内公式及两条显示公式的内容不变，HTML/Wiki 分别采用兼容定界。
+> - 实际验证：API 生成器 fixture 19/19、Python 文档工具 8/8；API `--check` 通过；69 个相对 Markdown 链接解析通过；产品生成幂等、53 个产品 ID 对应 JSON；Wiki 本地生成 9 页并自检通过。Documenter 1.19.0 实际构建成功（最终日志无 Warning/Error），HTML 为 `docs/build/index.html`，8 个正文页。
+> - 构建依赖安装于 `/tmp/marsdata-docs-env` 与 `/tmp/marsdata-docs-depot`，未改根项目或 docs 的 Project/Manifest。文档源与生成器均在工作树，未提交/未 push，**未发布远端 Wiki**。维护命令与页面映射见 `docs/README.md`。历史报告和参考资料不改。
+
+> **本轮实施进度（2026-10-15，GPT 主代理协调，3 个 GPT-6 Luna 子代理实施）**
+> - 完成 HD-14 剩余物理迁移：`models/{Graham,Octree}.jl` → `models/extras/`；`models/Pickup_ion.jl` → `analysis/Pickup_ion.jl`。三文件对 `d828a6e` 的字节 SHA-256 一致；Pickup 同为根目录下一级，两个 `../common` 引导 include 不变且已从仓库外 CWD 验证。旧源文件已移除，无兼容入口。**Pickup 尚未函数化**，既有 Windows 硬编码回退和顶层数据副作用未改。
+> - 新增 `models/CATALOG.toml` 登记两项 Extra，保留显式 include、不进 registry；Octree GUI 运行未测。`validation/migrations/index.toml` 用 `index.file_moves` 单列三项文件 SHA，**不混入 39 个 AST 单元统计**；更新 IGRF 消费者/坐标保留项的当前 Pickup 路径及清单 SHA。`callsite_plan.toml` 为历史施工计划，里面的旧路径不作为现行入口。
+> - STATIC/SWIA/SWEA 各删除一条未使用的 `using CommonDataFormat`，未改公式。CDF 读取器仍保留真实依赖。补 `DataKeys.MASS = :mass`（单一公开常量），明确其与 MASS_ARR、m_int 的区别。
+> - README 中英文版及 api.md 增加迁移标注；旧文档示例按 HD-13 留给使用者适配，历史报告未改。
+> - 新回归：`test/pickup_move_test.jl`、`test/extras_move_test.jl`、`test/data_keys_contract_test.jl`。最终本机分别通过 19/19、35/35（含 Octree 静态检查 6 项，非运行验证）、8/8，覆盖移动/纯函数与索引、Extras 字节与清单、公开键唯一性。本机现有回归已通过：STATIC 64、common 280、environment 191、coordinate 113、fortran_parse 28；AST 校验 exit 0（28 ok / 0 fail / 0 pending / 11 unknown），unknown 不计通过。
+> - 另核实 IGRF 旧测试锁定的 `Magnetic_Model/gh_gao.txt` 大小/哈希已与当前基线不符：工作树和 `d828a6e` 均为 418914 字节、SHA-256 `8e2ec412d4265271793f68babe6131fcc9e4477f312686f5a26d38279c1d2095`；该文件本轮未改，不放宽旧断言。
+> - 主套件实际为 **123 pass / 4 error / 1 broken**（exit 1，缺 FortranFiles/CommonDataFormat）；SWEA 迁移套件为 **116 pass / 1 error**（CDF loader 缺 CommonDataFormat）。没有跳过失败、安装依赖或改写项目环境。通过 `--compiled-modules=existing --startup-file=no` 使用既有缓存，避免用户 depot 新缓存写入。完整科学/真实数据/DLL 回归仍未完成。
+> - 本轮未提交、未 push；接手前已有 Project.toml/Manifest.toml/doc/ 改动保持。后续仍有 allow 白名单、DataKeys 其他键评估、Pickup 函数化、DLL 平台/缺符号及真实数据验证等工作，不得称全项目重构完成。
+
+> **2026-10-15 接手现场更正（优先于下文历史状态）**
+> - 当前 HEAD 为 `d828a6e1ded1566f094b1e8d4fb923a5fcca5748`，分支 `main`，与本地 `origin/main` 引用差异为 0 / 0（未联网 fetch）。
+> - `f6e63bb`（代码）、`5b3e87d`（文档备份）、`d828a6e`（文档清理）均已存在于历史；§1、§7 和末尾的“当前成果未提交”等文字为旧记录，不适用于当前工作树。旧行为 oracle 仍取 `5f225db`，不可改用当前 HEAD。
+> - 接手前已有未提交改动：`Project.toml`、`Manifest.toml` 和未跟踪 `doc/`。保留其内容，不归为本轮成果。
+> - 当前用户已明确允许使用 `gpt-6-luna` 子代理，覆盖 §2 的旧“禁止子 agent / Official Flash”模型约束；其余科研契约和不 push 约束继续遵守。
+> - 本轮先核对接手基线与迁移边界；§5 的未完成项仍未宣称完成。后文测试数字是历史记录，除明确记录的新运行外不代表本机验证。
+> - 本机 Julia 1.12.5 重新运行：`test/ast_migration_test.jl` 为 204/204；`validation/check_migrations.jl` exit 0，28 ok / 0 fail / 0 pending / 11 unknown。`test/runtests.jl` exit 1，装载 SWEA 时缺 `CommonDataFormat`，另出现用户 depot 预编译缓存写入 EPERM；未进入完整科学回归，不算通过。未安装依赖或改动项目环境。
+
 > 本文档是**当前唯一权威接续入口**。冗余的规划/决策/分析历史稿已于 2026-10-15 清理移除（可经 git 历史找回，见 §9）。
 > **本整理只做记录整合，不代表对已审成果的额外审查**；未重跑整套科学测试（见 §4 的“最后运行时间”标注）。
 > 整理与提交由 captain 依用户三步要求完成：①代码提交 → ②文档备份提交 → ③删冗余文档后整理提交（见 §1）。

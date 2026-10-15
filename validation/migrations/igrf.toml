@@ -14,8 +14,8 @@ name             = "IGRF_calculate"
 status           = "finalized"
 source_revision  = "5f225db"
 source_hash_kind = "sha256-source-block-first16"
-target_hash      = "d7a92ef3c0cef2f3c9b7fd144d9d5b9d748723d7a0cd8130177df1f9686ad9ea"
-notes            = "整个源文件与其同目录资源（gh_gao / IGRF_DLL.dll）同批移入 models/；资源定位保持 dirname(@__FILE__)，未做通用 DLL 目录统一；无旧路径兼容层。target_hash 于 t36 因授权函数迁出更新（Bsphere2pc/Bpc2sphere 权威移入 MarsCommon.marscommon/geometry.jl，IGRF 仅经 using 绑定并从 export 移除）；source_hash/source_revision 保留不动。"
+target_hash      = "eb57082584b99e308159346d3e9b1377d6c128e90360558c7cde297d59be01d5"
+notes            = "本轮仅取消 pc2sphere/sphere2pc 的 export，内部标量实现不变；裸名白名单同步移除。整个源文件与其同目录资源（gh_gao / IGRF_DLL.dll）同批移入 models/；资源定位保持 dirname(@__FILE__)，未做通用 DLL 目录统一；无旧路径兼容层。target_hash 于 t36 因授权函数迁出更新（Bsphere2pc/Bpc2sphere 权威移入 MarsCommon.marscommon/geometry.jl，IGRF 仅经 using 绑定并从 export 移除）；source_hash/source_revision 保留不动。"
 
 [[asset_moves]]
 path      = "Magnetic_Model/gh_gao"
@@ -46,7 +46,7 @@ consumer = "example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl"
 anchor   = "include(\"../../models/IGRF_calculate.jl\")"
 
 [[callsites]]
-consumer = "models/Pickup_ion.jl"
+consumer = "analysis/Pickup_ion.jl"
 anchor   = "include(pkg_path*\"models/IGRF_calculate.jl\")"
 
 [[callsites]]

@@ -377,7 +377,7 @@ MarsData.@load MAVEN_SWEA
               [:searchsortednearest, :e_energy2v, :ion_energy2v]
         @test MarsData.MODULE_REGISTRY[:MAVEN_load].allow == [:load_cdf, :load_MAVEN_data]
         @test MarsData.MODULE_REGISTRY[:IGRF_calculate].allow ==
-              [:IGRF_pc, :pc2sphere, :sphere2pc]
+              [:IGRF_pc]
         # MarsCommon 的 `using ..constants` 需要载体里先有 constants（deps 自动装载）
         @test :constants in MarsData.MODULE_REGISTRY[:MarsCommon].deps
         # 其余仍留空

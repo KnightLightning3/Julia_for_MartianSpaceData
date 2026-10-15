@@ -56,7 +56,7 @@ notes            = "模块私有副本就地改名：slice2d_cal_rot → slice2d
 name         = "slice2d_cal_rot"
 from         = "common/function_coordinate.jl"
 status       = "retained"
-sole_caller  = "models/Pickup_ion.jl:418 FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)"
+sole_caller  = "analysis/Pickup_ion.jl:418 FunctionCoordinate.slice2d_cal_rot(B_vec,E_vec)"
 reason       = "返回 RotMatrix3{Float64}，共线/近共线/极小输入抛 ErrorException（阈值 norm_c < 1e-8），与 TW 版（SMatrix，共线行为不同）非等价；按“不等价不同名保留”授权保留原名与实现，本轮不改名不合并"
 source_revision = "5f225db"
 

@@ -1,357 +1,479 @@
-# 程序与函数 Wiki
+# 程序与 Julia 函数索引
 
-本页按仓库目录介绍程序职责，并索引源码中的函数。源码文件顶部提供文件级说明；函数的参数细节、单位约定和数据结构以对应实现及其已有函数注释为准。本页只记录用途，不改变程序逻辑。
+本页由 `tools/generate_api.jl` 使用 Julia 标准库 `Meta.parseall` 从生产源码静态生成；不加载项目环境、科学依赖、数据或 DLL。
 
-## 专题文档
+## 当前架构
 
-- [MAVEN 数据读取指南](data_reading.md)：统一读取入口、返回结构与数据流程。
-- [MAVEN 数据格式参考](data_format.md)：数据产品清单、命名格式及仪器数据要点。
-- [SWIA 电子修正专题](swia_electron.md)：电子二次发射背景的相关假设与修正算法记录。
+`using MarsData` 的包初始化会加载绘图栈和 `MAVEN_plot`，提供路径/注册表/索引接口并装配绘图；它不加载科学数据 loader。`src/modules.jl` 管理按需装载的科学模块。`common/` 放共享常量、路径、数据键与计算能力；`MAVEN_data/`、`MGS_data/`、`TW_data/` 和 `support_data/` 放各数据源读取与处理；`models/` 放物理模型；`analysis/` 是依赖预设变量的分析脚本。Python 负责配置、下载和本地文件流水线。
 
-## 目录导航
+本索引反映当前源码形状，不构成稳定公开 API 承诺。调用时优先使用限定名（如 `MAVEN_load.load_MAVEN_data`）。模块内 `export` 表示 Julia 模块导出；`MarsData.@load` 的裸名则由 `src/modules.jl` 的 `ModuleSpec.allow` 白名单逐名控制，两者相互独立。
 
-| 路径 | 内容 |
+当前注册表的裸名白名单（从 `src/modules.jl` 静态读取）：
+
+| 模块 | `@load` 可裸名调用 |
 | --- | --- |
-| [`MAVEN_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_load.jl) | MAVEN 数据统一读取、仪器数据处理、绘图及本地数据构建脚本 |
-| [`MGS_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MGS_data/MGS_load.jl)、[`TW_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/TW_data/TW_load.jl) | MGS 磁场与天问一号数据、MINPA 仪器处理 |
-| [`download_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/MAVEN_download.py) | 数据下载、文件清单检查、压缩、清理和版本整理 |
-| [`models/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Cold_Plasma_Dispersion_Relation.jl)、[`Magnetic_Model/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/Magnetic_Model/IGRF_calculate.jl) | 等离子体、粒子轨道、分布拟合、磁场及几何模型 |
-| [`common/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/head.jl)、[`support_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/support_data/support_data_load.jl) | 坐标/科学计算通用函数和外部太阳风支持数据读取 |
-| [`calculate/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/calculate/calculate_models.jl)、[`call_fortran_dll.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/call_fortran_dll.jl) | 组合物理计算和 Fortran 动态库接口 |
-| [`example/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) | MAVEN 事件概览图示例 |
-| [`MAVEN_data/Build_data/`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/build_vsc.jl) | STATIC、NGIMS、KP 等数据预处理与重建脚本 |
-| [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/tools/robocopy.ps1)、[`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/requirement.jl) | 数据复制工具与 Julia 依赖名称清单 |
+| `IGRF_calculate` | `IGRF_pc` |
+| `MAVEN_load` | `load_MAVEN_data`、`load_cdf` |
+| `MarsCommon` | `e_energy2v`、`ion_energy2v`、`searchsortednearest` |
 
-## MarsData 包 API
+- 架构说明：[architecture.md](architecture.md)
+- 迁移说明：[migration.md](migration.md)
+- 配置、下载、扫描到读取流程：[pipeline.md](pipeline.md)
 
-`src/MarsData.jl` 提供三层能力，均可通过 `using MarsData` 使用。
+## Python 程序职责
 
-### 轻量公共 API（路径 / 注册表 / 索引）
-
-| 函数 | 说明 |
+| 路径 | 职责 |
 | --- | --- |
-| `project_root()` | 仓库根目录 |
-| `maven_data_root()`、`tw_data_root()`、`mgs_data_root()` | 各数据根目录 |
-| `index_path()` | 索引文件路径 |
-| `data_model()` | 产品注册表（`MAVEN_data/MAVEN_data_format.json` 的 `data_model`） |
-| `load_index()` | 读取索引（兼容 v2 与旧扁平格式） |
-
-### 绘图 API
-
-| 函数 | 说明 |
-| --- | --- |
-| `plot_module(fig, x_range, data_dict; time_step)` | 多仪器时间序列概览图合成，返回 `fig, t0, xtimes` |
-| `TimeFormat(t1, t2)` | 把时长格式化为 `HH:MM:SS.mmm` |
-| `remove_0_point!(y)` | 非正绘图值原地置 `NaN` |
-
-绘图基元（`time2x`、`time_ticks`、`x_ticks`、`sta_heatmap`、`STA_2d_slip`、`SWEA_PAD_heatmap`、`WaveSpectra_heatmap`、`Orbit`、`PAD_slice`、`PAD_slice_polar`、`PAD_slice_velocity`）位于子模块 `MarsData.MAVEN_plot`（源文件 `MAVEN_data/MAVEN_plot.jl`），需 `using MarsData.MAVEN_plot` 或加前缀访问。
-
-### 模块装载管理器（`src/modules.jl`）
-
-重模块**仍以 include 为主**，但提供包化装载入口，一次调用等价于 `include(对应文件)`。
-
-| API | 说明 |
-| --- | --- |
-| `load_module(name; into=MarsData, force=false, verbose=false)` | 装载模块并返回 `Module`；`name=:all` 时按依赖拓扑序装载全部 |
-| `@load Name1 Name2 …` | 在调用者作用域装载并绑定（展开为 `const` 赋值，仅限顶层使用） |
-| `available_modules()` | 可装载模块清单 |
-| `loaded_modules()` | 已装载模块清单 |
-| `module_path(name)` | 该模块的绝对路径 |
-| `module_info(name)` | 路径 / 依赖 / 白名单 / 装载状态 |
-| `validate_registry()` | 注册表自检（路径存在、`module` 名一致、依赖无环） |
-
-**白名单机制**：`@load` 一律使用逐名引入 `using .模块: 白名单…`，**从不**整体 `using`。因此"能否裸名调用"完全由注册表 `ModuleSpec.allow` 决定，与模块自身 `export` 无关（Julia 的逐名引入对未 export 的名字同样有效）。当前已开放：
-
-| 模块 | 放行的裸名 |
-| --- | --- |
-| `MarsCommon` | `searchsortednearest`、`e_energy2v`、`ion_energy2v` |
-| `MAVEN_load` | `load_cdf`、`load_MAVEN_data` |
-| `IGRF_calculate` | `IGRF_pc`、`pc2sphere`、`sphere2pc` |
-
-其余模块白名单留空（`@load` 只绑定模块名）。
-
-**依赖自动装载**：`ModuleSpec.deps` 会在装载目标模块**之前**递归装入同一载体。这满足相对父模块引用——`common/MarsCommon.jl` 首行是 `using ..constants`，因此 `constants` 必须先存在于载体中，否则单独装载 `MarsCommon` 会报 `UndefVarError: constants`。
-
-**载体机制**：模块实际在运行时载体模块（`MarsData._carrier()`）中求值，再以 `const` 别名绑定进目标命名空间。原因是 Julia 对**包模块**内的 `using` 做严格依赖校验——直接把 `MAVEN_load.jl` include 进 `MarsData` 会因 `using CommonDataFormat` 等不在本包 `[deps]` 中而失败；而运行时载体没有 pkgid，其 `using` 走 `LOAD_PATH` 回退，因此无需把 CommonDataFormat/JLD2/FortranFiles/Rotations/CSV/DifferentialEquations/LsqFit 等重依赖声明进本包。副作用：`parentmodule(MarsData.MAVEN_load)` 是载体而非 `MarsData`；全进程共享同一模块实例（不重复编译）。
-
-## MAVEN 数据读取与处理
-
-### `MAVEN_data/MAVEN_load.jl`
-
-- `show_load_models`：列出当前注册的数据产品读取器。
-- `file_list`：返回指定数据产品的本地文件路径列表。
-- `find_file_of_data`：按日期查找指定数据产品文件。
-- `load_MAVEN_data`：按日期和产品列表统一调度读取，并记录各产品加载状态。
-- `get_orbits`：读取轨道号对应的时间范围。
-- `change_kp_read_data`：修改 KP 文件中要读取的变量编号映射。
-- `load_cdf`：把 CDF 变量读入 Julia 字典并整理数据维度；内部 `clean_dimensions` 统一清理维度。
-- `load_mag_l2`：读取 MAVEN MAG L2 文本磁场数据；内部 `get_data_from_line_for_mag_read` 解析单行记录。
-- `load_mag_vsc`：读取航天器速度数据。
-- `load_kp`：读取 KP 数据并按设置提取变量；内部 `kp_indicate` 解析 KP 变量索引。
-- `load_swea_pad`：读取 SWEA 俯仰角分布数据。
-- `load_NGIMS_den_l3`、`load_NGIMS_den_l4`：读取 NGIMS L3、L4 密度产品。
-- `load_NGIMS_sht_l3`：读取 NGIMS L3 标度高度表。
-- `load_d1_v4d`、`load_c6_v3d`：读取项目构建的 STATIC d1/c6 四维派生数据。
-- `load_quat`：读取从 IDL 导出的姿态四元数数据。
-- `convert_kp_l3`：把 KP L3 原始变量映射转换为便于使用的数据字典。
-- `Bpc2sphere`：将笛卡尔坐标磁场分量转换为球坐标分量。
-- `calculate_mag`：计算指定位置的模型磁场及位置辅助量；内部 `c_alt`、`c_local_time`、`c_latitude` 分别计算高度、地方时和纬度。
-- `mean_SWEA_pad_pa`：对 SWEA PAD 俯仰角维度求平均。
-- `static_c6_mass_mean`、`static_c6_energy_mean`：分别按质量范围、能量范围汇总 STATIC c6 数据。
-- `carclu_SWEA_pad`：处理 SWEA PAD 数据并计算选定能量范围的分布量。
-- `rotate_vector_with_Martrix`：用旋转矩阵变换向量。
-- `eflux2F`、`ion_eflux2F`：将电子或离子能量通量转换为相空间分布函数。
-- `Doppler_Shift`：计算航天器运动引起的波频多普勒变换。
-- `sphere2xyz`：将球坐标转换为笛卡尔坐标。
-- `energy2v`、`ion_energy2v`：将电子或离子能量换算为速度。
-- `find_segments`：根据布尔掩码划分连续区段。
-- `cyclone_frequency`、`cyclone_R`：计算带电粒子的回旋频率和回旋半径。
-- `SWEA_calc_shape_arr`：计算 SWEA 指定俯仰角/能量范围内的形状参数；内部 `mvn_swe_calc_shape_arr` 完成单组数据计算，`deriv` 计算拟合所需导数。
-- `SWEA_calc_shape_arr_mars_towrads`：结合 SWEA 分布和磁场方向，分别统计朝向/背离火星的形状参数。
-
-### `MAVEN_data/MAVEN_STATIC.jl`
-
-- `static_c6_mass_mean`、`static_c6_energy_mean`：对 STATIC c6 数据按质量或能量区间求平均。
-- `STA_count2df`、`STA_count2df_all`：将 STATIC 计数转换为相空间密度，分别用于单个切片和整段数据。
-- `STA_count2eflux`、`STA_count2eflux_all`：将 STATIC 计数转换为能量通量，支持切片和整段数据。
-- `STA_eflux2df`：将 STATIC 能量通量转换为相空间密度。
-- `static_slip`：提取指定时刻的 STATIC 数据切片。
-- `sta_v_4d`：由 STATIC 四维分布计算速度、流速和密度。
-- `sta_n_4d`：由 STATIC 四维分布计算数密度。
-- `static_rotation`：将 STATIC 三维切片旋转到指定坐标系；内部 `sphere2xyz_for_static_rotation`、`xyz2sphere_for_static_rotation` 处理球坐标与笛卡尔坐标互转。
-- `static_slip_2_V`：结合切片、质量范围和航天器速度求离子速度量。
-- `STA_count3df`：将带时间轴的 STATIC c6 计数转换为相空间密度；内部 `expand_3d` 扩展并对齐输入数据维度。
-- `sta_v_1d`：从一维 STATIC 相空间密度计算离子速度、流速和密度。
-- `get_quality_flag`、`compare_quality`：提取并判定质量标志。
-- `rotate_vector_with_Matrix`：使用矩阵旋转向量。
-- `ion_eflux2F`：把离子能量通量转换为相空间密度。
-- `sphere2xyz_for_STATIC`、`xyz2sphere_for_STATIC`、`sphere2xyz`：STATIC 相关球坐标与笛卡尔坐标转换。
-- `ion_energy2v`、`ion_v2energy`：离子能量与速度互相换算。
-
-### `MAVEN_data/MAVEN_SWIA.jl`
-
-- `get_3dc!`、`get_3df!`：分别整理 SWIA coarse/fine 三维分布及其坐标信息。
-- `n_3d`、`j_3d`、`v_3d`：由 SWIA 三维分布计算数密度、通量和速度。
-- `n_1d`：从 SWIA 一维扫描谱计算数密度。
-- `rotate_vector_with_Martrix`：用旋转矩阵变换向量。
-- `sphere2xyz_for_SWIA`、`xyz2sphere_for_SWIA`：SWIA 球坐标和笛卡尔坐标转换。
-- `eflux2df!`、`ion_eflux2F`：能量通量到相空间密度的转换。
-- `ion_energy2v`、`ion_v2energy`：离子能量和速度换算。
-
-### `MAVEN_data/MAVEN_SWEA.jl`
-
-- `n1d`：从 SWEA 一维能谱计算电子数密度。
-- `load_quat`：读取 IDL 导出的姿态四元数。
-- `rotate_vector_with_Martrix`：通过旋转矩阵变换向量。
-- `eflux2df!`、`ion_eflux2F`：能量通量到相空间密度的转换。
-- `sphere2xyz_for_SWIA`、`xyz2sphere_for_SWIA`：球坐标和笛卡尔坐标转换辅助函数（保留源码中的函数名）。
-- `ion_energy2v`、`ion_v2energy`：离子能量和速度换算。
-
-### `MAVEN_data/MAVEN_plot.jl`（已包化为子模块 `MarsData.MAVEN_plot`）
-
-> 该文件作为子模块被 `src/MarsData.jl` 载入，`using MarsData` 后其导出基元直接可用。
-
-- `vspan_plot`：在时间序列坐标轴上绘制布尔区间。
-- `sta_heatmap_test`、`sta_heatmap`：绘制 STATIC 能量/角度分布热图。
-- `STA_2d_slip`：生成 STATIC 二维切片图；内部 `remove_repeat_points` 去重、`filter_points_optimized` 筛选有效点、`color_mapping` 映射色标、`slice2d_cal_rot` 计算切片旋转。
-- `VDF_2d_slip`：绘制速度分布函数二维切片及辅助边界；内部 `remove_repeat_points`、`filter_points_optimized`、`color_mapping` 和 `slice2d_cal_rot` 分别负责点去重、筛选、着色和旋转。
-- `VDF_2d_mask`：绘制带速度空间遮罩的分布图；内部 `get_triangle_mesh` 构建网格，`rotate_func` 转换坐标，`graham_scan`（含方向判定 `ccw`）求投影点凸包，`get_shadow_boundary_polar` 生成遮挡边界，`cartesian_to_polar` 转换极坐标。
-- `SWEA_PAD_heatmap`：绘制 SWEA 俯仰角分布热图。
-- `WaveSpectra_heatmap`：绘制波动频谱热图。
-- `Orbit`：绘制航天器轨道及相关边界/磁场线。
-- `PAD_slice`、`PAD_slice_polar`、`PAD_slice_velocity`：分别在能量-俯仰角、极坐标能量和速度坐标中绘制 PAD 切片。
-- `time2x`：将时间转换为绘图用 Unix 时间并裁剪到给定范围。
-- `time_ticks`：按指定间隔生成时间轴刻度。
-- `interpolate_x_ticks`：根据不等距数据位置插值生成横轴刻度；内部 `find_monotonic_intervals` 查找单调区间。
-- `logticks`：根据输入数值生成对数坐标刻度标签。
-- `vector_angle`：计算二维向量夹角。
-- `Vandermonde`、`polynomial_fit`：构造 Vandermonde 矩阵并进行多项式拟合。
-- `eflux2F`：将电子能量通量转换为相空间密度。
-- `bowshock`、`magnetopause`：计算绘图用火星弓形激波和磁层顶模型边界。
-
-### MAVEN 数据构建脚本
-
-- [`Build_data/KP重构为cdf.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/KP重构为cdf.py)：`get_list_from_ini` 解析配置列表；`download_model` 获取产品文件；`parse_kp_version`、`parse_kp_date` 解析版本和日期；`pick_and_clean_kp_files` 选择并清理重复产品；`build_kp_colspecs` 建立 KP 列定义；`convert_kp_to_cdf` 转换 KP 数据为 CDF。
-- [`Build_data/磁场重构为CDF文件.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/磁场重构为CDF文件.py)：`get_list_from_ini` 解析配置；`download_model` 获取文件；`parse_pds_header_and_data` 解析 PDS 文本头和数据；`convert_pds_to_cdf` 转换为 CDF，内部 `row_to_datetime` 解析逐行时间。
-- [`Build_data/build_vsc.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/build_vsc.jl)：`get_vsc` 使用 MAG 位置数据构造航天器速度；内部 `quadratic_fitted_derivative` 计算二次拟合曲线导数，`data2bi` 保存结果。
-- [`Build_data/STATIC_VD.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_VD.jl)：`get_ion_vel` 结合航天器速度和离子数据计算速度、通量、密度；`data2bi` 写出二进制产品；顶层流程批量生成 STATIC 派生产品。
-- [`Build_data/STATIC_vfd_3d.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_vfd_3d.jl)：`get_ion_vel` 由 c6 数据计算一维速度、通量和密度；`data2bi` 写出二进制产品。
-- [`Build_data/ngi整合.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/ngi整合.jl)：合并同一天的多份 NGIMS L3 文件。
-- [`Build_data/get_quats.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/get_quats.pro)：通过 SPEDAS 获取 MAVEN 仪器姿态四元数。
-- [`Build_data/sc_pot.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/sc_pot.pro)：配置 SPEDAS/CDF 数据环境并演示航天器电势数据读取。
-- [`build_read_me.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/build_read_me.py)：从数据格式 JSON 生成产品列表说明。
-
-## MGS 与天问数据
-
-### `MGS_data/MGS_load.jl`
-
-- `get_data_from_line_for_mag_read`：解析 MGS 磁场文本记录。
-- `load_mag`：读取 MGS 磁场文件。
-- `caculate_mag`：计算指定位置的 MGS 磁场及位置辅助量；内部 `c_alt`、`c_local_time`、`c_latitude` 分别计算高度、地方时和纬度。
-- `read_list`：读取 MGS 数据文件清单。
-
-### `TW_data/TW_load.jl`
-
-- `load_mag_2c_bydlm`：读取天问磁场数据文件。
-- `calculate_mag`：计算指定位置的磁场及位置辅助量；内部 `c_alt`、`c_local_time`、`c_latitude` 分别计算高度、地方时和纬度。
-- `get_spc2mso_rot_matrix_via_2c`：依据读取的磁场/姿态数据取得坐标旋转矩阵。
-- `read_list`：读取天问数据文件清单。
-
-### `TW_data/TW_MINPA.jl`
-
-- `build_file_list`、`read_list`：构建并读取 MINPA 文件清单。
-- `load_mod1`：读取 MINPA mod1 数据文件。
-- `ion_energy2v`、`ion_v2energy`：离子能量与速度换算。
-- `MINPA_sphere2xyz`、`MINPA_xyz2sphere`：MINPA 仪器坐标的球坐标与笛卡尔坐标转换。
-- `MINPA_energy2v`：提取指定质量数对应的速度分布。
-- `MINPA_get_psd`：由角度、能量和质量数据计算相空间密度。
-- `v3d`、`v3d_single`：计算完整数据或指定时刻的三维速度分布。
-- `slice2d_cal_rot`：根据两个方向向量计算二维切片旋转关系。
-
-## 磁场与公共计算
-
-### `Magnetic_Model/IGRF_calculate.jl`
-
-- `pc2sphere`、`sphere2pc`：行星笛卡尔坐标与球坐标互转。
-- `Bsphere2pc`、`Bpc2sphere`：磁场矢量在球坐标与笛卡尔坐标间转换。
-- `CALCULATE_SCHMIDT_COEFFICIENTS`：生成球谐展开所需 Schmidt 系数。
-- `read_gh`：读取磁场球谐系数。
-- `IGRF_fortran_free`、`IGRF_fortran`：调用 Fortran 磁场计算核心。
-- `RK4_Trace_fortran`：调用 Fortran RK4 磁力线追踪步进。
-- `IGRF_pc`、`IGRF`：计算指定笛卡尔或球坐标位置的磁场。
-- `mag_trace_rk4_fortran_ADAPTIVE_STEP`：以可变步长 RK4 追踪磁力线。
-- `mag_trace_rk4`、`mag_trace_Euler_step`：以固定步长 RK4 或 Euler 方法追踪磁力线。
-- `combina_two_dir_trace`：合并两个反向追踪结果为一条定向磁力线。
-- `get_mag_line_s`：计算标准磁力线数据中的沿线距离。
-- `trace_mag_line`：按输入/输出坐标系设置追踪磁力线。
-- `set_B_compress`：更新压缩磁场数据的系数。
-
-### `common/function_coordinate.jl`
-
-- `slice2d_cal_rot`：由两个方向向量计算二维切片旋转。
-- `rotate_vector_with_Matrix`：用矩阵旋转向量。
-- `pa_xyz2sphere`、`pa_sphere2xyz`：俯仰角坐标和笛卡尔坐标互转。
-- `STATIC_xyz2sphere`、`STATIC_sphere2xyz`：STATIC 仪器坐标转换。
-- `MINPA_sphere2xyz`、`MINPA_xyz2sphere`：MINPA 仪器坐标转换。
-- `bowshock_zero`：求弓形激波模型在指定位置的零值/边界交点。
-
-### `common/head.jl`
-
-- `find_time`：查找最接近目标时刻的索引。
-- `safe_log_mean`：计算适用于对数数据的安全均值。
-- `mars_sun_dist_phys`：根据太阳经度估算火星日心距离。
-- `ion_v2energy`、`ion_energy2v`：离子速度与能量互换。
-- `color_mapping`：把数值映射到绘图颜色范围。
-- `skipnan`、`nozeros`：过滤 NaN 或替换零值。
-- `geomean`：计算几何平均。
-- `find_range`、`find_time_range`：查找数值区间或时间区间对应的数据范围。
-- `get_normal_plane`：由法向量构造平面表示。
-- `get_angle`：计算两个向量的夹角。
-- `bowshock`、`magnetopause`：计算火星弓形激波和磁层顶模型位置。
-- `get_log_ticks`：生成对数坐标刻度。
-- `solve_func`：用二分法求解一元函数零点。
-- `get_bowshock_normal`：计算弓形激波表面法向量。
-
-### `calculate/calculate_models.jl` 与 `call_fortran_dll.jl`
-
-- `Matrix_Rot`、`rotation_matrix`：通过矩阵或角度构造坐标旋转。
-- `Quaternion_Rot`、`Quaternion_Rot_reverse`：使用四元数执行正向或逆向向量旋转。
-- `eflux2F`：将能量通量转换为相空间密度。
-- `Doppler_Shift`：计算运动参考系中的波频率偏移。
-- `energy2v`：按粒子类型和质量数将能量换算为速度。
-- `escape_energy`：计算指定行星和粒子质量对应的逃逸能量。
-- `cyclotron_radius`、`cyclotron_frequency`：计算回旋半径和回旋频率。
-- `Linear_fit`：执行线性拟合。
-- `cold_plasma_linear_growth`：调用 Fortran 例程计算冷等离子体线性增长率。
-- `Bspline_db1ink`、`Bspline_db1var`：准备 B 样条插值数据并执行单点插值。
-
-## 物理与几何模型
-
-### `models/Cold_Plasma_Dispersion_Relation.jl`
-
-- `set_particles`：设置电子/离子组分及归一化参数。
-- `get_Πe`：由电子密度计算电子等离子体频率。
-- `Dispersion_Relation`：按冷等离子体色散关系计算折射率。
-- `DR_wave_vector`、`DR_phase_velocity`：由折射率和频率计算波矢、相速度。
-- `carculate_minimum_energy`：计算给定波模条件下的共振粒子最小能量。
-- `alfven_weve`：计算 Alfvén 速度。
-
-### `models/Maxwellian_distribution.jl`
-
-- `velocity_distribution`、`velocity_density_distribution`：计算归一化或含密度的 Maxwell 分布。
-- `fit_velocity_distribution`、`fit_velocity_density_distribution`：对速度分布数据执行拟合。
-- `fit_velocity_distribution_nonlinear`：使用非线性方法拟合分布；内部 `log_maxwellian_model` 提供对数空间模型。
-
-### `models/Single_Particle_Orbit.jl`
-
-- `TimeFormat`：构造轨道求解所需的时间采样序列。
-- `dvdt`：计算带电粒子的速度变化率。
-- `cross3`：计算三维向量叉积。
-- `solve_orbit`、`solve_orbit_ode`：分别通过迭代或 DifferentialEquations 求解粒子轨道；ODE 内部函数 `ODE!` 描述微分方程。
-- `cyclotron_radius`：计算粒子回旋半径。
-- `ion_energy2v`、`ion_v2energy`、`energy2v`：离子或电子能量/速度换算。
-- `ion_alvfen`：计算离子 Alfvén 速度。
-
-### `models/Pickup_ion.jl`
-
-- `func_E_range`：按对数间隔生成能量分箱。
-- `get_3d_slip_data_from_ins_FOR_PICKUP`：从选定仪器读取拾取离子分析所需三维切片。
-- `get_pickup_point`：从角度和能量网格中高效提取指定拾取分布点。
-
-### `models/Graham.jl`、`models/Octree.jl`
-
-- `graham_scan!`：原地执行 Graham 凸包扫描；内部 `ccw` 判断三点转向。
-- `graham_scan_for_orbit`：从轨道点构造凸包。
-- `OctreeNode`：构造八叉树节点。
-- `build_octree!`：按空间判定函数递归细分八叉树。
-- `get_min_bounding_box`：依据空间判定函数计算最小包围盒；内部 `find_boundaries` 搜索边界。
-- `is_sphere`：判定点是否位于球形区域。
-
-### `support_data/support_data_load.jl`
-
-- `load_omni2_data`：读取 OMNI2 太阳风数据。
-- `load_drivers_merge_data`：读取并合并已有的太阳风驱动参数；内部 `row_to_datetime` 将年积日和时分转换为时间。
-
-## 下载和文件维护
-
-### `download_data/MAVEN_download.py`
-
-- `get_list_from_ini`：解析 INI 中的逗号分隔配置项。
-- `sleep_local`：显示等待进度并暂停。
-- `test_proxies`：测试数据服务器或代理连通性。
-- `search_url`：在服务器目录中查找匹配文件。
-- `download_unit_convert`：格式化下载字节数。
-- `requests_download`：使用 HTTP 请求下载单个文件。
-- `idm_add_download_links`、`aria2_download`：将下载任务提交给外部下载器。
-- `download_model`：按产品配置执行下载流程。
-- `find_downloaded_file`：在文件清单中定位已下载项目。
-- `read_last_line_large_file`：从大文件尾部读取最后一行。
-- `file_check`：检查下载文件存在性和有效性。
-- `get_element_from_filename`：解析文件名中的版本等字段。
-- `search_downloaded_files`：搜索匹配数据产品的本地文件。
-- `month_delta`：推进到下一个月的起始日期。
-- `download_from_head`：根据目录索引继续发现并加入下载链接。
-
-### 其他 `download_data` 脚本
-
-- [`download_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/download_files.py)：`get_list_from_ini` 解析配置；`sleep_local` 显示等待；`test_proxies` 测试代理；`search_url` 检索服务器文件；`requests_download` 下载文件；`find_downloaded_file` 匹配本地文件；`print_download_statue` 输出状态统计；`add_urls` 写入待下载链接。
-- [`check_exist_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/check_exist_files.py)：`get_list_from_ini` 解析配置；`download_model` 读取产品配置；`search_downloaded_files` 检查指定目录中的文件。
-- [`clean_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/clean_files.py)：`get_list_from_ini` 解析配置；`clean_pydownload_files` 清理未完成下载文件。
-- [`compress_cdf.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/compress_cdf.py)：`check_if_compressed` 判断压缩状态；`compress_single_cdf` 压缩单个 CDF；`batch_compress_cdf_files` 批量处理目标目录。
-- [`移除重复文件中的低版本文件.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/移除重复文件中的低版本文件.py)：`get_list_from_ini` 解析配置；`download_model` 获取文件列表；`parse_file_info` 解析文件名产品/版本信息；`remove_low_version_files` 按版本识别重复项并支持 dry-run。
-- [`get_all_orbit.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/get_all_orbit.jl)：`get_data` 读取轨道数据；`time_by_orbits` 按轨道号筛选时间范围；`val_combine` 合并多组轨道数据。
-- [`get_download_files.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/get_download_files.py)：扫描数据目录并生成下载文件清单。
-- [`initialize_download_parameters.py`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/download_data/initialize_download_parameters.py)：首次生成 MAVEN 下载配置文件。
-
-## 示例程序
-
-概览绘图流程已**包化进 `MarsData`**：`TimeFormat`（时长字符串）、`remove_0_point!`（非正绘图值置 NaN）、`plot_module`（多仪器时间序列面板）定义于 [`src/plotting.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/src/plotting.jl)，随 `using MarsData` 可用；绘图基元来自子模块 `MarsData.MAVEN_plot`。
-
-[`MAVEN_overview_cases.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/example/MAVEN_plot_sample/MAVEN_overview_cases.jl) 与 [`MAVEN_overview_plot_sample.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/example/MAVEN_plot_sample/MAVEN_overview_plot_sample.jl) 只保留数据准备部分：`mag2sphere` 转换磁场分量；`get_data` 读取所需产品（KP 用 `load_kp` + 坐标变换矩阵）；`get_B_model_ss` 计算模型磁场；随后调用 `MarsData.plot_module` 绘图。
-
-## 其他无函数入口文件
-
-- [`models/constants.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/constants.jl)：模型共享的基本物理常量。
-- [`requirement.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/requirement.jl)：Julia 依赖包名称列表。
-- [`tools/robocopy.ps1`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/tools/robocopy.ps1)：按规则在数据盘之间复制文件。
-- [`MAVEN_data/Build_data/STATIC_VD.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_VD.jl)、[`STATIC_vfd_3d.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/STATIC_vfd_3d.jl)、[`ngi整合.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/ngi整合.jl)、[`get_quats.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/get_quats.pro)、[`sc_pot.pro`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/Build_data/sc_pot.pro)：由顶层流程完成 STATIC 产品构建、NGIMS 合并、姿态数据提取和电势数据读取，没有单独导出的 Julia/Python 函数 API。
+| `martian_pipeline/`、`python -m martian_pipeline` | 统一 CLI 入口（扫描、检查与维护） |
+| `download_data/MAVEN_download.py` | MAVEN 数据下载，并在完成后触发扫描刷新 |
+| `config/`、`tools/migrate_config.py` | 配置读取与旧 INI 到 TOML 的显式迁移 |
+| `martian_pipeline/inventory.py`、`tools/scan_and_index.py` | 本地文件扫描、产品清单和索引生成 |
+| `tools/push_wiki.py`、`MAVEN_data/build_read_me.py` | Wiki 页面发布与数据产品说明生成 |
+
+## Julia 源码索引
+
+仅索引模块定义与顶层函数定义（包括短定义）；函数体内的局部函数和 lambda 不列入。用途摘录限于已有 docstring 首句，没有 docstring 的条目不推断语义。`export` 标记按扫描文件中的静态声明和完整模块作用域聚合（包括跨文件 include 关系）；不推断运行期生成的导出。源码链接使用 GitLab 仓库绝对 URL，只指向文件，不依赖行号。
+
+### [`MAVEN_data/MAVEN_STATIC.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_STATIC.jl)
+
+模块：`MAVEN_STATIC`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MAVEN_STATIC.STA_count2df` | — | 把 STATIC 单时刻计数数据换算为相空间密度（df）。 |
+| `MAVEN_STATIC.STA_count2df_all` | — | 对 c6/d1 全时段计数数据一次性换算为相空间密度（df）。 |
+| `MAVEN_STATIC.STA_count2eflux` | — | 把 STATIC 单时刻计数数据换算为能量通量（eflux）。 |
+| `MAVEN_STATIC.STA_count2eflux_all` | — | 对全时段计数数据一次性换算为能量通量（eflux）。 |
+| `MAVEN_STATIC.STA_count3df` | — | 把 c6 数据包（含时间轴）换算为 3D（time×mass×energy）相空间密度。 |
+| `MAVEN_STATIC.STA_eflux2df` | — | 把 STATIC 能量通量数据换算为相空间密度（df）。 |
+| `MAVEN_STATIC.compare_quality` | — | 判断质量标志是否命中指定的无效标志位集合。 |
+| `MAVEN_STATIC.get_quality_flag` | — | 把整数质量标志位解码为 16 元素的布尔元组。 |
+| `MAVEN_STATIC.sta_n_4d` | — | 由 STATIC 切片仅计算离子密度。 |
+| `MAVEN_STATIC.sta_v_1d` | — | 由 c6 的 3D 相空间密度计算全时段一维离子速度、通量与密度时间序列。 |
+| `MAVEN_STATIC.sta_v_4d` | — | 由 STATIC 切片（3D：mass×bins×energy）计算离子速度、通量与密度。 |
+| `MAVEN_STATIC.static_c6_energy_mean` | — | 对 c6 的 3D（不含角度）数据在能量维度做筛选求和，得到 EFlux–mass 谱。 |
+| `MAVEN_STATIC.static_c6_mass_mean` | — | 对 c6 的 3D（不含角度）数据在质量维度做筛选求和，得到 EFlux–energy 谱。 |
+| `MAVEN_STATIC.static_rotation` | — | 把 STATIC 切片的角度网格与磁场矢量旋转到指定坐标系（MSO 或 SC）。 |
+| `MAVEN_STATIC.static_slip` | — | 取得 STATIC 数据在指定时刻的切片（不做时间插值）。 |
+| `MAVEN_STATIC.static_slip_2_V` | — | 把 STATIC 切片投影到速度空间网格（含航天器速度平移）。 |
+
+### [`MAVEN_data/MAVEN_SWEA.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_SWEA.jl)
+
+模块：`MAVEN_SWEA`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MAVEN_SWEA.SWEA_calc_shape_arr` | — |  |
+| `MAVEN_SWEA.SWEA_calc_shape_arr_mars_towrads` | — | 计算 SWEA shape parameter 并区分"指向火星(toward)"与"背离火星(away)"。 |
+| `MAVEN_SWEA.carclu_SWEA_pad` | — | 对 SWEA PAD 数据按能量窗做加权归并。 |
+| `MAVEN_SWEA.load_quat` | — | 读取 IDL 导出的 CSV 姿态数据（ut + 4 个矩阵元素）。 |
+| `MAVEN_SWEA.n1d` | — | 由 SWEA 电子能谱计算电子数密度（cm⁻³）。 |
+
+### [`MAVEN_data/MAVEN_SWIA.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_SWIA.jl)
+
+模块：`MAVEN_SWIA`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MAVEN_SWIA.get_3dc!` | — | 把 SWIA coarse 3D 原始数据整理为标准四维（time×anode×deflect×energy）网格。 |
+| `MAVEN_SWIA.get_3df!` | — | 把 SWIA fine 3D 原始数据整理为标准四维网格（含能量/偏转步数裁剪）。 |
+| `MAVEN_SWIA.j_3d` | — | 按指定的时间索引计算 SWIA 质子通量矢量（cm⁻²s⁻¹）。 |
+| `MAVEN_SWIA.n_1d` | — | 由 SWIA svy spec（一维能谱）计算质子密度（cm⁻³）。 |
+| `MAVEN_SWIA.n_3d` | — | 按指定的时间索引计算 SWIA 质子密度（cm⁻³）。 |
+| `MAVEN_SWIA.v_3d` | — | 按指定的时间索引计算 SWIA 质子速度、通量与密度（已通过校验）。 |
+
+### [`MAVEN_data/MAVEN_load.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_load.jl)
+
+模块：`MAVEN_load`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MAVEN_load._file_index` | — |  |
+| `MAVEN_load.change_kp_read_data` | — | 重设 KP 变量的列映射表。 |
+| `MAVEN_load.convert_kp_l3` | — | 把 KP L3 原始字典转换为便于使用的规范字典。 |
+| `MAVEN_load.file_list` | — | 获取指定模型在本地已下载的全部文件绝对路径。 |
+| `MAVEN_load.filename_list` | — |  |
+| `MAVEN_load.find_file_of_data` | — | 在指定模型的本地文件中按日期匹配目标文件。 |
+| `MAVEN_load.find_segments` | — | 在布尔掩膜 `y` 中提取所有连续 `true` 段的起止横坐标。 |
+| `MAVEN_load.get_orbits` | — | 读取 `orbit_time_range.txt`，返回各轨道的编号与起止时间。 |
+| `MAVEN_load.load_MAVEN_data` | `export` | 按日期统一调度并加载多个仪器的数据（顶级调度函数）。 |
+| `MAVEN_load.load_NGIMS_den_l3` | — | 读取 NGIMS L3 日产品密度表。 |
+| `MAVEN_load.load_NGIMS_den_l4` | — | 读取 NGIMS L4 日产品密度表（JLD2 格式）。 |
+| `MAVEN_load.load_NGIMS_sht_l3` | — | 读取 NGIMS L3 重采样标高表。 |
+| `MAVEN_load.load_c6_v3d` | — | 读取 STATIC c6 三维（离子速度/通量/密度）数据（JLD2 格式）。 |
+| `MAVEN_load.load_cdf` | — | 读取 CDF 数据文件并全部载入内存为字典。 |
+| `MAVEN_load.load_d1_v4d` | — | 读取 STATIC d1 四维（离子速度/通量/密度）Fortran 无格式数据。 |
+| `MAVEN_load.load_kp` | — | 读取 KP 文本文件（可选解析坐标变换矩阵）。 |
+| `MAVEN_load.load_mag_l2` | — | 读取并解析 MAVEN MAG L2 文本磁场文件。 |
+| `MAVEN_load.load_mag_vsc` | — | 读取 Fortran 无格式文件中的航天器速度与位置数据。 |
+| `MAVEN_load.load_quat` | — | 读取 IDL 导出的四元数 CSV 文件。 |
+| `MAVEN_load.load_swea_pad` | — | 读取 SWEA PAD CDF 文件，并可选合并俯仰角数据。 |
+| `MAVEN_load.mean_SWEA_pad_pa` | `export` | 把 SWEA PAD 的 360°（16 方向）俯仰角数据平均为 180°（8 方向）。 |
+| `MAVEN_load.show_load_models` | — | 列出当前已注册可读取的所有数据模型名称。 |
+
+### [`MAVEN_data/MAVEN_plot.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MAVEN_data/MAVEN_plot.jl)
+
+模块：`MAVEN_plot`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MAVEN_plot.Orbit` | `export` | 绘制航天器轨道、火星投影及弓形激波/磁层顶边界。 |
+| `MAVEN_plot.PAD_slice` | `export` | 绘制能量分箱下的俯仰角相空间密度切片。 |
+| `MAVEN_plot.PAD_slice_polar` | `export` | 以极坐标（能量分量）绘制俯仰角分布切片。 |
+| `MAVEN_plot.PAD_slice_velocity` | `export` | 将俯仰角分布映射到平行/垂直速度平面绘图。 |
+| `MAVEN_plot.STA_2d_slip` | `export` | 在指定二维切面上绘制 STATIC 速度分布（df）切片。 |
+| `MAVEN_plot.SWEA_PAD_heatmap` | `export` | 绘制 SWEA 俯仰角分布随时间变化的热图。 |
+| `MAVEN_plot.VDF_2d_mask` | — | 绘制速度范围遮罩与投影边界。 |
+| `MAVEN_plot.VDF_2d_slip` | — | 把任意三维速度分布投影到指定二维切面绘制。 |
+| `MAVEN_plot.WaveSpectra_heatmap` | — | 绘制给定频率范围内的波动功率谱热图（强制对数纵轴）。 |
+| `MAVEN_plot.bowshock_plot_nan64` | — | 返回绘图用弓形激波模型边界（Edberg 2008）的纵坐标。 |
+| `MAVEN_plot.color_mapping_lut` | — | 把连续数值场**线性量化**为 `1–256` 的整数索引，用于自定义色标查找表（colormap LUT）或 |
+| `MAVEN_plot.get_log_ticks` | — | 为**对数坐标轴**生成刻度位置与对应的富文本标签（如 `10ⁿ` 形式）。 |
+| `MAVEN_plot.interpolate_x_ticks` | — | 把 `y` 通过分段插值映射到新的横坐标 `xd` 上，用于把刻度标签映射到非单调的时间轴。 |
+| `MAVEN_plot.logticks` | — | 生成以 10 为底的指数刻度位置与标签。 |
+| `MAVEN_plot.magnetopause_plot_nan64` | — | 返回绘图用磁层顶模型边界的纵坐标。 |
+| `MAVEN_plot.sta_heatmap` | `export` | 绘制已准备好的 STATIC 能谱热图数据。 |
+| `MAVEN_plot.sta_heatmap_test` | — | 从 STATIC 数据字典绘制能量分布热图。 |
+| `MAVEN_plot.time2x` | `export` | 把时间序列裁剪到指定范围并转为相对 Unix 时间戳。 |
+| `MAVEN_plot.time_ticks` | `export` | 生成时间范围内以固定步长取样的刻度位置与标签。 |
+| `MAVEN_plot.vspan_plot` | — | 根据布尔时间序列在坐标轴上绘制区间色带。 |
+
+### [`MGS_data/MGS_load.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/MGS_data/MGS_load.jl)
+
+模块：`MGS_load`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MGS_load.get_data_from_line_for_mag_read` | — | 解析单条 MGS 磁场文本记录中的时间、磁场与位置。 |
+| `MGS_load.load_mag` | — | 读取并解析指定的 MGS 磁场数据文件。 |
+| `MGS_load.read_list` | — |  |
+
+### [`TW_data/TW_MINPA.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/TW_data/TW_MINPA.jl)
+
+模块：`TW_MINPA`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `TW_MINPA.MINPA_energy2v` | — | 由能量、角度与质量数网格计算速度空间网格（单位 km/s），并完成视场方向反号。 |
+| `TW_MINPA.MINPA_get_psd` | — | 由微分方向通量计算相空间密度（PSD）并原地写入 `dat[:psd]`。 |
+| `TW_MINPA.MINPA_sphere2xyz` | — | 将 MINPA 仪器球坐标 `(r, θ, ϕ)` 转换为笛卡尔向量（弧度制输入）。 |
+| `TW_MINPA.MINPA_xyz2sphere` | — | 将笛卡尔向量反算为 MINPA 仪器球坐标 `(r, θ, ϕ)`（弧度制输出），是 `MINPA_sphere2xyz` 的逆变换。 |
+| `TW_MINPA.build_file_list` | — | 扫描 MINPA 数据目录并构建 `MINPA_list.txt` 文件清单。 |
+| `TW_MINPA.load_mod1` | — | 读取并解码指定的 MINPA mod1 数据文件，补齐质量数、能量、极角与方位角网格。 |
+| `TW_MINPA.read_list` | — | 读取 MINPA 本地文件清单（`MINPA_list.txt`）并拼上根目录，返回完整路径。 |
+| `TW_MINPA.slice2d_cal_rot_matrix` | — | 根据两个方向向量计算二维切片的局部坐标系旋转矩阵。 |
+| `TW_MINPA.v3d` | — | 由全时段 MINPA 数据积分得到三维速度、通量与密度时间序列。 |
+| `TW_MINPA.v3d_single` | — | 对单个时刻的 MINPA 切片积分得到三维速度、通量与密度。 |
+
+### [`TW_data/TW_load.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/TW_data/TW_load.jl)
+
+模块：`TW_load`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `TW_load.get_spc2mso_rot_matrix_via_2c` | — |  |
+| `TW_load.load_mag_2c_bydlm` | — | 读取并整理天问一号磁场 2C 数据文件（文本格式，前 19 行为表头）。 |
+| `TW_load.read_list` | — | 读取天问磁场本地文件清单（`mag_list.txt`）并拼上根目录，返回完整路径。 |
+
+### [`analysis/Pickup_ion.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/analysis/Pickup_ion.jl)（脚本/附加代码；非 `load_module`）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `func_E_range` | — | 由中心能量 `E` 与能量分辨率 `dE` 计算**对数等分**的能量区间上下限。 |
+| `get_3d_slip_data_from_ins_FOR_PICKUP` | — | 从仪器（SWI / STATIC / MINPA）数据中提取**单个时刻的三维速度切片**，并统一为标准化的 |
+| `get_pickup_point` | — | 把三维速度空间中需保留的**采样点**映射回仪器网格索引，返回可用于快速查找的索引元组列表。 |
+| `σex` | — |  |
+
+### [`call_fortran_dll.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/call_fortran_dll.jl)
+
+模块：`Call_fortran_dll`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `Call_fortran_dll.Bspline_db1ink` | — | 调用 Fortran B 样条例程生成一维插值系数。 |
+| `Call_fortran_dll.Bspline_db1var` | — | 调用 Fortran B 样条例程做单点插值。 |
+| `Call_fortran_dll._bspline_dll_path` | — |  |
+| `Call_fortran_dll._linear_growth_rate_dll_path` | — |  |
+| `Call_fortran_dll.cold_plasma_linear_growth` | — | 调用 Fortran 例程计算冷等离子体线性增长率。 |
+
+### [`common/MarsCommon.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/MarsCommon.jl)
+
+模块：`MarsCommon`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsCommon.doppler_shift` | `export` | 计算考虑**航天器运动**后的等离子体波频率（多普勒修正），返回**角频率**。 |
+| `MarsCommon.e_energy2v` | `export` | 将电子动能（自**静质量起算**）换算为**相对论速度**，单位 m/s。 |
+| `MarsCommon.eflux_to_df!` | `export` | **原地**为 SWIA / SWEA 数据字典补充分布函数 `:df`（由微分能通量换算得到）。 |
+| `MarsCommon.electron_eflux_to_psd` | `export` | 将**电子能通量（energy flux）**转换为**相空间密度（Phase Space Density, PSD）**。 |
+| `MarsCommon.ion_eflux_to_psd` | `export` | 将**离子能通量**转换为**相空间密度（PSD）**，使用精确的相对论动量公式。 |
+| `MarsCommon.ion_eflux_to_psd_approx` | `export` | 使用**速度幂次近似式**将离子能通量换算为相空间密度（PSD），与仪器（SWIA/STATIC）常用的 |
+| `MarsCommon.ion_energy2v` | `export` | 将离子动能（自**静质量起算**）换算为**相对论速度**，单位 m/s。 |
+| `MarsCommon.ion_speed_to_energy` | `export` | 将离子**相对论速度**反算为动能，单位 eV。 |
+| `MarsCommon.position_altitude` | `export` | 由**按行堆叠**的行星笛卡尔位置计算每行对应的海拔高度（单位与输入一致，通常为 km）。 |
+| `MarsCommon.position_latitude` | `export` | 由行星笛卡尔位置计算**行星纬度**，单位度（−90°–90°）。 |
+| `MarsCommon.position_local_time` | `export` | 由行星笛卡尔位置计算**地方时（Local Solar Time, LST）**，单位小时（0–24 h）。 |
+| `MarsCommon.rotate_vector` | `export` | 使用旋转矩阵对**单个向量或按行堆叠的向量数组**执行坐标变换。 |
+| `MarsCommon.searchsortednearest` | `export` | 在**已排序的时序数据轴** `x` 中查找与目标时刻 `x0` 最接近的元素下标。 |
+| `MarsCommon.searchsortednearest_range` | `export` | 把时间区间转换成时间轴 `x` 上的连续索引范围（内部用 `searchsortednearest` 二分定位两端）。 |
+| `MarsCommon.spherical_to_cartesian` | `export` | 将**常规球坐标**（余纬自 +Z 轴起算）转换为笛卡尔分量 `(x, y, z)`。 |
+
+### [`common/constants.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/constants.jl)
+
+模块：`constants`
+
+未发现顶层函数定义。
+
+### [`common/data_keys.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/data_keys.jl)
+
+模块：`DataKeys`
+
+未发现顶层函数定义。
+
+### [`common/function_coordinate.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/function_coordinate.jl)
+
+模块：`FunctionCoordinate`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `FunctionCoordinate.MAVEN_sphere2xyz` | `export` | 将 MAVEN 仪器球坐标 `(r, theta, phi)` 转换为笛卡尔坐标。 |
+| `FunctionCoordinate.MAVEN_sphere2xyz` | `export` |  |
+| `FunctionCoordinate.MAVEN_xyz2sphere` | `export` | 将 MAVEN 仪器笛卡尔坐标转换为 `(r, theta, phi)`，角度为角度制；原点行为沿用旧公式。 |
+| `FunctionCoordinate.MAVEN_xyz2sphere` | `export` |  |
+| `FunctionCoordinate.MINPA_sphere2xyz` | `export` | 将**天问一号 MINPA 仪器坐标系**的球坐标 `(r, θ, ϕ)` 转换为笛卡尔向量，并完成 |
+| `FunctionCoordinate.MINPA_sphere2xyz` | `export` |  |
+| `FunctionCoordinate.MINPA_xyz2sphere` | `export` | 将笛卡尔向量反算为**天问一号 MINPA 仪器坐标系**球坐标 `(r, θ, ϕ)`（角度制）， |
+| `FunctionCoordinate.MINPA_xyz2sphere` | `export` |  |
+| `FunctionCoordinate._as_svector3` | — |  |
+| `FunctionCoordinate.pa_sphere2xyz` | `export` | 将**俯仰角球坐标** `(r, theta, phi)` 转换为笛卡尔向量，是 `pa_xyz2sphere` 的逆变换。 |
+| `FunctionCoordinate.pa_sphere2xyz` | `export` |  |
+| `FunctionCoordinate.pa_xyz2sphere` | `export` | 将**笛卡尔向量**转换为**俯仰角球坐标** `(r, theta, phi)`（角度制）。 |
+| `FunctionCoordinate.pa_xyz2sphere` | `export` |  |
+| `FunctionCoordinate.pc2sphere` | `export` | 将行星笛卡尔坐标 `(x,y,z)` 转为 `(r, θ, ϕ)`：余纬和经度均为弧度。 |
+| `FunctionCoordinate.pc2sphere` | `export` |  |
+| `FunctionCoordinate.rotation_matrix` | `export` | 由天顶角与方位角生成坐标旋转矩阵。 |
+| `FunctionCoordinate.slice2d_cal_rot` | `export` | 根据给定的两个向量 `v1`、`v2`，通过 Gram-Schmidt 正交化构造 **2D 切片局部坐标系**的 3D 旋转矩阵。 |
+| `FunctionCoordinate.sphere2pc` | `export` | 将 `(r, θ, ϕ)` 转为行星笛卡尔坐标；角度均为弧度，计算顺序与 |
+| `FunctionCoordinate.sphere2pc` | `export` |  |
+
+### [`common/marscommon/cyclotron.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/marscommon/cyclotron.jl)
+
+归属模块：`MarsCommon`（由 `common/MarsCommon.jl` include）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsCommon.cyclotron_frequency` | — | 计算带电粒子的回旋频率。 |
+| `MarsCommon.cyclotron_frequency_kg` | — | 计算带电粒子的回旋频率。 |
+| `MarsCommon.cyclotron_radius` | — | 计算带电粒子的回旋频率、回旋半径与速度。 |
+| `MarsCommon.cyclotron_radius_velocity` | — | 计算带电粒子的回旋半径。 |
+
+### [`common/marscommon/geometry.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/marscommon/geometry.jl)
+
+归属模块：`MarsCommon`（由 `common/MarsCommon.jl` include）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsCommon.Bpc2sphere` | `export` | 将笛卡尔坐标系下的磁场分量转换为球坐标分量，是 `Bsphere2pc` 的逆变换。 |
+| `MarsCommon.Bpc2sphere_naive` | `export` | **非等价变体**（保留原算法，不改为 `hypot`）：笛卡尔磁场分量 → 球坐标分量，半径用 |
+| `MarsCommon.Bsphere2pc` | `export` | 将球坐标系下的磁场分量转换为笛卡尔分量（纯旋转变换，不改变大小）。 |
+| `MarsCommon.get_angle` | — | 计算两个三维向量之间的**夹角**，输出**角度制**，在极小夹角下仍具有极高数值精度。 |
+| `MarsCommon.get_normal_plane` | — | 由平面的**法向量**构造该平面的两个基向量（用于把三维切片投影到二维绘图平面）。 |
+| `MarsCommon.vector_angle` | — | 计算两个向量之间的夹角（度）。 |
+
+### [`common/marscommon/numerics.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/marscommon/numerics.jl)
+
+归属模块：`MarsCommon`（由 `common/MarsCommon.jl` include）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsCommon.Linear_fit` | — | 对一维数据做最小二乘线性拟合。 |
+| `MarsCommon.Vandermonde` | — | 构造指定阶数的 Vandermonde 矩阵。 |
+| `MarsCommon.polynomial_fit` | — | 对 `y` 的对数用 n 阶多项式拟合 `x`。 |
+| `MarsCommon.solve_func` | — | 用**二分法**求解方程 `func(x) − y0 = 0`，用于求弓激波/磁堆积边界曲面在给定圆柱半径处的 |
+
+### [`common/marscommon/statistics.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/marscommon/statistics.jl)
+
+归属模块：`MarsCommon`（由 `common/MarsCommon.jl` include）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsCommon.find_range` | — | 生成布尔掩码，标记数值数组中落入闭区间 `xr` 的元素。 |
+| `MarsCommon.geomean` | — | 计算数组的**几何平均值** `exp(mean(log(x)))`，支持沿指定维度归约。 |
+| `MarsCommon.nozeros` | — | **原地**把数组中的 `0` 替换为一个极小数 `1e-20`，用于规避对数/除法运算中的奇点。 |
+| `MarsCommon.safe_log_mean` | — | 计算**正值数据的对数均值**，对 `0`、`NaN`、`Inf` 等无效值具有容错能力。 |
+| `MarsCommon.skipnan` | — | 移除数组中的 `NaN` 元素，返回仅含有限值的紧凑向量。 |
+
+### [`common/paths.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/common/paths.jl)
+
+模块：`Paths`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `Paths._load_roots` | — |  |
+| `Paths._roots_from_toml` | — |  |
+| `Paths.fortran_dll_dir` | — | Fortran DLL 定位目录（ARCH-005，只读可选键）。 |
+| `Paths.index_path` | — |  |
+| `Paths.maven_data_root` | — |  |
+| `Paths.mgs_data_root` | — |  |
+| `Paths.project_root` | — |  |
+| `Paths.tw_data_root` | — |  |
+
+### [`models/Cold_Plasma_Dispersion_Relation.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Cold_Plasma_Dispersion_Relation.jl)
+
+模块：`Cold_Plasma_Dispersion_Relation`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `Cold_Plasma_Dispersion_Relation.DR_phase_velocity` | — | 由折射率计算波的**相速度**。 |
+| `Cold_Plasma_Dispersion_Relation.DR_wave_vector` | — | 由**折射率**与频率计算波的**波数（波矢大小）** `k`。 |
+| `Cold_Plasma_Dispersion_Relation.Dispersion_Relation` | — | 显式状态版本：使用传入的 `PlasmaState` 计算冷等离子体折射率，不依赖模块全局状态。 |
+| `Cold_Plasma_Dispersion_Relation.Dispersion_Relation` | — | 求解**冷等离子体色散关系**，返回给定传播角与频率下的**折射率（实部）** `μ`。 |
+| `Cold_Plasma_Dispersion_Relation._build_plasma_state` | — |  |
+| `Cold_Plasma_Dispersion_Relation._current_state` | — |  |
+| `Cold_Plasma_Dispersion_Relation.alfven_weve` | — | 由磁场强度与等离子体**质量密度**计算 **Alfvén 速度** `v_A`。 |
+| `Cold_Plasma_Dispersion_Relation.calculate_minimum_energy` | — | `carculate_minimum_energy` 的规范拼写别名，签名与行为完全一致。 |
+| `Cold_Plasma_Dispersion_Relation.carculate_minimum_energy` | — | 计算满足**回旋共振条件**的粒子**最小能量** `E_min`。 |
+| `Cold_Plasma_Dispersion_Relation.get_Πe` | — | 由电子数密度计算**电子等离子体频率** `Πe`。 |
+| `Cold_Plasma_Dispersion_Relation.make_particles` | — | 纯函数版本：根据离子成分构建 `PlasmaState`，**不写模块全局状态**，可安全用于并行/隔离计算。 |
+| `Cold_Plasma_Dispersion_Relation.set_particles` | — | 配置多成分**冷等离子体**的成分列表，并初始化本模块的全局归一化参数（回旋频率与等离子体频率平方）。 |
+
+### [`models/IGRF_calculate.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/IGRF_calculate.jl)
+
+模块：`IGRF_calculate`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `IGRF_calculate.CALCULATE_SCHMIDT_COEFFICIENTS` | — | 预计算 IGRF 球谐展开所需的 Schmidt 准归一化因子 `SS` 与 Legendre 递推系数 `REALK`。 |
+| `IGRF_calculate.IGRF` | — | 纯 Julia 参考实现的球谐磁场求值（无动态库依赖），供校验与教学使用。 |
+| `IGRF_calculate.IGRF_fortran` | — | 调用 Fortran IGRF_110 内核计算球谐磁场，`r` 为未归一化的实际半径。 |
+| `IGRF_calculate.IGRF_fortran_free` | — | 调用 Fortran 的 IGRF_FREE 内核计算球谐磁场，输入半径必须已归一化（除以 `R_Mars`）。 |
+| `IGRF_calculate.IGRF_pc` | `export` | 在行星笛卡尔坐标处计算 IGRF/地壳磁场矢量（nT）。 |
+| `IGRF_calculate.RK4_Trace_fortran` | — | 调用 Fortran RK4_STEP 内核执行一次定步长 RK4 磁力线步进。 |
+| `IGRF_calculate.combina_two_dir_trace` | — | 把两个相反方向追踪得到的磁力线段拼接为一条完整磁力线。 |
+| `IGRF_calculate.get_mag_line_s` | — | 为磁力线结果字典原地补充沿线的弧长、海拔与磁场总强度。 |
+| `IGRF_calculate.mag_trace_Euler_step` | — | 用定步长一阶 Euler 法追踪磁力线（速度最快但精度最低）。 |
+| `IGRF_calculate.mag_trace_rk4` | — | 用 Julia 侧循环 + Fortran 单步内核执行带自适应步长的 RK4 磁力线追踪。 |
+| `IGRF_calculate.mag_trace_rk4_fortran_ADAPTIVE_STEP` | — | 用 Fortran 内核执行自适应步长 RK4 磁力线追踪，输入/输出均为球坐标。 |
+| `IGRF_calculate.pc2sphere` | — | 将行星笛卡尔坐标转为球坐标 `(r, θ, ϕ)`（θ 为与 +Z 轴的夹角，即天顶角/余纬）。 |
+| `IGRF_calculate.read_gh` | — | 从 Fortran 无格式文件 `gh_gao` 中读取 IGRF 高斯球谐系数 `GG`、`HH`。 |
+| `IGRF_calculate.set_B_compress` | — | 更新模块全局的外源磁场压缩修正参数 `B_compress`。 |
+| `IGRF_calculate.sphere2pc` | — | 将行星球坐标转为笛卡尔坐标，是 `pc2sphere` 的逆变换。 |
+| `IGRF_calculate.trace_mag_line` | `export` | 顶层磁力线追踪接口：从给定起点沿磁场双向追踪并拼接成完整磁力线。 |
+
+### [`models/Mars_Environment.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Mars_Environment.jl)
+
+模块：`MarsEnvironment`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsEnvironment.bowshock` | — |  |
+| `MarsEnvironment.bowshock_zero` | — | 求解火星**弓激波曲面**在给定 Sun-Mars 轴向坐标处的圆柱半径，并把"曲面外"的输入钳制为 `0.0`。 |
+| `MarsEnvironment.escape_energy` | — | 计算指定行星表面逃逸所需的最小粒子能量。 |
+| `MarsEnvironment.get_bowshock_normal` | — | 由给定位置与太阳风速度，计算**弓激波曲面上的局部法向反射速度**（常用于拾取离子/激波相互作用分析）。 |
+| `MarsEnvironment.magnetopause` | — |  |
+| `MarsEnvironment.mars_sun_dist_phys` | — | 根据**太阳黄经 `Ls`** 计算火星与太阳之间的瞬时距离（日火距离），单位 AU。 |
+
+### [`models/Maxwellian_distribution.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Maxwellian_distribution.jl)
+
+模块：`Maxwellian_Distribution`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `Maxwellian_Distribution.fit_velocity_density_distribution` | — | 用**线性最小二乘**拟合带数密度与漂移速度的 Maxwell 速度密度分布。 |
+| `Maxwellian_Distribution.fit_velocity_distribution` | — | 用**线性最小二乘**拟合速度模分布数据，反演 Maxwell 分布的温度等参数。 |
+| `Maxwellian_Distribution.fit_velocity_distribution_nonlinear` | — | 用**非线性最小二乘**（Levenberg–Marquardt）在对数域拟合 Maxwell 速度分布，**同时反演** |
+| `Maxwellian_Distribution.velocity_density_distribution` | — | 计算含**数密度**与**漂移速度**的 Maxwell 速度模**密度**分布 `fd(v)`。 |
+| `Maxwellian_Distribution.velocity_distribution` | — | 计算**速度模概率分布函数** `f(v)`（Maxwell–Boltzmann），单位 `1/(速度单位)`。 |
+
+### [`models/Single_Particle_Orbit.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/Single_Particle_Orbit.jl)
+
+模块：`Single_Particle_Orbit`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `Single_Particle_Orbit.B` | — |  |
+| `Single_Particle_Orbit.E` | — |  |
+| `Single_Particle_Orbit.TimeFormatMMSS` | — | 把两个时间点之差格式化为 `MM:SS.mmm` 字符串，用于进度日志。 |
+| `Single_Particle_Orbit.cross3` | — | 计算两个三维向量的**叉积** `a × b`，固定返回 `SVector{3}`。 |
+| `Single_Particle_Orbit.cyclotron_radius` | `export` | 由磁场强度与速度计算粒子的**回旋频率**、**回旋半径**，并回传速度。 |
+| `Single_Particle_Orbit.dvdt` | — | 计算带电粒子在电磁场中的**加速度** `dv/dt = mq·(E + v × B)`（洛伦兹力方程）。 |
+| `Single_Particle_Orbit.ion_alvfen` | — | 由数密度与磁场强度计算** Alfvén 速度**。 |
+| `Single_Particle_Orbit.solve_orbit` | `export` | 用**定步长 RK4** 积分带电粒子在给定电磁场中的完整轨道，返回速度、位置、磁场与弧长等时间序列。 |
+| `Single_Particle_Orbit.solve_orbit_ode` | `export` | 用 **DifferentialEquations.jl 的自适应求解器（Tsit5）**求解粒子轨道，适合需要高精度或变步长的场景。 |
+
+### [`models/extras/Graham.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/extras/Graham.jl)（脚本/附加代码；非 `load_module`）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `graham_scan!` | — | 对二维点集执行 **Graham 扫描（凸包算法）**，**原地**重排 `points` 并返回凸包顶点序列。 |
+| `graham_scan_for_orbit` | — | 从轨道位置序列中提取**二维凸包**，返回可用于绘图的多边形边界点坐标。 |
+
+### [`models/extras/Octree.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/extras/Octree.jl)（脚本/附加代码；非 `load_module`）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `build_octree!` | — | 根据区域判定函数**递归细分**八叉树节点，标记哪些节点位于目标区域内部。 |
+| `get_min_bounding_box` | — | 根据区域判定函数，用八叉树搜索并返回目标的**最小轴对齐包围盒**（AABB）。 |
+| `is_sphere` | — | 判断给定点是否位于**单位球**内（本文件用于验证八叉树的示例区域判定函数）。 |
+
+### [`src/MarsData.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/src/MarsData.jl)
+
+模块：`MarsData`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsData.data_model` | — |  |
+| `MarsData.index_path` | — |  |
+| `MarsData.load_index` | — |  |
+| `MarsData.load_registry` | — |  |
+| `MarsData.maven_data_root` | — |  |
+| `MarsData.mgs_data_root` | — |  |
+| `MarsData.project_root` | — |  |
+| `MarsData.tw_data_root` | — |  |
+
+### [`src/modules.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/src/modules.jl)
+
+归属模块：`MarsData`（由包入口 include）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsData.Base.showerror` | — |  |
+| `MarsData._apply_allow!` | — | 按白名单把 `into` 命名空间内的模块 `name` 的指定名字逐名引入。 |
+| `MarsData._carrier` | — | 返回（并按需创建）**运行时载体模块**，所有被装载模块都在其中求值。 |
+| `MarsData._editdistance` | — |  |
+| `MarsData._spec` | — |  |
+| `MarsData._spec_of` | — |  |
+| `MarsData._topo_order` | — |  |
+| `MarsData._unknown_message` | — |  |
+| `MarsData.available_modules` | `export` | 返回全部可装载模块名（按字母序）。 |
+| `MarsData.load_module` | `export` | 把注册表中的模块装载进 `into` 命名空间，等价于 `include(对应文件)`。 |
+| `MarsData.loaded_modules` | `export` | 返回已装载到 MarsData 命名空间的注册模块。 |
+| `MarsData.module_info` | `export` | 返回该模块的注册信息与当前状态（是否已装载到 MarsData 命名空间）。 |
+| `MarsData.module_path` | `export` | 返回注册表中该模块的**绝对路径**（已归一化，不检查文件是否存在）。 |
+| `MarsData.validate_registry` | `export` | 自检注册表：键与 `name` 一致、文件存在、文件内确有 `module <name>`、`deps` 均在注册表中、 |
+
+### [`src/plotting.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/src/plotting.jl)
+
+归属模块：`MarsData`（由包入口 include）
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `MarsData.TimeFormat` | `export` | 把两个时间点之间的时长格式化为 `HH:MM:SS.mmm` 字符串。 |
+| `MarsData.plot_module` | `export` | 向图形对象添加 MAVEN 多仪器时间序列绘图面板。 |
+| `MarsData.remove_0_point!` | `export` | 将非正绘图数据原地替换为 `NaN`。 |
+
+### [`support_data/support_data_load.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/support_data/support_data_load.jl)
+
+模块：`SP_load`
+
+| 限定名/函数名 | 标记 | docstring 首句 |
+| --- | --- | --- |
+| `SP_load.load_drivers_merge_data` | — | 读取 Halekas 等人推导的太阳风参数文件。 |
+| `SP_load.load_omni2_data` | — | 读取并整理 OMNI2 太阳风支持数据。 |
+| `SP_load.root_path` | — |  |
+
+## 非模块脚本
+
+`analysis/Pickup_ion.jl` 含交互式分析流程，依赖预先设置的事件变量；它是脚本入口，不能经 `MarsData.load_module` 装载。`models/extras/` 下的 Graham/Octree 为独立附加代码，不在模块注册表中，也不能经 `load_module` 装载。
+
+`call_fortran_dll.jl` 提供动态库调用封装；索引只解析其语法，不会加载或调用 DLL。

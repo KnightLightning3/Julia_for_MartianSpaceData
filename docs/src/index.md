@@ -1,102 +1,56 @@
 # MarsData.jl 文档
 
-火星空间数据处理与科学计算工具包（*Mars Space Data Processing & Scientific Computing Toolkit*）。
+本项目使用 Julia 读取、处理和绘制火星空间科学数据，使用 Python 管理配置、下载、库存与文件索引，并提供环境、磁场和粒子计算工具。
 
-!!! warning "破坏性变更：`data_get_from_date` → `load_MAVEN_data`"
-    `MAVEN_load.data_get_from_date` 已被**删除且不保留别名**，旧脚本会报 `UndefVarError: data_get_from_date not defined`。
-    函数签名与返回值完全不变，全局改名即可：`MAVEN_load.data_get_from_date` → **`MAVEN_load.load_MAVEN_data`**；
-    同时 `MarsCommon.electron_energy_to_speed` → **`e_energy2v`**、`MarsCommon.ion_energy_to_speed` → **`ion_energy2v`**。
-    详见仓库根目录的 `CHANGELOG.md` 破坏性变更条目。
+当前代码已经完成多项模块拆分与文件迁移。旧的 `common/head.jl`、`calculate/calculate_models.jl` 已删除；首次使用请从架构和迁移指南开始，而不是直接运行历史脚本。
 
-本项目提供火星空间科学数据的**下载、读取、处理、可视化与物理模型计算**工具：主要数据处理与科学计算使用 Julia，数据下载与文件整理主要使用 Python，部分磁场计算通过 Fortran 动态库加速。
+## 从这里开始
 
-## 文档导航
-
-| 页面 | 内容 |
+| 页面 | 解决的问题 |
 | --- | --- |
-| [项目执行流程](pipeline.md) | 从环境准备到数据读取的端到端流程与命令 |
-| [MAVEN 数据读取](data_reading.md) | 统一读取入口、返回结构与数据流程 |
-| [MAVEN 数据格式](data_format.md) | 数据产品清单、命名格式与仪器数据要点 |
-| [SWIA 电子修正](swia_electron.md) | 电子二次发射背景的假设与修正算法 |
-| [程序与函数索引](api.md) | 按目录浏览各程序职责与主要函数 |
+| [项目架构](architecture.md) | 包初始化、模块装载、白名单、通用能力、模型、分析脚本与 Extras 的边界 |
+| [迁移指南](migration.md) | 旧路径、已删除入口、改名、质量基准与非等价函数的适配 |
+| [坐标转换](coordinates.md) | 三套球坐标约定、三维点接口、旋转方向与批处理示例 |
+| [项目执行流程](pipeline.md) | 准备环境、配置、下载、扫描索引、构建派生产品与读取 |
+| [MAVEN 数据读取](data_reading.md) | 单日接口、错误收集、加载标志和索引惰性读取 |
+| [MAVEN 数据格式](data_format.md) | 产品注册表、STATIC 使用顺序、维度与单位注意事项 |
+| [SWIA 电子修正](swia_electron.md) | 电子修正专题的理论与代码位置 |
+| [程序与函数索引](api.md) | 从当前 Julia 源码静态生成的定义索引 |
 
-## 文档体系
+## 先确认环境，再读取数据
 
-本仓库只有一处文档根目录 `docs/`（此前的 `doc/` 已并入），各类内容分工如下：
-
-| 位置 | 角色 | 维护方式 |
-| --- | --- | --- |
-| `docs/src/*.md` | **唯一权威文档源**（本页所在） | 手工编辑；页面互链用相对文件名 |
-| `docs/build/` | Documenter 构建产物（不入库） | `julia --project=docs docs/make.jl` |
-| `docs/wiki/` | GitLab Wiki 专属页（首页 `home.md`、侧边栏 `_sidebar.md`） | 手工编辑 |
-| `docs/references/` | 参考资料：MAVEN 仪器 SIS 手册 PDF、`MAVEN_potential.html` | 只增不改 |
-| `docs/reports/` | 重构诊断/审计/校验报告**历史快照** | 只读；保留当时的函数名与路径 |
-
-[GitLab Wiki](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/wikis/home) 的正文由 `docs/src/*.md` 生成（跨页链接自动改写为 Wiki 页面名）；首页与侧边栏取自 `docs/wiki/`：
+在仓库根目录启动 Julia：
 
 ```bash
-python tools/push_wiki.py --dry-run    # 生成到临时目录并自检，不推送
-python tools/push_wiki.py --push       # 生成、提交并推送
+julia --project=.
 ```
 
-详见 `docs/README.md`。
-
-## 快速开始
-
 ```julia
-# 1. 环境（Julia 侧依赖）
-using Pkg; Pkg.instantiate()
-
-# 2. 轻量公共 API（路径 / 注册表 / 索引，无需本地数据与 DLL）
+using Pkg
+Pkg.instantiate()  # 只安装根项目声明的依赖
 using MarsData
-MarsData.maven_data_root()      # 数据根目录
-MarsData.data_model()           # 产品注册表
+
+MarsData.project_root()
+MarsData.data_model()       # 产品注册表，不读取科学数据
+MarsData.module_info(:MAVEN_load)
 ```
 
-```julia
-# 3. 读取某一天的数据（完整加载器）
-include("path/to/MAVEN_data/MAVEN_load.jl"); import .MAVEN_load
-Data_Dict = MAVEN_load.load_MAVEN_data(["20141220"], model_index = ["MAG_pc1s", "LPW_wave"])
-mag_data = Data_Dict["MAG_pc1s"][:B]
-```
+`using MarsData` 会载入绘图栈及预装通用模块，但不会自动装载 MAVEN 科学读取器。读取器、ODE 和实验算法所需的额外包必须能由相应环境解析；详细边界见架构页。配置、索引和目标日期的数据文件也需要单独准备。
 
-```julia
-# 4. 绘制多仪器概览图（绘图功能已包化进 MarsData，无需手动 include MAVEN_plot.jl）
-using MarsData, CairoMakie
-fig = Figure(; size=(2500, 2500))
-fig, t0, xtimes = MarsData.plot_module(fig, time_range, data_dict; time_step=Dates.Minute(10))
-save("overview.png", fig)
-```
+## 文档来源与生成
+
+`docs/src/` 保存专题正文；`docs/pages.toml` 是 Documenter 页面导航和 Wiki 页面映射的共同清单。两种发布形式使用同一组正文：Documenter 生成 HTML，Python 脚本转换并输出 GitLab Wiki 页面。Wiki 首页与侧边栏另在 `docs/wiki/` 维护。
 
 ```bash
-# 5. 下载与索引（Python 侧）
-python tools/migrate_config.py --apply          # 一次性：INI → TOML 配置
-python -m martian_pipeline scan                 # 扫描本地文件并刷新索引
+julia --startup-file=no tools/generate_api.jl  # 更新源码定义索引
+julia --project=docs docs/make.jl              # HTML -> docs/build/
+python3 tools/push_wiki.py --dry-run           # 本地生成 Wiki 并检查跨页链接
 ```
 
-详见 [项目执行流程](pipeline.md)。
+生成器不会运行科学模块或分析脚本。文档环境首次使用时，运行 `julia --project=docs -e 'using Pkg; Pkg.instantiate()'` 安装 Documenter。文档维护和发布步骤见仓库内 `docs/README.md`。
 
-## 项目结构
+## 使用边界与历史资料
 
-| 目录/文件 | 用途 |
-| --- | --- |
-| `MAVEN_data/` | MAVEN 数据读取、仪器数据处理、绘图及数据格式定义 |
-| `MGS_data/`、`TW_data/` | MGS 与天问一号数据读取和仪器处理 |
-| `download_data/` | MAVEN 数据下载、完整性检查、压缩及清理工具 |
-| `config/` | 唯一配置层：`settings.example.toml` 模板 + `config.py`/`paths.py`/`utils.py` |
-| `martian_pipeline/` | Python 包化入口与统一 CLI（`python -m martian_pipeline`） |
-| `tools/` | 配置迁移（`migrate_config.py`）与扫描索引（`scan_and_index.py`）CLI |
-| `tests/` | 临时目录合成数据的回归测试（P0–P3 + 包化） |
-| `models/`、`Magnetic_Model/` | 等离子体、粒子轨道、磁场等模型与计算 |
-| `common/`、`support_data/` | 通用坐标/物理计算函数和外部支持数据读取 |
-| `calculate/` | 模型计算流程与组合入口 |
-| `example/` | 绘图和数据分析示例 |
-| `src/`、`Project.toml` | Julia 包 `MarsData`：轻量公共 API + 包化绘图（`plot_module` 及 `MAVEN_plot` 基元） |
-| `pyproject.toml` | Python 运行依赖与可选依赖清单 |
-| `docs/` | 文档唯一根目录：`src/`（权威源）、`build/`（构建产物）、`wiki/`（Wiki 首页与侧边栏）、`references/`（参考资料）、`reports/`（历史报告快照） |
+当前逻辑溯源基准为提交 `a09511aa7b88c874cefe8ca966c98aa267db9365`；本轮文档同步不构成全仓相对该基准的科学一致性证明。真实数据校验暂挂，DLL 验证不在本轮范围内。
 
-## 数据说明
-
-- 所有 MAVEN 产品（原始与派生）共用同一 MAVEN 数据根，保持 `MAVEN/仪器/处理级别/yyyy/mm/文件` 结构；产品 ID、路径与文件名正则负责区分。
-- 配置以 TOML 为唯一写端（`config/settings.toml`），旧 INI 保留为只读兼容输入。
-- 所有被读取数据的时间轴（除特别说明）均为**排序后的时序数据**；时间轴最近邻查找统一使用 `MarsCommon.searchsortednearest`（二分，`O(log N)`）。
+[历史报告](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/tree/main/docs/reports)与 [CHANGELOG](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/CHANGELOG.md) 保留当时的路径与结论。当前入口以本组页面和源码为准；仪器手册位于[参考资料](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/tree/main/docs/references)。

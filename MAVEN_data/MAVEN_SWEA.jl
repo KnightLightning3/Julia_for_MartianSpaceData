@@ -8,7 +8,6 @@ using .MarsCommon
 using TimesDates, Dates
 using Statistics
 using Rotations
-using CommonDataFormat
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
 # export static_rotation,static_slip,static_slip_2_V,sta_v_4d

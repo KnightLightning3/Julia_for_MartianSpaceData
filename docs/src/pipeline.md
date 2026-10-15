@@ -1,6 +1,6 @@
 # 项目执行流程
 
-本页整理本仓库当前的端到端执行流程：从环境准备、配置、下载、扫描索引，到派生构建、数据读取与维护校验。每一步都给出可复制的命令与产物位置。
+本页整理本仓库当前的端到端执行流程：从环境准备、配置、下载、扫描索引，到派生构建、数据读取与维护校验。架构边界见 [architecture.md](architecture.md)，旧入口迁移见 [migration.md](migration.md)。
 
 ## 总览
 
@@ -34,20 +34,29 @@
 
 ## [0] 环境准备
 
-**Julia 侧**（依赖锁在 `Project.toml` + `Manifest.toml`）：
+**Julia 侧**（项目依赖由 `Project.toml` 声明，锁定信息见 `Manifest.toml`）：
 
 ```julia
 using Pkg
-Pkg.instantiate()          # 按 Manifest.toml 安装依赖
-using MarsData             # 轻量公共 API（路径 / 注册表 / 索引），无需本地数据与 DLL
+Pkg.instantiate()          # 安装 Julia 项目声明的包依赖
+using MarsData             # 包入口；公开路径/注册表/索引 API，并加载绘图相关代码
 ```
 
-**Python 侧**（运行依赖与可选依赖分离，见 `pyproject.toml`）：
+`MAVEN_load` 直接使用 `CommonDataFormat`、`TimesDates`、`DataFrames`、`JSON`、`IniFile`、`JLD2`、`Rotations` 和 `FortranFiles`；`Dates`、`Statistics`、`Logging` 属于 Julia 标准库。Julia 包依赖由根 `Project.toml`/`Manifest.toml` 管理。`Pkg.instantiate()` 只安装 Julia 项目声明的 Julia 包，不安装下方 Python 依赖或 MAVEN 数据文件，也不提供或验证项目依赖之外的 C++/Fortran DLL 等运行时组件。
+
+**Python 侧**：`pyproject.toml` 当前作为依赖清单，仓库采用脚本布局且未声明 `build-system`，因此不要用 editable 安装命令。请在仓库根目录安装脚本所需运行依赖：
 
 ```bash
-pip install -e .           # 运行依赖：requests / beautifulsoup4 / tqdm / numpy / pandas / cdflib
-pip install -e ".[build]"  # 可选：派生 CDF 构建需要 spacepy（依赖 NASA CDF 库）
+python -m pip install requests beautifulsoup4 tqdm numpy pandas cdflib
 ```
+
+可选的派生 CDF 构建依赖单独安装：
+
+```bash
+python -m pip install spacepy
+```
+
+Python 工具从仓库根目录按模块运行，例如 `python -m martian_pipeline scan`；无需先把仓库安装为 Python 包。
 
 > 环境要求：Python ≥ 3.11（配置读取依赖标准库 `tomllib`）、Julia ≥ 1.10。Windows 上派生 CDF 构建依赖 NASA CDF 库；磁场模型依赖对应 C++/Fortran DLL。
 
@@ -174,15 +183,22 @@ python -m martian_pipeline scan --index-output E:/tmp/index.json   # 指定索�
 
 ## [6] 读取与计算
 
-**完整加载器**（Julia）：
+**MAVEN 文件读取器**（Julia）：
 
 ```julia
-include("path/to/MAVEN_data/MAVEN_load.jl"); import .MAVEN_load
-Data_Dict = MAVEN_load.load_MAVEN_data(["20141220"], model_index = ["MAG_pc1s", "LPW_wave"])
-mag_data  = Data_Dict["MAG_pc1s"][:B]
+using MarsData, Dates
+MarsData.@load MAVEN_load
+errors = String[]
+data = MAVEN_load.load_MAVEN_data(
+    DateTime(2014, 12, 20);
+    model_index=["MAG_ss"],
+    error_report=errors,
+)
+mag = data["MAG_ss"]
+mag[:data_load_flag] && (B = mag[:B])
 ```
 
-**轻量公共 API**（Julia 包）：
+**MarsData 包 API**：
 
 ```julia
 using MarsData
@@ -190,9 +206,11 @@ MarsData.project_root(); MarsData.maven_data_root(); MarsData.index_path()
 MarsData.data_model();  MarsData.load_index()
 ```
 
-**模型与计算**：`models/`（冷等离子体色散、麦克斯韦拟合、单粒子轨道）、`Magnetic_Model/`（IGRF 磁场，含 Fortran DLL）、`calculate/`（组合计算入口）。
+`using MarsData` 会加载包中绘图实现（包括 CairoMakie/Makie 依赖）；因此不应称它为不加载绘图的轻量包。模块装载管理器可用 `MarsData.@load MAVEN_load` 在调用者顶层装载读取器。`load_MAVEN_data` 实际接受单个 `DateTime`，不是字符串或日期向量；已注册产品缺文件和 loader 异常会以 `:data_load_flag => false` 返回，详情可从 `error_report` 读取。未知产品 ID 可能在查找阶段抛出 `KeyError`。索引 JSON 在读取器装载后仍是惰性访问，按模型首次构建并缓存日期索引。
 
-**绘图（已包化）**：绘图功能随 `using MarsData` 提供，无需手动 `include`：
+模块、模型和计算入口以当前源码与注册表为准；不要依赖已删除的 `common/head`、旧 `calculate/` 或旧 `Magnetic_Model/` 路径。环境初始化只说明 Julia 包依赖，不会安装外部 MAVEN 数据文件；需要 DLL 的能力也不能由 `Pkg.instantiate()` 推断为已验证。
+
+**绘图**：绘图 API 随 `using MarsData` 提供，无需手动 `include`：
 
 ```julia
 using MarsData, CairoMakie

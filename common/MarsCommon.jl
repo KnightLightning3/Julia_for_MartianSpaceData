@@ -23,14 +23,13 @@ include(joinpath(@__DIR__, "marscommon", "cyclotron.jl"))
 # 标量约定（与 Julia 官方函数一致）
 #
 # 本模块中的“逐元素标量数学”函数**内部不做加点运算**，输入按标量处理：
-#   instrument_sphere_to_cartesian / instrument_cartesian_to_sphere / spherical_to_cartesian
+#   spherical_to_cartesian
 #   ion_energy2v / ion_speed_to_energy / e_energy2v
 #   electron_eflux_to_psd / ion_eflux_to_psd / ion_eflux_to_psd_approx
 #   doppler_shift
 #
 # 对数组请像使用 `sin`/`log` 一样在**调用处**加广播点：
 #     v    = MarsCommon.ion_energy2v.(energy_array, m_int)     # 批量
-#     xyz  = MarsCommon.instrument_sphere_to_cartesian.(1.0, theta, phi)
 #     v1   = MarsCommon.ion_energy2v(energy_scalar, m_int)      # 标量
 #
 # 反例：`ion_energy2v(energy_array, m_int)`（不加点）会报 `MethodError`，
@@ -44,9 +43,7 @@ include(joinpath(@__DIR__, "marscommon", "cyclotron.jl"))
 #   rotate_vector（矩阵乘法）、eflux_to_df!（字典原地）、searchsortednearest(_range)（整条时间轴查找）
 # ============================================================================
 
-export instrument_sphere_to_cartesian,
-    instrument_cartesian_to_sphere,
-    spherical_to_cartesian,
+export spherical_to_cartesian,
     rotate_vector,
     position_altitude,
     position_local_time,
@@ -66,59 +63,6 @@ export instrument_sphere_to_cartesian,
     Bpc2sphere_naive
 
 """
-    instrument_sphere_to_cartesian(r::Real, theta::Real, phi::Real) -> SVector{3}
-
-将**仪器坐标系**下的球坐标（半径、仰角、方位角）转换为笛卡尔分量 `(x, y, z)`。
-
-# 功能与算法概述
-按“仰角自 X-Y 平面起算”的标准球坐标展开，角度一律按**角度制**解释；返回 `SVector{3}`。
-
-本函数是**标量函数**（内部不做逐元素运算），与 `sin`/`log` 等 Julia 官方函数一致：
-对数组请用广播 `instrument_sphere_to_cartesian.(r, theta, phi)`。
-
-# 参数说明
-- `r`: 径向距离（标量；单位由调用方约定，通常为 km 或 m）。
-- `theta`: 仰角（**角度制**），`0°` 指向 X-Y 平面、`+90°` 指向 +Z 轴。
-- `phi`: 方位角（**角度制**），在 X-Y 平面内自 +X 轴按逆时针量取。
-
-# 返回值
-- `SVector{3}`: 笛卡尔分量 `(x, y, z)`，元素类型由三个输入的公共类型提升决定。
-"""
-function instrument_sphere_to_cartesian(r::Real, theta::Real, phi::Real)
-    x = r * cosd(theta) * cosd(phi)
-    y = r * cosd(theta) * sind(phi)
-    z = r * sind(theta)
-    return SVector(x, y, z)
-end
-
-"""
-    instrument_cartesian_to_sphere(x::Real, y::Real, z::Real) -> SVector{3}
-
-将笛卡尔分量 `(x, y, z)` 反算为**仪器坐标系**球坐标（半径、仰角、方位角），是
-`instrument_sphere_to_cartesian` 的逆变换。
-
-# 功能与算法概述
-`instrument_sphere_to_cartesian` 的逆变换：由 `acosd(z/r)` 得与 +Z 轴夹角后反算仰角；对 `z/r` 做 `clamp(−1,1)` 以防浮点误差使 `acosd` 返回 `NaN`。
-
-# 参数说明
-- `x`: 笛卡尔 X 分量。
-- `y`: 笛卡尔 Y 分量。
-- `z`: 笛卡尔 Z 分量。
-
-# 返回值
-- `SVector{3}`: `(r, theta, phi)`，其中 `theta`、`phi` 同为**角度制**。
-
-# 备注
-- **标量函数**：数组请用广播 `instrument_cartesian_to_sphere.(x, y, z)`。
-"""
-function instrument_cartesian_to_sphere(x::Real, y::Real, z::Real)
-    r = sqrt(x^2 + y^2 + z^2)
-    theta = 90.0 - acosd(clamp(z / r, -1.0, 1.0))
-    phi = atand(y, x)
-    return SVector(r, theta, phi)
-end
-
-"""
     spherical_to_cartesian(r::Real, theta::Real, phi::Real) -> SVector{3}
 
 将**常规球坐标**（余纬自 +Z 轴起算）转换为笛卡尔分量 `(x, y, z)`。
@@ -136,8 +80,7 @@ end
 
 # 备注
 - **标量函数**：数组请用广播 `spherical_to_cartesian.(r, theta, phi)`。
-- 与 `instrument_sphere_to_cartesian` 的区别仅在 `theta` 的起算轴不同（+Z 轴 vs X-Y 平面），
-  因此两者仅当 `theta_instrument = 90° − theta_spherical` 时才等价。
+- MAVEN 仪器坐标的 `theta` 从 X-Y 平面起算，与这里的余纬定义不同。
 """
 function spherical_to_cartesian(r::Real, theta::Real, phi::Real)
     x = r * sind(theta) * cosd(phi)

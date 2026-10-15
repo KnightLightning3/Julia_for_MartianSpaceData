@@ -1,5 +1,37 @@
 # 更新日志
 
+## [2026-10-15] 三维坐标接口统一与架构文档同步
+
+### 坐标转换
+
+- `FunctionCoordinate` 的点转换统一接收三维 `SVector`，兼容长度为 3 的实数向量，返回 `SVector{3}`；批量转换在调用处使用广播、循环或 `map`，不接受矩阵作为单点输入。
+- 增加通用 `pc2sphere` / `sphere2pc`（弧度制、余纬）及 MAVEN 仪器专用 `MAVEN_xyz2sphere` / `MAVEN_sphere2xyz`（角度制、仰角），集中于 `common/function_coordinate.jl`，同步 STATIC 和 Pickup 调用。
+- 测试确认 MAVEN 与 MINPA 的坐标轴、角度及退化行为不同，分别保留接口；补充 PA、MINPA、MAVEN 与通用球坐标的定义和边界说明。
+- 按函数审查后，将部分三维及投影范数改用 `hypot`，改善极大、极小输入的稳定性；保留旋转构造器中参与共线判断的范数算法。记录浮点末位及混合 NaN/Inf 行为差异，不宣称逐位等价。
+- 删除 `Quaternion_Rot` / `Quaternion_Rot_reverse`，文档改用 `q * v`、`inv(q) * v` 与旋转矩阵乘法；说明列向量、行存储 N×3 数据和主动/被动旋转的用法。
+- IGRF 高速计算内部的标量坐标函数保留原公式，取消导出及聚合入口中的裸名暴露，仅保留 `IGRF_pc` 白名单。
+
+### 结构与依赖
+
+- 将 Graham、Octree 移入 `models/extras/`，新增 `models/CATALOG.toml` 记录显式加载方式与依赖；将 Pickup 脚本移入 `analysis/`，同步调用及迁移证据。
+- STATIC、SWIA、SWEA 计算模块移除未使用的 `CommonDataFormat` 导入；STATIC 显式导入 `QuatRotation`。
+- 增加公开键 `DataKeys.MASS`，文档区分质量基准、质量轴与各函数输出的同名键语义。
+
+### 文档与生成工具
+
+- 重写中英文 README，同步架构、数据读取、执行流程、数据格式及 Wiki 导航，增加架构、迁移和坐标转换专题。
+- 新增 `docs/pages.toml`，统一维护 Documenter 导航与 Wiki 页面映射；新增静态 AST API 索引生成器 `tools/generate_api.jl`，支持生成及 `--check` 过期检查，无需加载科学模块或 DLL。
+- 修正文档中的单日读取接口、依赖边界、STATIC 分布转换步骤及命令；校对产品表的 53 个产品 ID。
+- Wiki 预览保留输出目录中的其他文件，修正跨页链接及数学公式定界，保持原有公式内容。
+- 更新 AST 迁移记录、文件移动证据及交接说明，增加坐标接口、调用点、文件归属和文档工具回归检查。
+
+### 验证与范围
+
+- 最新坐标接口、生产调用、AST 归属、Pickup、旧坐标迁移及 STATIC 质量回归共 566 项定向检查通过；API 生成器 23 项、Python 文档工具 8 项检查通过。
+- Documenter 实际构建成功且无警告，生成 9 个正文页面；Wiki 本地预览生成 10 个文件并通过链接自检，未发布远端。
+- 通用迁移检查为 28 ok、0 fail、11 unknown；unknown 不计为通过。完整主套件仍受缺少 `CommonDataFormat`、`FortranFiles` 等环境问题影响，不宣称全套通过。
+- 按用户要求挂起真实数据校验，不进行 DLL 验证；逻辑溯源基准为初始提交 `a09511aa7b88c874cefe8ca966c98aa267db9365`，本次定向验证不代表全项目等价性证明。
+
 ## [2026-10-13] 文档目录合并：`doc/` 并入 `docs/`，Wiki 改为从文档源生成并推送
 
 ### 结构变更

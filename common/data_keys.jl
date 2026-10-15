@@ -1,13 +1,15 @@
 """
     DataKeys
 
-数据键契约常量模块（ARCH-011）。
+数据键契约常量模块。
 
 本模块把散落各处的 `Dict{Symbol,Any}` 键名集中为编译期常量，
 新代码与重构触及代码应优先使用这些常量，避免拼写漂移导致的运行时 KeyError。
 
 常量名采用大写下划线形式，对应值多为 Symbol（legacy 字符串键保留原类型）。
-形状/单位/语义详见 `.agent/03_ARCHITECTURE_PLAN.md` 附录 A。
+`MASS` 表示 STATIC/SWIA 数据包中同一物理量：质子静止质量，单位
+`eV/(km/s)^2`。它与 STATIC 质量轴数组 `MASS_ARR` 及比荷参数 `m_int`
+含义不同；读取字典时仍使用原有键。
 """
 module DataKeys
 
@@ -84,6 +86,9 @@ const EFF_IND = :eff_ind
 "质量数组（STATIC 网格元数据）"
 const MASS_ARR = :mass_arr
 
+"质子静止质量（STATIC/SWIA 数据包共用），单位 `eV/(km/s)^2`"
+const MASS = :mass
+
 "质量数（STATIC 网格元数据）"
 const NMASS = :nmass
 
@@ -124,7 +129,7 @@ export EPOCH, TIME, TIME_UNIX, DATA_LOAD_FLAG, FILENAME,
        B_FIELD, B_TOTAL, POSITION,
        ENERGY, DENERGY, DF, EFLUX, DIFF_EN_FLUXES,
        QUAT_MSO, SC_POT, SWP_IND, ATT_IND, EFF_IND,
-       MASS_ARR, NMASS, NSWP, NENERGY, NBINS,
+       MASS_ARR, MASS, NMASS, NSWP, NENERGY, NBINS,
        S, ALT
 
 end # module

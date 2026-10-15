@@ -20,7 +20,7 @@ end
 using .MarsCommon: Bsphere2pc, Bpc2sphere
 
 # -----------------export part -----------------------
-export pc2sphere, sphere2pc   # Bsphere2pc / Bpc2sphere 权威已迁 MarsCommon（经 using 绑定，本模块不再导出）
+# pc2sphere / sphere2pc remain internal for IGRF's hot paths; Bsphere2pc / Bpc2sphere are MarsCommon bindings.
 export IGRF_pc,IGRF_sphere
 export trace_mag_line
 #返回nT

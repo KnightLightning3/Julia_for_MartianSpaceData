@@ -3,8 +3,16 @@
 # 用法：
 #     julia --project=docs docs/make.jl      # 生成 HTML 到 docs/build/
 using Documenter
+using TOML
+
+const DOCS_ROOT = @__DIR__
+const PAGE_MANIFEST = TOML.parsefile(joinpath(DOCS_ROOT, "pages.toml"))
+const NAVIGATION = [
+    page["title"] => page["source"] for page in PAGE_MANIFEST["pages"]
+]
 
 makedocs(
+    root = DOCS_ROOT,
     sitename = "MarsData.jl 文档",
     authors = "Cheng Sanwei",
     format = Documenter.HTML(
@@ -12,15 +20,8 @@ makedocs(
         edit_link = nothing,
         repolink = "https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData",
     ),
-    pages = [
-        "首页" => "index.md",
-        "项目执行流程" => "pipeline.md",
-        "MAVEN 数据读取" => "data_reading.md",
-        "MAVEN 数据格式" => "data_format.md",
-        "SWIA 电子修正" => "swia_electron.md",
-        "程序与函数索引" => "api.md",
-    ],
-    warnonly = true,
+    pages = NAVIGATION,
+    warnonly = false,
     checkdocs = :none,
     modules = Module[],
     remotes = nothing,

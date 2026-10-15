@@ -81,7 +81,7 @@ filetxt(rel) = read(joinpath(REPO, rel), String)
         # 两文件已物理删除（不再是适配工具的空壳）；旧定义只存在于 5f225db 取证路径。
         @test !isfile(joinpath(REPO, "common", "head.jl"))
         @test !isfile(joinpath(REPO, "calculate", "calculate_models.jl"))
-        for rel in ("models/Pickup_ion.jl", "MAVEN_data/MAVEN_plot.jl", "MAVEN_data/MAVEN_load.jl",
+        for rel in ("analysis/Pickup_ion.jl", "MAVEN_data/MAVEN_plot.jl", "MAVEN_data/MAVEN_load.jl",
                     "MAVEN_data/MAVEN_SWEA.jl", "MAVEN_data/Build_data/STATIC_VD.jl")
             isfile(joinpath(REPO, rel)) || continue
             txt = filetxt(rel)
@@ -94,11 +94,13 @@ filetxt(rel) = read(joinpath(REPO, rel), String)
     end
 
     @testset "Pickup_ion.jl：显式载入 + 三处新权威 + 旧裸名零残留" begin
+        @test !isfile(joinpath(REPO, "models", "Pickup_ion.jl"))
+        @test isfile(joinpath(REPO, "analysis", "Pickup_ion.jl"))
         # head.jl 零 includer（唯一旧消费者 Pickup 已显式化）
         @test !any(rel -> occursin(Regex("(?m)^\\s*include\\(.*head\\.jl.*\\)"),
                                    filetxt(rel)),
-                   ["models/Pickup_ion.jl", "MAVEN_data/MAVEN_load.jl", "MAVEN_data/MAVEN_SWEA.jl"])
-        txt = filetxt("models/Pickup_ion.jl")
+                   ["analysis/Pickup_ion.jl", "MAVEN_data/MAVEN_load.jl", "MAVEN_data/MAVEN_SWEA.jl"])
+        txt = filetxt("analysis/Pickup_ion.jl")
         @test occursin("import MarsData", txt)              # 刻意 import（避免 @load 与 JLD2 冲突）
         @test occursin("using DataFrames", txt)
         @test occursin("using JLD2", txt)

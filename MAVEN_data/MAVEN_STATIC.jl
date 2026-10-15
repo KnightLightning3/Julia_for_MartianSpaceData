@@ -5,10 +5,11 @@
 module MAVEN_STATIC
 include(joinpath(@__DIR__, "..", "common", "constants.jl"))
 include(joinpath(@__DIR__, "..", "common", "MarsCommon.jl"))
+include(joinpath(@__DIR__, "..", "common", "function_coordinate.jl"))
 using TimesDates, Dates
 using Statistics
-using CommonDataFormat
 using StaticArrays
+using Rotations: QuatRotation
 
 # -------------------------Export parts-------------------------
 # export static_c6_mass_mean,static_c6_energy_mean
@@ -694,11 +695,11 @@ function static_rotation(dat;frame="MSO") #将STATIC数据在某时刻的切片�
     # quat = QuaternionF64(...) 的旧写法已弃用，统一改用 Rotations 的 QuatRotation
     quat = QuatRotation(dat2[frame_t])
 
-    xyz = MarsCommon.instrument_sphere_to_cartesian.(1.0, theta, phi)
+    xyz = map((t, p) -> FunctionCoordinate.MAVEN_sphere2xyz(SVector(1.0, t, p)), theta, phi)
     # 显式逐元素旋转：xyz 为三维数组，元素现在是 SVector{3}，
     # 逐元素调用 `quat * p` 可稳定命中 Rotations.jl 的向量旋转方法。
     xyz_mso = map(p -> quat * p, xyz)
-    sphere_mso = [MarsCommon.instrument_cartesian_to_sphere(point...) for point in xyz_mso]
+    sphere_mso = map(FunctionCoordinate.MAVEN_xyz2sphere, xyz_mso)
 
     thetaT=zeros(n_m,n_b,n_e)
     phiT=zeros(n_m,n_b,n_e)
@@ -763,7 +764,7 @@ function static_slip_2_V(dat;mass_range=[10,20],m_int = 16,vsc=[0,0,0]) #use sli
     
     local v0 = MarsCommon.ion_energy2v.(energy_t, m_int) ./ 1e3
     
-    local APP_position = MarsCommon.instrument_sphere_to_cartesian.(v0, theta_mass, phi_mass)
+    local APP_position = map((r, t, p) -> FunctionCoordinate.MAVEN_sphere2xyz(SVector(r, t, p)), v0, theta_mass, phi_mass)
     
     V_[:,:,1] = [x[1] for x in APP_position]
     V_[:,:,2] = [x[2] for x in APP_position]
