@@ -591,6 +591,15 @@ IGRF(r::Real, θ::Real, ϕ::Real) = IGRF!(IGRFWorkspace(), Float64(r), Float64(�
 """
 IGRF_dB(r::Real, θ::Real, ϕ::Real) = IGRF_dB!(IGRFWorkspace(), Float64(r), Float64(θ), Float64(ϕ))
 
+# 独立函数作用域保证每次调用独占工作区，避免外层同名变量被闭包捕获。
+function _igrf_chunk!(out, rs, θs, ϕs, lo, hi)
+    ws = IGRFWorkspace()
+    @inbounds for i in lo:hi
+        out[i] = IGRF!(ws, rs[i], θs[i], ϕs[i])
+    end
+    return out
+end
+
 """
     IGRF_batch!(out, rs, θs, ϕs; min_chunk=256) -> out
 
@@ -603,8 +612,9 @@ IGRF_dB(r::Real, θ::Real, ϕ::Real) = IGRF_dB!(IGRFWorkspace(), Float64(r), Flo
 # 参数说明
 - `out`: 预分配的输出向量，元素类型 `NTuple{4,Float64}`，长度须与输入一致。
 - `rs`, `θs`, `ϕs`: 等长的坐标向量（km、弧度、弧度）。
-- `min_chunk`: 每个任务至少处理的点数。任务过多时线程唤醒与调度的固定开销会盖过收益
-  （64 线程 Windows 实测：`min_chunk=1` 时固定开销约 12～15 ms，且与点数几乎无关），所以块数被限制为 `cld(n, min_chunk)`。
+- `min_chunk`: 每个任务的目标点数下限（末块可更小）。任务过多时线程唤醒与调度的固定开销会盖过收益
+  因此块数限制为 `cld(n, max(min_chunk, 1))`。这是目标块大小，末块可小于此值；
+  实际收益应在工作负载上预热后测量，不能将旧版共享工作区竞争造成的耗时当作调度开销。
 
 # 返回值
 - `out`（原地写入）。
@@ -620,26 +630,14 @@ function IGRF_batch!(out::AbstractVector{NTuple{4,Float64}}, rs::AbstractVector{
     n == 0 && return out
     nchunk = min(Threads.nthreads(), cld(n, max(min_chunk, 1)))
     if nchunk <= 1
-        # 点数太少：直接在当前线程串行，省掉任务创建与线程唤醒的固定开销。
-        # 注意：本分支的工作区变量名不能叫 ws —— 闭包捕获的是变量而非值，
-        # 与下面 @spawn 块内同名会让所有任务共用同一个工作区，产生数据竞争。
-        ws_serial = IGRFWorkspace()
-        @inbounds for i in 1:n
-            out[i] = IGRF!(ws_serial, rs[i], θs[i], ϕs[i])
-        end
-        return out
+        return _igrf_chunk!(out, rs, θs, ϕs, 1, n)
     end
     csize = cld(n, nchunk)
     @sync for c in 1:nchunk
         lo = (c - 1) * csize + 1
         hi = min(c * csize, n)
         lo > hi && continue
-        Threads.@spawn begin
-            ws = IGRFWorkspace()
-            @inbounds for i in lo:hi
-                out[i] = IGRF!(ws, rs[i], θs[i], ϕs[i])
-            end
-        end
+        Threads.@spawn _igrf_chunk!(out, rs, θs, ϕs, lo, hi)
     end
     return out
 end

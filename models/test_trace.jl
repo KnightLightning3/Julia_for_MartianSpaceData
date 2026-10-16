@@ -195,6 +195,15 @@ print("DP5 默认（串行输出）      : "); @btime trace_with($st_long, :dp5;
 print("DP5 单线并行输出          : "); @btime trace_with($st_long, :dp5; max_trace=30000, threaded_output=true, thread_min=1)
 print("DP5 step=5 km（稀疏输出） : "); @btime trace_with($st_long, :dp5; step=5.0, max_trace=30000)
 
+# 单线输出并行分支须与串行逐位一致，不能只计时而不检验结果。
+let serial = trace_with(st_long, :dp5; max_trace=30000)
+    for _ in 1:3
+        parallel = trace_with(st_long, :dp5; max_trace=30000, threaded_output=true, thread_min=1)
+        @assert isequal(serial[:position], parallel[:position])
+        @assert isequal(serial[:B], parallel[:B]) "单线并行输出与串行不一致"
+    end
+end
+
 # ---------------------------------------------------------------- 4. hmax 扫描（稀疏输出时积分本身占主导）
 println("\n==== 4. hmax 扫描（step=5 km，xtol=1e-3）====")
 println(rpad("hmax km", 10), rpad("最大偏差 km", 14), "耗时 ms（最长那条线）")
@@ -229,9 +238,9 @@ t_eu = time() - t0
 println("对照：Euler(纯 Julia) 追踪 8 条 = ", sig3(t_eu), " s（折合每条 ", sig3(t_eu / 8), " s；DP5 批量折合每条 ", sig3(t_batch / 256), " s）")
 
 # ---------------------------------------------------------------- 6. IGRF_batch! 开销扫描与正确性
-println("\n==== 6. IGRF_batch! 开销扫描（每个任务至少 min_chunk 个点；mc=1 = 总是拆成 nthreads 块）====")
+println("\n==== 6. IGRF_batch! 开销扫描（目标块大小 min_chunk；mc=1 = 最多拆成 nthreads 块）====")
 println("    注：合并前串行早退分支的 ws 会被所有 @spawn 闭包捕获（共用工作区）⇒ 结果错误且耗时虚高；")
-println("        本次已修复（改名 ws_serial），下表结果必须与串行逐位一致。")
+println("        本次通过独立 _igrf_chunk! 函数作用域隔离工作区，下表结果必须与串行逐位一致。")
 ws = M.IGRFWorkspace()
 f! = M.IGRF!
 mcs = (1, 64, 256, 1024)
