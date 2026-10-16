@@ -51,6 +51,6 @@ python3 tools/push_wiki.py --dry-run           # 本地生成 Wiki 并检查跨�
 
 ## 使用边界与历史资料
 
-当前逻辑溯源基准为提交 `a09511aa7b88c874cefe8ca966c98aa267db9365`；本轮文档同步不构成全仓相对该基准的科学一致性证明。真实数据校验暂挂，DLL 验证不在本轮范围内。
+当前逻辑溯源基准为提交 `a09511aa7b88c874cefe8ca966c98aa267db9365`；本轮文档同步不构成全仓相对该基准的科学一致性证明。2026-10-16 已完成六份真实文件的读取与复跑比对，详见[验证记录](../reports/real_data_validation_2026-10-16.md)；DLL 尚未验证。
 
 [历史报告](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/tree/main/docs/reports)与 [CHANGELOG](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/CHANGELOG.md) 保留当时的路径与结论。当前入口以本组页面和源码为准；仪器手册位于[参考资料](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/tree/main/docs/references)。

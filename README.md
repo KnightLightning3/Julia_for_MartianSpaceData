@@ -149,7 +149,7 @@ end
 
 ## MarsEnvironment、模型与独立脚本
 
-火星环境几何实现位于 `models/Mars_Environment.jl`，模块名为 `MarsEnvironment`，包内规范实例为 `MarsData.MarsEnvironment`，并与 `MarsData.MAVEN_plot.MarsEnvironment` 是同一实例。IGRF 实现位于 `models/`（纯 Julia，无外部运行库依赖）；模型注册入口为 `IGRF_calculate`。科学逻辑对照基线为 `a09511aa7b88c874cefe8ca966c98aa267db9365`；本 README 不代表全仓行为已逐项证明与基线一致。真实数据验证目前暂停，本轮也未验证 DLL。
+火星环境几何实现位于 `models/Mars_Environment.jl`，模块名为 `MarsEnvironment`，包内规范实例为 `MarsData.MarsEnvironment`，并与 `MarsData.MAVEN_plot.MarsEnvironment` 是同一实例。IGRF 实现位于 `models/`（纯 Julia，无外部运行库依赖）；模型注册入口为 `IGRF_calculate`。科学逻辑对照基线为 `a09511aa7b88c874cefe8ca966c98aa267db9365`；本 README 不代表全仓行为已逐项证明与基线一致。2026-10-16 已对 MAVEN 四类产品及 MGS、天问一号各一份真实文件完成复跑比对，并对单日索引中的 35 类 MAVEN 产品完成 27 成功、8 项因文件大小跳过的顺序读取检查；KP/MAG 文本转 CDF 也在临时目录与现有产物对照通过。详情见[真实数据验证记录](docs/reports/real_data_validation_2026-10-16.md)；尚未完成全注册产品覆盖、重构前逐值对照。
 
 `analysis/Pickup_ion.jl` 是分析脚本入口；`models/extras/` 中的 Graham/Octree 需按其目录说明显式载入。它们不属于通用装载器白名单；独立脚本可能依赖用户预设变量、专用包或本地数据，不作为无副作用 quickstart。
 

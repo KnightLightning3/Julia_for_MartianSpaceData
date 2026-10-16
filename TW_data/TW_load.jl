@@ -109,25 +109,6 @@ function load_mag_2c_bydlm(file::String);
 end
 
 """
-    calculate_mag(position; models=["alt"])
-
-根据位置矩阵计算天问数据的海拔、地方时、纬度辅助量。
-
-# 功能与算法概述
-以名称到 `MarsCommon` 位置派生函数的映射表为基础，遍历 `models` 逐个求值并写入结果字典。
-
-# 参数说明
-- `position`: `N×3` 的位置矩阵（通常为 MSO 坐标，单位 km）。
-- `models`: 需要计算的物理量名称列表，默认只算 `"alt"`。
-
-# 返回值
-- `Dict`: 以 `model` 名称为键的结果字典。
-
-# 注意事项
-- 函数体中直接引用了**未定义**的全局变量 `data`（缺少初始化），直接调用会报 `UndefVarError`。
-- `MarsCommon` 需已在调用环境中引入。
-"""
-"""
     get_spc2mso_rot_matrix_via_2c(dat) -> (Vector{DateTime}, Array{Float64,3})
 
 由天问姿态角（Roll/Pitch/Yaw）构造星座系（SC）到 MSO 系的旋转矩阵时间序列。

@@ -94,24 +94,6 @@ function load_mag(file::String);
     return data
 end
 """
-    caculate_mag(position; models=["alt"])
-
-由位置计算 MGS 的海拔、地方时与纬度等辅助量。
-
-# 功能与算法概述
-以名称到 `MarsCommon` 位置派生函数的映射表为基础，遍历 `models` 逐个求值并写入结果字典。
-
-# 参数说明
-- `position`: `N×3` 位置矩阵（km）。
-- `models`: 需计算的量名列表，默认 `["alt"]`。
-
-# 返回值
-- `Dict`: 以量名为键的结果字典。
-
-# 注意事项
-- 函数体引用了未初始化的全局 `data`，直接调用会报 `UndefVarError`。
-"""
-"""
     read_list() -> Vector{String}
 
 读取 MGS 本地磁场数据文件清单并拼上根目录。

@@ -19,7 +19,7 @@
 
 通用能力在 `common/`，模型在 `models/`，Pickup 脚本在 `analysis/`，实验算法在 `models/extras/`。旧 `head.jl` 和 `calculate_models.jl` 已移除；应按迁移指南更新已有脚本。
 
-本阶段真实数据校验暂挂，不做 DLL 验证；文档构建不执行科学处理。
+2026-10-16 已完成有限范围的真实数据单文件读取验证，见 `docs/reports/real_data_validation_2026-10-16.md`；DLL 未验证，文档构建不执行科学处理。
 
 ## 维护与资料
 
