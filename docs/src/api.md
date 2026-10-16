@@ -345,21 +345,28 @@
 | 限定名/函数名 | 标记 | docstring 首句 |
 | --- | --- | --- |
 | `IGRF_calculate.CALCULATE_SCHMIDT_COEFFICIENTS` | — | 预计算 IGRF 球谐展开所需的 Schmidt 准归一化因子 `SS` 与 Legendre 递推系数 `REALK`。 |
-| `IGRF_calculate.IGRF` | — | 纯 Julia 参考实现的球谐磁场求值（无动态库依赖），供校验与教学使用。 |
-| `IGRF_calculate.IGRF_fortran` | — | 调用 Fortran IGRF_110 内核计算球谐磁场，`r` 为未归一化的实际半径。 |
-| `IGRF_calculate.IGRF_fortran_free` | — | 调用 Fortran 的 IGRF_FREE 内核计算球谐磁场，输入半径必须已归一化（除以 `R_Mars`）。 |
+| `IGRF_calculate.IGRF` | — | 便捷接口：内部临时创建工作区后调用 `IGRF!`（每次调用分配约 10 KB）。 |
+| `IGRF_calculate.IGRF!` | `export` | 使用预分配工作区求值纯 Julia 球谐磁场（含 `B_compress` 均匀场项），稳态调用零分配。 |
+| `IGRF_calculate.IGRFWorkspace` | — | 纯 Julia 球谐内核的可复用工作区（11 个预分配缓冲区）；同一时刻只能被一个任务使用。 |
+| `IGRF_calculate.IGRF_batch` | — | `IGRF_batch!` 的分配输出版本。 |
+| `IGRF_calculate.IGRF_batch!` | — | 多线程批量求值磁场：`out[i] = IGRF!(ws, rs[i], θs[i], ϕs[i])`。 |
+| `IGRF_calculate.IGRF_dB` | — | 便捷接口：临时创建工作区后调用 `IGRF_dB!`，返回值字段见 `IGRF_dB!`。 |
+| `IGRF_calculate.IGRF_dB!` | — | 在 `IGRF!` 基础上同时给出磁场对 (r, θ, ϕ) 的全部偏导，字段与已移除的 Fortran `IGRF_for_RK4_dB` 内核一一对应。 |
 | `IGRF_calculate.IGRF_pc` | `export` | 在行星笛卡尔坐标处计算 IGRF/地壳磁场矢量（nT）。 |
-| `IGRF_calculate.RK4_Trace_fortran` | — | 调用 Fortran RK4_STEP 内核执行一次定步长 RK4 磁力线步进。 |
+| `IGRF_calculate._bhat!` | — | 笛卡尔位置 `x` 处的单位磁场方向（乘以 `dirn = ±1`），即磁力线按弧长参数化的 ODE 右端项。 |
+| `IGRF_calculate._cart_to_sph` | — | 笛卡尔位置转球坐标（km、弧度）。 |
+| `IGRF_calculate._fill_trig!` | — | 填充 `COSMPH[m+1] = cos(mϕ)`、`SINMPH[m+1] = sin(mϕ)`（m = 0..NIGRF）。 |
 | `IGRF_calculate.combina_two_dir_trace` | — | 把两个相反方向追踪得到的磁力线段拼接为一条完整磁力线。 |
 | `IGRF_calculate.get_mag_line_s` | — | 为磁力线结果字典原地补充沿线的弧长、海拔与磁场总强度。 |
 | `IGRF_calculate.mag_trace_Euler_step` | — | 用定步长一阶 Euler 法追踪磁力线（速度最快但精度最低）。 |
-| `IGRF_calculate.mag_trace_rk4` | — | 用 Julia 侧循环 + Fortran 单步内核执行带自适应步长的 RK4 磁力线追踪。 |
-| `IGRF_calculate.mag_trace_rk4_fortran_ADAPTIVE_STEP` | — | 用 Fortran 内核执行自适应步长 RK4 磁力线追踪，输入/输出均为球坐标。 |
+| `IGRF_calculate.mag_trace_dp5` | — | 纯 Julia 的自适应高阶磁力线追踪：Dormand–Prince 5(4) + 笛卡尔坐标 + 弧长参数化，按固定弧长间隔输出。 |
 | `IGRF_calculate.pc2sphere` | — | 将行星笛卡尔坐标转为球坐标 `(r, θ, ϕ)`（θ 为与 +Z 轴的夹角，即天顶角/余纬）。 |
 | `IGRF_calculate.read_gh` | — | 从 Fortran 无格式文件 `gh_gao` 中读取 IGRF 高斯球谐系数 `GG`、`HH`。 |
-| `IGRF_calculate.set_B_compress` | — | 更新模块全局的外源磁场压缩修正参数 `B_compress`。 |
+| `IGRF_calculate.rebuild_derived_tables!` | — | 根据 `GG`/`HH`/`SS`/`REALK` 重建纯 Julia 球谐内核使用的派生系数表。 |
+| `IGRF_calculate.set_B_compress` | — | 更新模块级外源磁场压缩修正参数 `B_compress`。 |
 | `IGRF_calculate.sphere2pc` | — | 将行星球坐标转为笛卡尔坐标，是 `pc2sphere` 的逆变换。 |
 | `IGRF_calculate.trace_mag_line` | `export` | 顶层磁力线追踪接口：从给定起点沿磁场双向追踪并拼接成完整磁力线。 |
+| `IGRF_calculate.trace_mag_lines` | — | 多线程批量追踪多条磁力线：每条线一个任务，调度器自动均衡长短不一的磁力线。 |
 
 ### [`models/IGRF_test.jl`](https://git.ustc.edu.cn/KnightLightning/Julia_for_MartianSpaceData/-/blob/main/models/IGRF_test.jl)
 

@@ -92,7 +92,7 @@ const MODULE_REGISTRY = Dict{Symbol,ModuleSpec}(
         deps = [:constants, :MarsCommon, :MarsEnvironment], kind = :preloaded,
     ),
     :IGRF_calculate => _spec(
-        :IGRF_calculate, "models/IGRF_calculate.jl", "IGRF 磁场模型（依赖 Fortran DLL；资源由 dirname(@__FILE__) 同目录定位）";
+        :IGRF_calculate, "models/IGRF_calculate.jl", "IGRF 磁场模型（纯 Julia 实现，无动态库依赖；系数文件由 dirname(@__FILE__) 同目录定位）";
         # t38：真实依赖补齐 —— 模块内 Bsphere2pc/Bpc2sphere 权威来自 MarsCommon（禁止自造第二实例）
         deps = [:constants, :MarsCommon], allow = [:IGRF_pc],
     ),

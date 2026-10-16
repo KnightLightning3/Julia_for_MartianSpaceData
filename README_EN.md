@@ -147,7 +147,7 @@ Common entries include `MAVEN_load`, `MAVEN_STATIC`, `MAVEN_SWIA`, `MAVEN_SWEA`,
 
 ## MarsEnvironment, models, and standalone scripts
 
-Mars environment geometry is implemented in `models/Mars_Environment.jl`; its module is `MarsEnvironment`. The canonical package instance is `MarsData.MarsEnvironment`, identical to `MarsData.MAVEN_plot.MarsEnvironment`. IGRF source and bundled resources are in `models/`; the registered module is `IGRF_calculate`. It requires an external Fortran runtime and DLL. The scientific-logic comparison baseline is `a09511aa7b88c874cefe8ca966c98aa267db9365`; this README does not claim that repository-wide behavior has been verified against it. Real-data validation is paused, and the DLL was not validated in this work.
+Mars environment geometry is implemented in `models/Mars_Environment.jl`; its module is `MarsEnvironment`. The canonical package instance is `MarsData.MarsEnvironment`, identical to `MarsData.MAVEN_plot.MarsEnvironment`. IGRF source is in `models/` (pure Julia, no external runtime dependency); the registered module is `IGRF_calculate`. The scientific-logic comparison baseline is `a09511aa7b88c874cefe8ca966c98aa267db9365`; this README does not claim that repository-wide behavior has been verified against it. Real-data validation is paused.
 
 `analysis/Pickup_ion.jl` is the analysis-script entry point. Graham and Octree under `models/extras/` must be included explicitly as described for those standalone sources. They are not part of the general loader whitelist. Standalone scripts may depend on user-defined variables, specialized packages, or local data, so they are not no-side-effect quickstarts.
 

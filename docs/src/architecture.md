@@ -80,7 +80,7 @@ Extras 为独立脚本；建议 include 到独立命名空间，避免 `Point` �
 | MAVEN 读取器 | `CommonDataFormat`、`JLD2`、`FortranFiles` 等源码导入必须能从 `LOAD_PATH` 解析；配置、索引和数据文件另行准备 |
 | STATIC/SWIA/SWEA 字典计算 | 需要相应模块的计算依赖；三模块已移除未使用的 `CommonDataFormat` 导入 |
 | 单粒子 ODE | `DifferentialEquations` |
-| IGRF | `FortranFiles` 及与所用调用相适配的运行资源；路径为 `models/gh_gao`、`models/IGRF_DLL.dll` |
+| IGRF | `FortranFiles`（读取系数文件 `models/gh_gao`）；场值与磁力线追踪为纯 Julia 实现，无动态库依赖 |
 | Extras | 以 `models/CATALOG.toml` 为准，在独立或全局环境准备所需包 |
 | 文档 | `docs/Project.toml` 的独立 Documenter 环境；静态 API 索引生成仅用 Julia 标准库 |
 

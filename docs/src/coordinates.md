@@ -49,7 +49,7 @@ FC.sphere2pc(s)               # 回到 +X 方向
 FC.pc2sphere([1.0, 0.0, 0.0]) # 普通长度 3 向量适配
 ```
 
-它与 IGRF 模块内部标量 `pc2sphere(x, y, z)` / `sphere2pc(r, θ, ϕ)` 的公式与顺序一致，但公开入口不同：两个标量辅助函数不 `export`，也不在 `@load IGRF_calculate` 的 `allow` 白名单中；白名单只开放 `IGRF_pc`。用户通用点转换应使用 `FunctionCoordinate` 版本。`IGRF_pc` 需要外部 Fortran 运行资源，本页示例不加载它。
+它与 IGRF 模块内部标量 `pc2sphere(x, y, z)` / `sphere2pc(r, θ, ϕ)` 的公式与顺序一致，但公开入口不同：两个标量辅助函数不 `export`，也不在 `@load IGRF_calculate` 的 `allow` 白名单中；白名单只开放 `IGRF_pc`。用户通用点转换应使用 `FunctionCoordinate` 版本。`IGRF_pc` 为纯 Julia 实现（无外部运行库），本页示例仍不加载它。
 
 ### `pa_xyz2sphere` / `pa_sphere2xyz`
 

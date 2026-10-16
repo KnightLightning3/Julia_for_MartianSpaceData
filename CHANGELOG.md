@@ -1,5 +1,33 @@
 # 更新日志
 
+## [2026-10-16] IGRF 纯 Julia 化合并：移除 Fortran DLL，磁力线追踪默认改用 DP5
+
+### 场值内核（`models/IGRF_calculate.jl`，以 `IGRF_new3.jl` 为基线合并）
+
+- 合并阶段 0～3：常数化 `root_dir`/`gh_filename`/`B_compress`；勒让德函数 P/DP 只保留滚动三行、`(AA/r)` 逐阶滚动；新增 `GS_T`/`HS_T`/`REALK_T`/`MFLOAT` 派生系数表（M 连续布局，供 `@simd` 向量化）与 `rebuild_derived_tables!()`；新增 `IGRFWorkspace`、`IGRF!`/`IGRF_dB!`（含 `B_compress` 均匀场项与 9 个偏导）、`IGRF_batch!`/`IGRF_batch`；`cos(mϕ)/sin(mϕ)` 改为每 8 项刷新锚点的分块递推（`fma` 补偿锚点相位误差）。
+- **移除全部 Fortran/DLL 代码**：删除 `IGRF_fortran`、`IGRF_fortran_free`、`IGRF_sphere`、`RK4_Trace_fortran`、`mag_trace_rk4`、`mag_trace_rk4_fortran_ADAPTIVE_STEP`、`IGRF_DLL_PATH` 及全部 `ccall`；`trace_mag_line` 的方法只剩 `:dp5`（默认）与 `:euler`，`:rk4`/`:adaptive` 抛 `ArgumentError`；`IGRF_pc` 与 `mag_trace_Euler_step` 改走纯 Julia 内核（Euler 由「Fortran 场值 + 定步长」变为「纯 Julia 场值 + 定步长」）。同时删除二进制资源 `models/IGRF_DLL.dll`；系数文件 `models/gh_gao` 经 `FortranFiles` 读取的路径不变。
+- **修复 `IGRF_batch!` 数据竞争（正确性缺陷）**：串行早退分支把工作区声明为 `ws`，而 `Threads.@spawn` 块内同名赋值会被闭包捕获（Julia 捕获变量而非值），导致所有任务共用一个工作区。表现为结果随机错误（n=5000 时约 95% 的点与串行不一致，出现 1e10～1e19 nT 的垃圾值）与耗时虚高。改名 `ws_serial` 后消失。这也解释了交接文档 §7.1「同代码两次实测互相矛盾」：`min_chunk` 之前没有该分支，`mc=1` 与旧代码并非同一路径。
+
+### 磁力线追踪
+
+- `trace_mag_line` 默认方法由 `:euler` 改为 `:dp5`（批注批准），并同步 docstring 与专题文档；`:euler` 保留可用。
+- 新增纯 Julia `mag_trace_dp5`（Dormand–Prince 5(4)，FSAL，四阶稠密输出，笛卡尔坐标弧长参数化）与 `trace_mag_lines`（每条线一个任务）；起点/中途点落在极轴时 θ 夹到 `[1e-8, π-1e-8]`。
+- 修复既有缺陷：`output_frame != "pc"` 时 `mag_line_num` 未定义导致 `UndefVarError`；`trace_mag_line` 后处理循环类型不稳定（每行约 28 次分配）改为类型断言 + 无临时向量，`"pc"` 输出逐位不变。
+- `mag_trace_dp5`/`trace_mag_line` 的 `threaded_output` 默认改为 `false`（避免在 `trace_mag_lines` 外层并行时嵌套并行；数据竞争修复后单线开启它仍有收益，可显式打开）。
+
+### 准确性与效率验证（64 线程，本机实测）
+
+- 场值/导数：黄金参考值（移除前由 Fortran DLL 内核 `IGRF_110`/`RK4_STEP` 生成，已固化在 `models/test.jl`）一般 ϕ 最大相对 |B| 3.3e-15、`B_compress=[12,-7,5]` 1.6e-15、`DB` 1.8e-14；四阶中心差分独立检验 9 个偏导 2.2e-9/2.0e-9/3.0e-10（阈值 1e-8）；`IGRF!`/`IGRF_dB!` 稳态零分配；2 万点 `IGRF_batch!` 与串行逐位一致。
+- 合并保真：合并后内核与 `IGRF_new3.jl` 的纯 Julia 内核在 500 个随机点上 `IGRF!`/`IGRF_dB!` 逐位一致；Euler 由 Fortran 内核改纯 Julia 后，同一条线 2092 行位置最大偏差 5.1e-13 km。
+- 性能：`IGRF!` 4.94 μs（移除前 Fortran 内核 18.1 μs）、`IGRF_dB!` 7.98 μs；2 万点串行 115.8 ms / 多线程 6.74 ms（17×）。单线 4500 行：DP5 28.3 ms（串行输出）、10.3 ms（单线并行输出）、Euler 25.8 ms、`step=5 km` 5.1 ms；256 条线 922198 行由串行 7.26 s 降到 0.436 s（16.6×，逐位一致）。
+- 精度：DP5 到高精度参考线的最大几何偏差 7.99e-4 km（`xtol=1e-3`），Euler 0.858 km；`hmax` 扫描与交接文档一致，默认仍取 25 km。
+- `IGRF_batch!` 修复后耗时稳定：1 万点 5～13 ms、5 万点 14 ms（修复前交接文档实测为 422 ms / 2180 ms）。
+
+### 文档与范围
+
+- 同步 `src/modules.jl` 的模块说明、`docs/src/api.md` 的 IGRF 条目、`docs/src/architecture.md` 依赖表、`docs/src/coordinates.md`、`docs/src/migration.md` 及中英文 README 中「IGRF 需要外部 Fortran 运行库与 DLL」的表述；`models/test.jl`、`models/test_trace.jl` 重写为针对合并后模块的黄金参考回归与追踪测试。
+- 按用户指示，本次未改动多线程性能优化本身（只修复上述正确性缺陷），也未同步 `test/` 下与 DLL 绑定的既有断言（`igrf_move_test.jl` 的 sha256/文件存在断言、`runtests.jl` 的 `:euler`/`:rk4` 用例、迁移账本 AST hash）——这些验收已完成使命。中间版本 `models/IGRF_new{,2,3}.jl` 不纳入提交。
+
 ## [2026-10-15] 运行配置统一为 TOML，弃用 INI
 
 - Julia 与全部 Python 下载、扫描、索引、检查及派生数据脚本统一读取 `config/settings.toml`；移除 INI 读取、列表解析及迁移命令，清理 `IniFile` 依赖。

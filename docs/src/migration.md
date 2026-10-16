@@ -9,7 +9,7 @@
 | `common/head.jl` | 已删除；显式 `using` 所需外部包，并用 `MarsData.@load` 或限定名访问所需模块 |
 | `calculate/calculate_models.jl`、`:calculate_models` | 已删除；通用计算在 `MarsCommon`，旋转工具在 `FunctionCoordinate`，环境函数在 `MarsEnvironment` |
 | `Magnetic_Model/IGRF_calculate.jl` | `models/IGRF_calculate.jl`；推荐 `MarsData.load_module(:IGRF_calculate)` |
-| `Magnetic_Model/gh_gao`、`Magnetic_Model/IGRF_DLL.dll` | 随源码移到 `models/`，仍按源码同目录定位；文本备份 `Magnetic_Model/gh_gao.txt` 保留 |
+| `Magnetic_Model/gh_gao`、`Magnetic_Model/IGRF_DLL.dll` | 随源码移到 `models/`，仍按源码同目录定位；文本备份 `Magnetic_Model/gh_gao.txt` 保留。**后续变更**：IGRF 已纯 Julia 化（2026-10-16），`models/IGRF_DLL.dll` 与其 `ccall` 封装一并删除，仅保留系数文件 `gh_gao` |
 | `models/Pickup_ion.jl` | `analysis/Pickup_ion.jl`；仍是依赖事件上下文的脚本，尚未函数化 |
 | `models/Graham.jl`、`models/Octree.jl` | `models/extras/`；通过 `models/CATALOG.toml` 查看用途与依赖，显式 include |
 | 包装前的 `common/function_coordinate.jl` | 现在定义 `module FunctionCoordinate`；include 后使用模块限定名 |
